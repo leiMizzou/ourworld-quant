@@ -6,7 +6,7 @@ DOCS="$(cd ../docs && pwd)"
 PORT=8088
 
 echo "=============================================="
-echo " OurWorld Quant Lab — 启动本地静态站"
+echo " OurWorlds Quant Lab — 启动本地静态站"
 echo " 目录: $DOCS"
 echo " 地址: http://localhost:$PORT"
 echo "=============================================="

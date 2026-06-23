@@ -1,4 +1,4 @@
-"""OurWorld Quant Lab — 因子层(阶段 2)。
+"""OurWorlds Quant Lab — 因子层(阶段 2)。
 
 单因子检验流水线:因子计算 → 预处理(去极值/标准化/中性化)→ 评估(IC/ICIR/分层/多空)。
 

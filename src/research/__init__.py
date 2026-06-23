@@ -1,4 +1,4 @@
-"""OurWorld Quant Lab — 研究层。
+"""OurWorlds Quant Lab — 研究层。
 
 把三层接成一条闭环:数据(data) → 因子(factors) → 组合(此处) → 回测(backtest)。
 

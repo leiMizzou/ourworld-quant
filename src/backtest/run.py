@@ -24,7 +24,7 @@ def load_panel(codes=None, start=None, end=None, adjust="hfq") -> pd.DataFrame:
 
 
 def main(argv: list[str] | None = None) -> int:
-    p = argparse.ArgumentParser("owq-backtest", description="OurWorld Quant Lab 回测")
+    p = argparse.ArgumentParser("owq-backtest", description="OurWorlds Quant Lab 回测")
     p.add_argument("--signal", default="reversal", choices=["reversal", "momentum"])
     p.add_argument("--lookback", type=int, default=20)
     p.add_argument("--top", type=int, default=20)

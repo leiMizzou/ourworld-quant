@@ -1,6 +1,6 @@
 <div align="center">
 
-# OurWorld Quant Lab · 量化实验室
+# OurWorlds Quant Lab · 量化实验室
 
 **一个从零开始、公开构建的 A 股个人量化交易/研究项目**
 *Building a personal A-share quant trading & research stack — in public.*
@@ -101,4 +101,4 @@ cd docs && python -m http.server 8080   # 浏览器打开 http://localhost:8080
 
 ## License
 
-[MIT](LICENSE) © 2026 OurWorld Quant Lab
+[MIT](LICENSE) © 2026 OurWorlds Quant Lab

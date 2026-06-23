@@ -30,7 +30,7 @@ def load_panels(codes=None, start=None, adjust="hfq") -> dict:
 
 
 def main(argv: list[str] | None = None) -> int:
-    p = argparse.ArgumentParser("owq-factors", description="OurWorld Quant Lab 单因子检验")
+    p = argparse.ArgumentParser("owq-factors", description="OurWorlds Quant Lab 单因子检验")
     p.add_argument("--factor", default="reversal", choices=list(F.REGISTRY))
     p.add_argument("--window", type=int, default=20)
     p.add_argument("--q", type=int, default=5, help="分层组数")

@@ -3,14 +3,14 @@
 # 用法:
 #   ./setup.sh <你的域名> [二级域名前缀] <GitHub用户名> ["署名"]
 # 例:
-#   ./setup.sh ourworld.app quant myname "Lei"
-#   -> 站点域名 quant.ourworld.app, GitHub 用户 myname
+#   ./setup.sh ourworlds.app quant myname "Lei"
+#   -> 站点域名 quant.ourworlds.app, GitHub 用户 myname
 set -euo pipefail
 
-DOMAIN="${1:?请提供主域名,如 ourworld.app}"
+DOMAIN="${1:?请提供主域名,如 ourworlds.app}"
 SUB="${2:-quant}"
 GH="${3:?请提供 GitHub 用户名}"
-NAME="${4:-OurWorld Quant Lab}"
+NAME="${4:-OurWorlds Quant Lab}"
 FQDN="${SUB}.${DOMAIN}"
 
 echo "将替换为 → 站点: ${FQDN} | GitHub: ${GH} | 署名: ${NAME}"
@@ -34,7 +34,7 @@ cat <<EOF
 
   git init
   git add .
-  git commit -m "chore: initial commit — OurWorld Quant Lab"
+  git commit -m "chore: initial commit — OurWorlds Quant Lab"
   git branch -M main
   # 在 GitHub 新建空仓库 ourworld-quant 后:
   git remote add origin git@github.com:${GH}/ourworld-quant.git
