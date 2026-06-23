@@ -1,0 +1,14 @@
+# 用官方 Caddy 镜像把 docs/ 作为静态站发布在本地 8088 端口
+# 默认 caddy 镜像会以 file_server 发布 /usr/share/caddy(80端口)
+# 启动:  docker compose up -d   ->  http://localhost:8088
+services:
+  quant-site:
+    image: caddy:2-alpine
+    container_name: ourworld-quant-site
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8088:80"      # 只监听本机,交给 cloudflared 隧道转发
+    volumes:
+      - ../docs:/usr/share/caddy:ro
+# 若 cloudflared 也以容器运行,可把二者放同一 network,
+# 然后在 Tunnel 的 service 里直接填 http://quant-site:80

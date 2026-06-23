@@ -1,0 +1,42 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+build/
+dist/
+*.egg-info/
+.venv/
+venv/
+env/
+.ipynb_checkpoints/
+
+# ---- 数据(不要把行情数据/密钥提交上去!)----
+data/
+*.parquet
+*.csv
+*.h5
+*.db
+*.duckdb
+*.sqlite
+
+# ---- 密钥与配置 ----
+.env
+*.token
+config.local.*
+secrets.*
+credentials*.json
+
+# ---- 日志 ----
+*.log
+logs/
+
+# ---- 操作系统 / 编辑器 ----
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# ---- 保留空目录占位 ----
+!**/.gitkeep

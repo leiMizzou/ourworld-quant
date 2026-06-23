@@ -1,0 +1,11 @@
+# 方式 C:并入你已有的 Caddyfile。仅监听本机端口,TLS 交给 Cloudflare 边缘。
+:8088 {
+	root * /srv/ourworld-quant/docs
+	file_server
+	encode gzip zstd
+	# 可选:基础安全头
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+	}
+}
