@@ -29,7 +29,7 @@ jobs:
         # (the code is imported as `src.app.*`, matching `pythonpath = ["."]`).
         run: |
           python -m pip install --upgrade pip
-          pip install numpy pandas duckdb pyarrow "qrcode[pil]" ruff
+          pip install numpy pandas duckdb pyarrow "qrcode[pil]" cryptography ruff
 
       - name: Ruff (lint)
         run: ruff check src tests

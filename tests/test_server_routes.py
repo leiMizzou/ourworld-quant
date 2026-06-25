@@ -858,6 +858,59 @@ class ServerRoutesTest(unittest.TestCase):
         self.assertEqual(resolved["resolution_note"], "已处理")
         self.assertEqual(services.audit_events(self.con)[0]["action"], "admin.report_resolve")
 
+    def test_account_ai_page_renders_education_banner(self):
+        uid = services.confirm_wechat_session(self.con, services.create_wechat_session(self.con), "AIRoute")
+        cookie = f"owq_session={self.sign_cookie(uid)}"
+        status, _, page = self.request("GET", "/account/ai", headers={"Cookie": cookie})
+        self.assertEqual(status, 200)
+        self.assertIn("AI 助教", page)
+        self.assertIn("不构成投资建议", page)  # mandatory education banner
+        self.assertIn("尚未配置 API key", page)
+
+    def test_account_ai_save_key_is_encrypted_and_masked(self):
+        uid = services.confirm_wechat_session(self.con, services.create_wechat_session(self.con), "AIKeyRoute")
+        cookie = f"owq_session={self.sign_cookie(uid)}"
+        with patch("src.app.ai.client.test_api_key", return_value={"ok": True, "detail": "key 可用"}):
+            status, headers, _ = self.request(
+                "POST", "/account/ai",
+                body=self.form_body(uid, {"action": "save", "api_key": "sk-routekey1234567890",
+                                          "base_url": "https://api.deepseek.com", "model": "deepseek-chat"}),
+                headers={"Content-Type": "application/x-www-form-urlencoded", "Cookie": cookie},
+            )
+        self.assertEqual(status, 303)
+        row = self.con.execute("SELECT * FROM ai_user_keys WHERE user_id=?", (uid,)).fetchone()
+        self.assertEqual(row["masked_hint"], "sk-…7890")
+        self.assertNotIn(b"sk-routekey", bytes(row["ciphertext"]))  # ciphertext, not plaintext
+
+    def test_account_ai_review_without_key_prompts_config(self):
+        uid = services.confirm_wechat_session(self.con, services.create_wechat_session(self.con), "AINoKey")
+        cookie = f"owq_session={self.sign_cookie(uid)}"
+        status, _, page = self.request(
+            "POST", "/account/ai-review",
+            body=self.form_body(uid, {"question": "复盘"}),
+            headers={"Content-Type": "application/x-www-form-urlencoded", "Cookie": cookie},
+        )
+        self.assertEqual(status, 200)
+        self.assertIn("DeepSeek API key", page)
+
+    def test_account_ai_review_blocks_model_stock_tip(self):
+        uid = services.confirm_wechat_session(self.con, services.create_wechat_session(self.con), "AITip")
+        cookie = f"owq_session={self.sign_cookie(uid)}"
+        from src.app.ai import service as ai_service
+        ai_service.save_key(self.con, uid, SECRET, "sk-routekey1234567890",
+                            "https://api.deepseek.com", "deepseek-chat")
+        services.place_order(self.con, uid, "000001.SZ", "buy", 100)
+        tip = {"text": "建议买入 000001.SZ,目标价 15 元。", "usage": {"total_tokens": 9}, "model": "x"}
+        with patch("src.app.ai.client.chat_completion", return_value=tip):
+            status, _, page = self.request(
+                "POST", "/account/ai-review",
+                body=self.form_body(uid, {"question": "我该买啥"}),
+                headers={"Content-Type": "application/x-www-form-urlencoded", "Cookie": cookie},
+            )
+        self.assertEqual(status, 200)
+        self.assertIn("触发了合规过滤", page)  # blocked message shown
+        self.assertNotIn("目标价 15", page)    # the tip itself is never shown
+
     def test_public_profile_shows_current_holdings_and_recent_orders(self):
         user_id = services.get_or_create_user(self.con, "dev-profile-openid", "ProfileRoute")
         services.join_active_contest(self.con, user_id)

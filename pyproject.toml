@@ -20,6 +20,7 @@ data = [
 ]
 app = [
   "qrcode[pil]>=7.4",
+  "cryptography>=42",
 ]
 test = [
   "pytest>=8.0",
@@ -32,6 +33,7 @@ dev = [
   "tushare>=1.2.89",
   "tqdm>=4.66",
   "qrcode[pil]>=7.4",
+  "cryptography>=42",
   "pytest>=8.0",
 ]
 

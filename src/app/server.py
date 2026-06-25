@@ -29,6 +29,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, quote, urlencode, urlparse
 
 from . import data_bridge, db, doctor, email_config, services
+from .ai import service as ai_service
 
 
 SESSION_COOKIE = "owq_session"
@@ -71,6 +72,7 @@ SENSITIVE_ENV_NAMES = (
     "OWQ_SMTP_PASSWORD",
     "WECHAT_APP_SECRET",
     "TUSHARE_TOKEN",
+    "OWQ_DEEPSEEK_API_KEY",
 )
 
 
@@ -711,6 +713,8 @@ class AppHandler(BaseHTTPRequestHandler):
             self.require_user(lambda user: self.render_account_consent(user, query), enforce_consent=False)
         elif path == "/account":
             self.require_user(lambda user: self.render_account(user, query))
+        elif path == "/account/ai":
+            self.require_user(lambda user: self.render_account_ai(user, query))
         elif path == "/admin":
             self.require_admin(lambda user: self.render_admin(user, query))
         elif path == "/admin/accounts.csv":
@@ -770,7 +774,7 @@ class AppHandler(BaseHTTPRequestHandler):
             self.send_text("", "image/svg+xml; charset=utf-8", head=True)
         elif path.startswith("/u/") and path.count("/") == 2:
             self.send_html("OK", "", head=True)
-        elif path in {"/app", "/market", "/portfolio-lab", "/account", "/account/consent", "/contest", "/showcase", "/forum/new"}:
+        elif path in {"/app", "/market", "/portfolio-lab", "/account", "/account/ai", "/account/consent", "/contest", "/showcase", "/forum/new"}:
             user = self.current_user()
             if not user:
                 self.redirect("/login")
@@ -790,12 +794,21 @@ class AppHandler(BaseHTTPRequestHandler):
             self.send_security_headers("asset")
             self.end_headers()
 
+    # AI routes make a slow (up to ~20s) third-party network call and only do append-only
+    # writes (ai_usage / ai_interactions / a per-user-PK key upsert), which are
+    # concurrency-safe without the global lock. Holding DB_WRITE_LOCK across that network
+    # call would block every other write, so these paths are dispatched outside it.
+    AI_UNLOCKED_POST_PATHS = {"/account/ai", "/account/ai-review"}
+
     def do_POST(self):
         # Serialize writes: POST is the only state-changing verb in this app, so holding
         # DB_WRITE_LOCK here makes every read-modify-write service call atomic and prevents
         # concurrent orders from losing holdings/cash updates.
-        with DB_WRITE_LOCK:
+        if urlparse(self.path).path in self.AI_UNLOCKED_POST_PATHS:
             self.safe_dispatch(self.handle_post)
+        else:
+            with DB_WRITE_LOCK:
+                self.safe_dispatch(self.handle_post)
 
     def handle_post(self):
         parsed = urlparse(self.path)
@@ -859,6 +872,10 @@ class AppHandler(BaseHTTPRequestHandler):
             self.require_user(lambda user: self.handle_account_settle(user), form=form, csrf_redirect="/account")
         elif path == "/account/profile":
             self.require_user(lambda user: self.handle_account_profile(user, form), form=form, csrf_redirect="/account")
+        elif path == "/account/ai":
+            self.require_user(lambda user: self.handle_account_ai(user, form), form=form, csrf_redirect="/account/ai")
+        elif path == "/account/ai-review":
+            self.require_active_user(lambda user: self.handle_account_ai_review(user, form), form=form, csrf_redirect="/account/ai")
         elif path == "/account/password":
             self.require_user(lambda user: self.handle_account_password(user, form), form=form, csrf_redirect="/account")
         elif path == "/account/delete":
@@ -1494,7 +1511,7 @@ class AppHandler(BaseHTTPRequestHandler):
             nav = (
                 '<div class="nav">'
                 '<a href="/app">模拟盘</a><a href="/market">基础数据</a><a href="/portfolio-lab">组合设计</a><a href="/showcase">比赛展示</a>'
-                f'<a href="/forum">论坛</a><a href="/support">支持</a><a href="/account">账户</a>{admin_link}'
+                f'<a href="/forum">论坛</a><a href="/account/ai">AI助教</a><a href="/support">支持</a><a href="/account">账户</a>{admin_link}'
                 f'<span>{escape(user["nickname"])}</span>'
                 f'<form method="post" action="/logout">{csrf_input(user)}<button type="submit">退出</button></form>'
                 "</div>"
@@ -3718,6 +3735,136 @@ class AppHandler(BaseHTTPRequestHandler):
             target_id=filename,
             detail=detail,
         )
+
+    def sensitive_secret_values(self) -> list[str]:
+        """Secret values that must never leave the system in an AI payload."""
+        return [os.getenv(name, "") for name in SENSITIVE_ENV_NAMES]
+
+    AI_BANNER = (
+        '<section class="card" style="border-color:#f0c36d;background:#fff8e6">'
+        '<p class="muted" style="margin:0">🤖 AI 助教仅用于<strong>量化方法学习、引导与模拟盘复盘</strong>,'
+        '不提供针对具体标的的买卖建议或收益预测,不构成投资建议。每位用户使用自己配置的 DeepSeek API key,'
+        'key 加密存储、仅调用时解密;复盘只读取你<strong>本人</strong>的模拟盘数据。</p></section>'
+    )
+
+    def render_account_ai(self, user, query):
+        row = ai_service.get_key_row(self.con, user["id"])
+        used = ai_service.daily_tokens(self.con, user["id"])
+        if row is None:
+            status_html = '<p class="muted">尚未配置 API key。</p>'
+            enabled = False
+        else:
+            enabled = bool(int(row["enabled"]))
+            status_html = (
+                f'<table><tr><th>状态</th><td>{"已启用" if enabled else "已停用"}</td></tr>'
+                f'<tr><th>Key</th><td>{escape(row["masked_hint"])}</td></tr>'
+                f'<tr><th>Base URL</th><td>{escape(row["base_url"])}</td></tr>'
+                f'<tr><th>模型</th><td>{escape(row["model"])}</td></tr>'
+                f'<tr><th>今日用量</th><td>{used} tokens</td></tr>'
+                f'<tr><th>上次校验</th><td>{escape(row["status"] or "未校验")}</td></tr></table>'
+            )
+        disabled_note = (
+            '<div class="msg err">服务端已全局关闭 AI 功能(OWQ_AI_DISABLED)。</div>'
+            if ai_service.ai_disabled() else ""
+        )
+        cur_base = escape(row["base_url"]) if row else "https://api.deepseek.com"
+        cur_model = escape(row["model"]) if row else "deepseek-chat"
+        toggle_action = "disable" if enabled else "enable"
+        toggle_label = "停用 AI" if enabled else "启用 AI"
+        body = f"""
+{self.message_html(query)}
+{self.AI_BANNER}
+{disabled_note}
+<section class="card">
+  <h2>AI 助教配置</h2>
+  {status_html}
+  <form method="post" action="/account/ai">
+    {csrf_input(user)}
+    <input type="hidden" name="action" value="save">
+    <label>DeepSeek API Key</label>
+    <input name="api_key" type="password" placeholder="sk-..." autocomplete="off">
+    <div class="row">
+      <div><label>Base URL</label><input name="base_url" value="{cur_base}"></div>
+      <div><label>模型</label><input name="model" value="{cur_model}"></div>
+    </div>
+    <p class="muted">key 用服务端密钥加密后存储,仅调用时解密,不显示明文、不进入导出或日志。</p>
+    <p><button type="submit">保存并校验</button></p>
+  </form>
+  <div class="row">
+    <form method="post" action="/account/ai">{csrf_input(user)}<input type="hidden" name="action" value="{toggle_action}"><button type="submit" class="secondary">{toggle_label}</button></form>
+    <form method="post" action="/account/ai" onsubmit="return confirm('确定删除已保存的 API key?');">{csrf_input(user)}<input type="hidden" name="action" value="delete"><button type="submit" class="secondary">删除 key</button></form>
+  </div>
+</section>
+<section class="card">
+  <h2>AI 复盘:解释我自己的模拟盘结果</h2>
+  <p class="muted">基于你<strong>本人</strong>的持仓、成交和演练计划,做方法层面的复盘和引导(不预测、不荐股)。</p>
+  <form method="post" action="/account/ai-review">
+    {csrf_input(user)}
+    <label>想让 AI 重点看什么?(可选)</label>
+    <input name="question" placeholder="例如:我这波操作的风险控制有什么问题?">
+    <p><button type="submit">让 AI 复盘</button></p>
+  </form>
+</section>
+"""
+        self.send_html("AI 助教", body, user=user)
+
+    def handle_account_ai(self, user, form):
+        action = (form.get("action") or "save").strip()
+        try:
+            if action == "save":
+                key = (form.get("api_key") or "").strip()
+                if not key:
+                    self.redirect("/account/ai?err=" + quote("请填入 API key。"))
+                    return
+                base_url = form.get("base_url") or ai_service.client.DEFAULT_BASE_URL
+                model = form.get("model") or ai_service.client.DEFAULT_MODEL
+                result = ai_service.client.test_api_key(key, base_url=base_url, model=model)
+                ai_service.save_key(self.con, user["id"], SECRET, key, base_url, model, status=result["detail"][:120])
+                self.audit("ai.key_saved", user=user, target_type="ai", detail={"ok": result["ok"]})
+                tail = "key 已保存并校验通过。" if result["ok"] else "key 已保存,但校验失败:" + result["detail"]
+                self.redirect("/account/ai?msg=" + quote(tail))
+                return
+            if action in {"enable", "disable"}:
+                ai_service.set_enabled(self.con, user["id"], action == "enable")
+                self.audit("ai.key_toggled", user=user, target_type="ai", detail={"enabled": action == "enable"})
+                self.redirect("/account/ai?msg=" + quote("已更新 AI 启用状态。"))
+                return
+            if action == "delete":
+                ai_service.delete_key(self.con, user["id"])
+                self.audit("ai.key_deleted", user=user, target_type="ai")
+                self.redirect("/account/ai?msg=" + quote("已删除 API key。"))
+                return
+            self.redirect("/account/ai?err=" + quote("未知操作。"))
+        except ValueError as exc:
+            self.redirect("/account/ai?err=" + quote(sanitize_diagnostic_message(exc)))
+
+    def handle_account_ai_review(self, user, form):
+        if not self.require_user_write_limit(user, "ai_review", 12, 3600, "/account/ai"):
+            return
+        result = ai_service.explain_my_result(
+            self.con,
+            user["id"],
+            secret=SECRET,
+            leak_check_secrets=self.sensitive_secret_values(),
+            question=form.get("question", ""),
+        )
+        self.audit(
+            "ai.review",
+            user=user,
+            target_type="ai",
+            detail={"ok": result["ok"], "blocked": result.get("blocked", False), "error": result.get("error", "")},
+        )
+        answer = escape(result["text"]).replace("\n", "<br>")
+        klass = "msg" if result["ok"] and not result.get("blocked") else "msg err"
+        body = f"""
+{self.AI_BANNER}
+<section class="card">
+  <h2>AI 复盘结果</h2>
+  <div class="{klass}">{answer}</div>
+  <p><a class="btn secondary" href="/account/ai">返回 AI 助教</a></p>
+</section>
+"""
+        self.send_html("AI 复盘结果", body, user=user)
 
     def handle_account_reset(self, user, form):
         if (form.get("confirm") or "").strip() != "RESET":

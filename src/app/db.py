@@ -347,6 +347,54 @@ def migrate(con: sqlite3.Connection) -> None:
         if name not in session_cols:
             con.execute(sql)
 
+    # AI co-pilot tables (additive; safe on existing prod DBs). The user's API key is
+    # stored only as AES-GCM ciphertext+nonce — never plaintext, never in audit/export.
+    con.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS ai_user_keys (
+            user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+            ciphertext BLOB NOT NULL,
+            nonce BLOB NOT NULL,
+            key_version INTEGER NOT NULL DEFAULT 1,
+            base_url TEXT NOT NULL DEFAULT 'https://api.deepseek.com',
+            model TEXT NOT NULL DEFAULT 'deepseek-chat',
+            masked_hint TEXT NOT NULL DEFAULT '',
+            enabled INTEGER NOT NULL DEFAULT 1,
+            status TEXT NOT NULL DEFAULT '',
+            daily_token_cap INTEGER NOT NULL DEFAULT 200000,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            last_validated_at TEXT NOT NULL DEFAULT ''
+        );
+        CREATE TABLE IF NOT EXISTS ai_usage (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            request_kind TEXT NOT NULL DEFAULT '',
+            model TEXT NOT NULL DEFAULT '',
+            prompt_tokens INTEGER NOT NULL DEFAULT 0,
+            completion_tokens INTEGER NOT NULL DEFAULT 0,
+            total_tokens INTEGER NOT NULL DEFAULT 0,
+            status TEXT NOT NULL DEFAULT 'ok',
+            latency_ms INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE INDEX IF NOT EXISTS idx_ai_usage_user_time ON ai_usage(user_id, created_at);
+        CREATE TABLE IF NOT EXISTS ai_interactions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            request_kind TEXT NOT NULL DEFAULT '',
+            model TEXT NOT NULL DEFAULT '',
+            prompt TEXT NOT NULL DEFAULT '',
+            raw_response TEXT NOT NULL DEFAULT '',
+            filtered_response TEXT NOT NULL DEFAULT '',
+            blocked INTEGER NOT NULL DEFAULT 0,
+            reasons TEXT NOT NULL DEFAULT '',
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE INDEX IF NOT EXISTS idx_ai_interactions_user_time ON ai_interactions(user_id, created_at);
+        """
+    )
+
 
 def seed_demo_market(con: sqlite3.Connection) -> None:
     row = con.execute("SELECT COUNT(*) FROM market_prices").fetchone()
