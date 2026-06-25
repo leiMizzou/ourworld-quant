@@ -8,6 +8,7 @@ from __future__ import annotations
 import argparse
 import os
 import sqlite3
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -32,6 +33,9 @@ class FeatureSpec:
     factor: str
     window: int
 
+
+# 复权研究低于这个标的数就视为样本过小、不具代表性(通常是 hfq 日线没同步够)。
+MIN_REPRESENTATIVE_CODES = 30
 
 FEATURE_SPECS = [
     FeatureSpec("reversal_20", "reversal", 20),
@@ -423,7 +427,23 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--probe-adjust", choices=["hfq", "qfq", "none"], help="source probe adjust, defaults to --adjust")
     parser.add_argument("--out", default="reports/real-data-report.md")
     parser.add_argument("--predictions-csv", default="reports/predictions.csv")
+    parser.add_argument(
+        "--allow-unadjusted",
+        action="store_true",
+        help="允许用不复权(none)价做研究——仅用于调试。不复权价含分红除权跳空,"
+        "会使 IC/回归/回测失真,正式研究必须用 hfq。",
+    )
     args = parser.parse_args(argv)
+
+    # 不复权价反映的是除权除息跳空而非真实收益,会让因子/IC/回测全部失真。研究默认
+    # 必须用 hfq;模拟盘成交价才用 none。这里硬性拦截,避免再次生成"看似真实却无效"的报告。
+    if args.adjust == "none" and not args.allow_unadjusted:
+        print(
+            "拒绝执行:--adjust none 会用不复权价做研究,IC/回归/回测结果无效。\n"
+            "请改用 --adjust hfq(需先同步 hfq 日线);确需调试不复权数据再显式加 --allow-unadjusted。",
+            file=sys.stderr,
+        )
+        return 2
 
     panels, long_panel = load_panels(codes=args.codes, start=args.start, adjust=args.adjust)
     if not panels:
@@ -431,6 +451,16 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     close = panels["close"]
+    # 复权研究但股票池过小,通常意味着 hfq 日线尚未按代表性股票池同步。响亮提示,
+    # 避免把"只有几只票"的结果当成可信结论。
+    if args.adjust in {"hfq", "qfq"} and close.shape[1] < MIN_REPRESENTATIVE_CODES:
+        print(
+            f"警告:adjust={args.adjust} 仅加载到 {close.shape[1]} 只标的"
+            f"(< {MIN_REPRESENTATIVE_CODES}),样本过小、不具代表性,结论不可信。\n"
+            "请先用 deploy/sync-market-public.sh 或 src.data.cli 同步 hfq 日线"
+            "(含退市股票池)再生成报告。",
+            file=sys.stderr,
+        )
     rebal = rebalance_dates(close.index, args.freq)
     features = feature_panels(panels)
     frame = regression_frame(features, close, rebal)

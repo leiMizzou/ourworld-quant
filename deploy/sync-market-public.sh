@@ -90,7 +90,7 @@ fi
 if [[ "$SYNC_REPORTS" == "1" ]]; then
   "$PYTHON" -m src.research.real_data_report \
     --start "${OWQ_REPORT_START:-20230101}" \
-    --adjust "${OWQ_REPORT_ADJUST:-$APP_ADJUST}" \
+    --adjust "${OWQ_REPORT_ADJUST:-hfq}" \
     --top "${OWQ_REPORT_TOP:-20}" \
     --app-db "$OWQ_APP_DB" \
     --out "${OWQ_REPORT_OUT:-reports/real-data-report.md}" \
