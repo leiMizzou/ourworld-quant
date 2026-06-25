@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>OurWorlds Quant Lab · 量化实验室</title>
-<meta name="description" content="从零搭建 A 股个人量化的完整闭环 — 公开构建。数据→因子→回测→实盘,代码开源、过程透明。">
-<meta property="og:title" content="OurWorlds Quant Lab · 量化实验室">
-<meta property="og:description" content="从零搭建 A 股个人量化的完整闭环 — 公开构建 (build in public)。">
+<title>OurWorlds Quant Arena · A 股模拟盘公开赛</title>
+<meta name="description" content="用统一模拟本金、真实行情和公开复盘，把策略想法放到同一个赛场里验证、讨论和迭代。">
+<meta property="og:title" content="OurWorlds Quant Arena · A 股模拟盘公开赛">
+<meta property="og:description" content="真实行情、统一规则、公开榜单、策略复盘和论坛讨论。">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://quant.ourworlds.app">
 <link rel="canonical" href="https://quant.ourworlds.app">
@@ -14,166 +14,301 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700;900&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
+  :root{
+    --ink:#101217;
+    --muted:#59616f;
+    --soft:#eef1f5;
+    --paper:#f7f8fa;
+    --panel:#ffffff;
+    --line:#d8dee8;
+    --blue:#1d4ed8;
+    --green:#087f5b;
+    --amber:#b45309;
+    --red:#b91c1c;
+  }
   *{box-sizing:border-box}
-  body{margin:0;background:#f1efe9;color:#15140f;font-family:'Space Grotesk','Noto Sans SC',system-ui,sans-serif;line-height:1.55;-webkit-font-smoothing:antialiased}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:'Space Grotesk','Noto Sans SC',system-ui,sans-serif;line-height:1.55;-webkit-font-smoothing:antialiased}
   a{color:inherit;text-decoration:none}
-  ::selection{background:#15140f;color:#eafe5a}
-  @media(max-width:860px){
-    .wrap{padding:0 20px!important}
-    .r{grid-template-columns:1fr!important}
-    .r4{grid-template-columns:repeat(2,1fr)!important}
-    .rroad{grid-template-columns:1fr!important;gap:6px 0!important}
-    .rlog{grid-template-columns:1fr!important;gap:4px 0!important}
+  a:hover{text-decoration:underline}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 36px}
+  .top{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:24px 0;border-bottom:2px solid var(--ink)}
+  .brand{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:800;letter-spacing:0}
+  .brand-dot{width:12px;height:12px;background:var(--blue);display:inline-block}
+  .nav{display:flex;gap:22px;align-items:center;flex-wrap:wrap;font-size:14px;color:var(--muted)}
+  .nav .primary{background:var(--ink);color:#fff;padding:8px 14px;border-radius:7px}
+  .hero{display:grid;grid-template-columns:1.12fr .88fr;gap:42px;padding:42px 0 30px;align-items:stretch}
+  .kicker{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:1px;text-transform:uppercase;color:var(--blue);font-weight:500}
+  h1{font-size:clamp(48px,8vw,96px);line-height:.96;letter-spacing:0;margin:18px 0 22px;font-weight:900}
+  h2{font-size:clamp(28px,4vw,42px);line-height:1.08;letter-spacing:0;margin:0;font-weight:800}
+  h3{font-size:20px;line-height:1.2;margin:0;font-weight:700}
+  p{margin:0;color:var(--muted)}
+  .lead{font-size:19px;max-width:56ch;color:#2d333d}
+  .muted{color:var(--muted)}
+  .actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:28px}
+  .btn{display:inline-flex;align-items:center;justify-content:center;border:1.5px solid var(--ink);border-radius:7px;padding:12px 18px;font-size:15px;font-weight:700;min-height:44px}
+  .btn.dark{background:var(--ink);color:#fff}
+  .btn.blue{background:var(--blue);border-color:var(--blue);color:#fff}
+  .arena{background:var(--panel);border:1px solid var(--line);border-radius:8px;display:flex;flex-direction:column;min-height:420px}
+  .arena-head{display:flex;justify-content:space-between;align-items:center;gap:18px;border-bottom:1px solid var(--line);padding:18px 20px}
+  .status{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--green);white-space:nowrap}
+  .score-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line)}
+  .score{background:#fff;padding:18px 20px;min-height:106px}
+  .score b{display:block;font-size:30px;line-height:1;color:var(--ink);margin-bottom:8px}
+  .score span{font-family:'IBM Plex Mono',monospace;font-size:11px;text-transform:uppercase;color:var(--muted);letter-spacing:1px}
+  .arena-body{padding:18px 20px}
+  .feed{display:grid;gap:10px;margin-top:14px}
+  .feed-row{display:grid;grid-template-columns:86px 1fr auto;gap:12px;align-items:center;border:1px solid var(--line);border-radius:7px;padding:10px 12px;background:#fbfcfe}
+  .tag{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--blue)}
+  .pill{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:999px;padding:3px 8px;font-size:12px;color:var(--muted);white-space:nowrap}
+  .metric-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border-top:2px solid var(--ink);border-bottom:2px solid var(--ink);margin-top:16px}
+  .metric{padding:22px 18px;border-right:1px solid var(--line)}
+  .metric:last-child{border-right:0}
+  .metric strong{display:block;font-size:clamp(26px,4vw,42px);line-height:1;font-weight:800}
+  .metric span{display:block;margin-top:8px;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}
+  section{padding:72px 0 0}
+  .section-head{display:flex;align-items:baseline;gap:16px;margin-bottom:28px}
+  .section-no{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--blue);white-space:nowrap}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+  .live-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:16px;align-items:start}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:22px}
+  .card p{margin-top:10px;font-size:15px}
+  .card .num{font-size:46px;line-height:1;font-weight:800;color:var(--blue);margin-bottom:16px}
+  .card-title{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:14px;font-size:13px;color:var(--muted)}
+  .rank-list,.post-list{display:grid;gap:10px;margin-top:16px}
+  .rank-row{display:grid;grid-template-columns:52px 1fr auto;gap:12px;align-items:center;border-top:1px solid var(--line);padding:12px 0}
+  .rank-row span{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--blue)}
+  .rank-row strong{font-family:'IBM Plex Mono',monospace;color:var(--green)}
+  .mini-post{border-top:1px solid var(--line);padding:12px 0}
+  .mini-post strong{display:block;margin-bottom:6px}
+  .mini-post p{margin:0 0 8px;font-size:14px}
+  .mini-post span{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted)}
+  .data-proof{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-top:16px;background:#fff;border:1px solid var(--line);border-radius:8px;padding:20px 22px}
+  .data-proof strong{display:block;font-size:22px;line-height:1.2;margin:6px 0}
+  .data-proof p{max-width:72ch}
+  .rule{display:grid;grid-template-columns:120px 1fr;gap:20px;align-items:start;padding:22px 0;border-top:1px solid var(--line)}
+  .rule:last-child{border-bottom:1px solid var(--line)}
+  .rule b{font-size:18px}
+  .rule p{max-width:78ch}
+  .flow{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  .step{background:var(--ink);color:#fff;border-radius:8px;padding:22px;min-height:178px}
+  .step p{color:#d7dce5;margin-top:12px}
+  .step span{font-family:'IBM Plex Mono',monospace;font-size:12px;color:#8fb4ff}
+  .discussion{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}
+  .thread{background:#fff;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .thread-row{display:grid;grid-template-columns:92px 1fr;gap:14px;padding:16px 18px;border-bottom:1px solid var(--line)}
+  .thread-row:last-child{border-bottom:0}
+  .thread-row strong{display:block;margin-bottom:4px}
+  .note{border-left:4px solid var(--amber);background:#fff7ed;padding:18px 20px;border-radius:7px;color:#4b3521}
+  .links{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  .link-tile{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:18px;min-height:120px}
+  .link-tile strong{display:block;margin-bottom:8px}
+  footer{margin-top:76px;border-top:2px solid var(--ink);padding:30px 0 58px;display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap;color:var(--muted);font-size:13px}
+  @media(max-width:900px){
+    .wrap{padding:0 20px}
+    .top{align-items:flex-start;flex-direction:column}
+    .hero,.grid3,.grid2,.discussion,.links,.live-grid{grid-template-columns:1fr}
+    .metric-strip,.flow{grid-template-columns:1fr 1fr}
+    .feed-row{grid-template-columns:1fr}
+    .data-proof{align-items:flex-start;flex-direction:column}
+    .rule{grid-template-columns:1fr}
+  }
+  @media(max-width:560px){
+    .metric-strip,.flow,.score-grid{grid-template-columns:1fr}
+    h1{font-size:44px}
   }
 </style>
 </head>
 <body>
-<div class="wrap" style="max-width:1180px;margin:0 auto;padding:0 40px">
-
-  <header style="display:flex;align-items:center;justify-content:space-between;padding:26px 0;gap:20px;flex-wrap:wrap">
-    <div style="display:flex;align-items:center;gap:11px;font-weight:700;font-size:18px;letter-spacing:-.3px">
-      <span style="width:13px;height:13px;background:#15140f;border-radius:50%"></span>OurWorlds Quant <span style="color:#7c766a;font-weight:400">量化实验室</span>
-    </div>
-    <nav style="display:flex;gap:26px;font-size:14px;color:#56514a;align-items:center;flex-wrap:wrap">
-      <a href="#overview">概览</a>
-      <a href="#empirical">实证</a>
-      <a href="#roadmap">路线</a>
-      <a href="#log">日志</a>
-      <a href="https://github.com/leiMizzou/ourworld-quant" target="_blank" rel="noopener" style="background:#15140f;color:#fff;padding:8px 16px;border-radius:999px">★ GitHub</a>
+<div class="wrap">
+  <header class="top">
+    <a class="brand" href="/"><span class="brand-dot"></span>OurWorlds Quant Arena</a>
+    <nav class="nav">
+      <a href="#live">赛场动态</a>
+      <a href="#contest">公开赛</a>
+      <a href="#discussion">讨论复盘</a>
+      <a href="#rules">赛制</a>
+      <a href="/data-status">数据状态</a>
+      <a href="/showcase/public">排行榜</a>
+      <a href="/forum">论坛</a>
+      <a href="/support">支持</a>
+      <a href="/login">登录</a>
+      <!-- OWQ:PUBLIC_NAV_CTA:START -->
+      <a class="primary" href="/register">邮箱注册</a>
+      <!-- OWQ:PUBLIC_NAV_CTA:END -->
     </nav>
   </header>
 
-  <section style="padding:36px 0 30px;border-top:2px solid #15140f">
-    <div style="display:flex;justify-content:space-between;align-items:baseline;font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:1px;color:#7c766a;margin-bottom:30px">
-      <span style="color:#1d4ed8">● BUILD IN PUBLIC · 公开构建中</span>
-      <span>ISSUE 0.2 — 2026-06-23</span>
-    </div>
-    <h1 style="font-size:clamp(46px,9vw,108px);line-height:.94;letter-spacing:-3px;font-weight:700;margin:0 0 28px">从零搭一套<br>A 股个人量化的<br><span style="font-family:'Noto Sans SC';font-weight:900;color:#1d4ed8">完整闭环</span></h1>
-    <div class="r rhero" style="display:grid;grid-template-columns:1.3fr 1fr;gap:40px;align-items:end;padding-top:10px;border-top:1px solid #d6d1c6">
-      <p style="font-size:19px;color:#3a352d;margin:18px 0 0;max-width:46ch">代码开源 · 过程透明 · 边做边记录。一个有工程能力的个人，如何把"<b style="font-weight:600">数据 → 因子 → 回测 → 实盘</b>"真实地跑通——方向锁定小资金、中低频、纯多头。</p>
-      <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:flex-end">
-        <a href="#empirical" style="font-size:15px;padding:13px 24px;background:#15140f;color:#fff;border-radius:999px">查看实证 →</a>
-        <a href="https://github.com/leiMizzou/ourworld-quant" target="_blank" rel="noopener" style="font-size:15px;padding:13px 24px;border:1.5px solid #15140f;border-radius:999px">GitHub 仓库</a>
-      </div>
-    </div>
-    <div class="r r4" style="display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin-top:44px;border-top:2px solid #15140f;border-bottom:2px solid #15140f">
-      <div style="padding:24px 0;border-right:1px solid #d6d1c6"><div style="font-size:clamp(28px,4vw,46px);font-weight:700;letter-spacing:-1.5px;line-height:1">5</div><div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:1px;color:#7c766a;margin-top:8px;text-transform:uppercase">阶段 / Phases</div></div><div style="padding:24px 0;border-right:1px solid #d6d1c6"><div style="font-size:clamp(28px,4vw,46px);font-weight:700;letter-spacing:-1.5px;line-height:1">≤10万</div><div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:1px;color:#7c766a;margin-top:8px;text-transform:uppercase">起步资金 / Capital</div></div><div style="padding:24px 0;border-right:1px solid #d6d1c6"><div style="font-size:clamp(28px,4vw,46px);font-weight:700;letter-spacing:-1.5px;line-height:1">中低频</div><div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:1px;color:#7c766a;margin-top:8px;text-transform:uppercase">频率 / Frequency</div></div><div style="padding:24px 0;border-right:1px solid #d6d1c6"><div style="font-size:clamp(28px,4vw,46px);font-weight:700;letter-spacing:-1.5px;line-height:1">MIT</div><div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:1px;color:#7c766a;margin-top:8px;text-transform:uppercase">开源 / License</div></div>
-    </div>
-  </section>
-
-  <section id="overview" style="padding:74px 0 0">
-    <div style="display:flex;align-items:baseline;gap:16px;margin-bottom:34px">
-      <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#1d4ed8">01 — OVERVIEW</span>
-      <h2 style="font-size:clamp(28px,4vw,42px);font-weight:700;letter-spacing:-1px;margin:0;line-height:1.05">把量化这件事，<br>完整地做给你看</h2>
-    </div>
-    <div class="r" style="display:grid;grid-template-columns:repeat(3,1fr);gap:0;border-top:1px solid #d6d1c6">
-      <div style="padding:30px 28px 30px 0;border-right:1px solid #d6d1c6;padding-left:0"><div style="font-size:60px;font-weight:700;color:#1d4ed8;letter-spacing:-2px;line-height:1;margin-bottom:16px">01</div><h3 style="font-size:22px;font-weight:600;margin:0 0 4px">可复现</h3><div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:1px;color:#a39c8e;text-transform:uppercase;margin-bottom:12px">REPRODUCIBLE</div><p style="margin:0;font-size:14.5px;color:#56514a">数据管道、回测框架、因子研究、策略全部开源可跑，不藏关键步骤。</p></div><div style="padding:30px 28px 30px 0;border-right:1px solid #d6d1c6;padding-left:0"><div style="font-size:60px;font-weight:700;color:#1d4ed8;letter-spacing:-2px;line-height:1;margin-bottom:16px">02</div><h3 style="font-size:22px;font-weight:600;margin:0 0 4px">透明</h3><div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:1px;color:#a39c8e;text-transform:uppercase;margin-bottom:12px">TRANSPARENT</div><p style="margin:0;font-size:14.5px;color:#56514a">每个阶段的进展、踩的坑、改的错，都写进构建日志，真实呈现。</p></div><div style="padding:30px 28px 30px 0;border-right:1px solid #d6d1c6;padding-left:0"><div style="font-size:60px;font-weight:700;color:#1d4ed8;letter-spacing:-2px;line-height:1;margin-bottom:16px">03</div><h3 style="font-size:22px;font-weight:600;margin:0 0 4px">务实</h3><div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:1px;color:#a39c8e;text-transform:uppercase;margin-bottom:12px">PRAGMATIC</div><p style="margin:0;font-size:14.5px;color:#56514a">适配小资金、中低频、纯多头的现实约束，不碰拼不过机构的高频。</p></div>
-    </div>
-  </section>
-
-  <section style="padding:74px 0 0">
-    <div style="display:flex;align-items:baseline;gap:16px;margin-bottom:34px">
-      <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#1d4ed8">02 — WHY PUBLIC</span>
-      <h2 style="font-size:clamp(28px,4vw,42px);font-weight:700;letter-spacing:-1px;margin:0;line-height:1.05">公开，本身就是<br>策略的一部分</h2>
-    </div>
-    <div class="r" style="display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:#d6d1c6;border:1px solid #d6d1c6">
-      <div style="background:#f1efe9;padding:26px 28px"><h3 style="font-size:19px;font-weight:600;margin:0 0 4px">内容即资产</h3><div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:1px;color:#a39c8e;text-transform:uppercase;margin-bottom:10px">Content as Asset</div><p style="margin:0;font-size:14.5px;color:#56514a">可验证的研究方法论 + 实盘记录，是职业化最硬的敲门砖。</p></div><div style="background:#f1efe9;padding:26px 28px"><h3 style="font-size:19px;font-weight:600;margin:0 0 4px">公开倒逼质量</h3><div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:1px;color:#a39c8e;text-transform:uppercase;margin-bottom:10px">Quality by Exposure</div><p style="margin:0;font-size:14.5px;color:#56514a">知道有人看，就不会糊弄回测、不会忽略成本、不会过拟合自欺。</p></div><div style="background:#f1efe9;padding:26px 28px"><h3 style="font-size:19px;font-weight:600;margin:0 0 4px">顺带做自媒体</h3><div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:1px;color:#a39c8e;text-transform:uppercase;margin-bottom:10px">Build an Audience</div><p style="margin:0;font-size:14.5px;color:#56514a">站点 + 仓库 + 日志天然是自媒体素材，个人 IP 一并完成。</p></div><div style="background:#f1efe9;padding:26px 28px"><h3 style="font-size:19px;font-weight:600;margin:0 0 4px">回馈社区</h3><div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:1px;color:#a39c8e;text-transform:uppercase;margin-bottom:10px">Give Back</div><p style="margin:0;font-size:14.5px;color:#56514a">国内个人量化完整开源闭环不多，做一个真实可参考的样本。</p></div>
-    </div>
-    <div style="margin-top:34px;background:#15140f;color:#f1efe9;padding:38px 40px;border-radius:4px">
-      <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:1px;color:#eafe5a;margin-bottom:14px">// 现实约束 = 聚焦</div>
-      <p style="margin:0;font-size:clamp(18px,2.4vw,24px);font-weight:500;line-height:1.45;letter-spacing:-.3px">10 万以内用不上融资融券、期权、股指期货——策略只能做<span style="color:#eafe5a">纯多头、中低频</span>；而高频拼不过千亿私募。这把方向锁进了巨头因容量与合规<span style="color:#eafe5a">做不了的细分战场</span>。小资金的灵活，不是劣势。</p>
-    </div>
-  </section>
-
-  <section id="empirical" style="padding:74px 0 0">
-    <div style="display:flex;align-items:baseline;gap:16px;margin-bottom:8px">
-      <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#1d4ed8">03 — EMPIRICAL</span>
-      <h2 style="font-size:clamp(28px,4vw,42px);font-weight:700;letter-spacing:-1px;margin:0">实证结果</h2>
-    </div>
-    <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#a39c8e;margin-bottom:30px">合成数据示意 · illustrative synthetic data，非真实交易记录</div>
-    <div class="r" style="display:grid;grid-template-columns:repeat(3,1fr);gap:0;border-top:2px solid #15140f;border-left:1px solid #d6d1c6">
-      <div style="padding:24px 24px;border-right:1px solid #d6d1c6;border-bottom:1px solid #d6d1c6"><div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:1px;color:#a39c8e;text-transform:uppercase;margin-bottom:10px">Annual Return</div><div style="font-size:clamp(30px,4vw,44px);font-weight:700;letter-spacing:-1.5px;color:#1d4ed8;line-height:1">+6.1%</div><div style="font-size:14px;color:#56514a;margin-top:8px">年化收益</div></div><div style="padding:24px 24px;border-right:1px solid #d6d1c6;border-bottom:1px solid #d6d1c6"><div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:1px;color:#a39c8e;text-transform:uppercase;margin-bottom:10px">Sharpe Ratio</div><div style="font-size:clamp(30px,4vw,44px);font-weight:700;letter-spacing:-1.5px;color:#15140f;line-height:1">0.67</div><div style="font-size:14px;color:#56514a;margin-top:8px">夏普比率</div></div><div style="padding:24px 24px;border-right:1px solid #d6d1c6;border-bottom:1px solid #d6d1c6"><div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:1px;color:#a39c8e;text-transform:uppercase;margin-bottom:10px">Max Drawdown</div><div style="font-size:clamp(30px,4vw,44px);font-weight:700;letter-spacing:-1.5px;color:#b4312a;line-height:1">−24.9%</div><div style="font-size:14px;color:#56514a;margin-top:8px">最大回撤</div></div><div style="padding:24px 24px;border-right:1px solid #d6d1c6;border-bottom:1px solid #d6d1c6"><div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:1px;color:#a39c8e;text-transform:uppercase;margin-bottom:10px">Calmar</div><div style="font-size:clamp(30px,4vw,44px);font-weight:700;letter-spacing:-1.5px;color:#15140f;line-height:1">0.24</div><div style="font-size:14px;color:#56514a;margin-top:8px">卡玛比率</div></div><div style="padding:24px 24px;border-right:1px solid #d6d1c6;border-bottom:1px solid #d6d1c6"><div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:1px;color:#a39c8e;text-transform:uppercase;margin-bottom:10px">Monthly Win</div><div style="font-size:clamp(30px,4vw,44px);font-weight:700;letter-spacing:-1.5px;color:#15140f;line-height:1">62.9%</div><div style="font-size:14px;color:#56514a;margin-top:8px">月度胜率</div></div><div style="padding:24px 24px;border-right:1px solid #d6d1c6;border-bottom:1px solid #d6d1c6"><div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:1px;color:#a39c8e;text-transform:uppercase;margin-bottom:10px">Turnover</div><div style="font-size:clamp(30px,4vw,44px);font-weight:700;letter-spacing:-1.5px;color:#15140f;line-height:1">≈220%</div><div style="font-size:14px;color:#56514a;margin-top:8px">月均换手</div></div>
-    </div>
-    <div style="margin-top:40px">
-      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px">
-        <h3 style="font-size:20px;font-weight:600;margin:0">净值曲线 & 回撤水位 <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#a39c8e;font-weight:400">/ FIG.1</span></h3>
-        <div style="display:flex;gap:18px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:#56514a">
-          <span style="display:flex;align-items:center;gap:7px"><span style="width:18px;height:3px;background:#1d4ed8;display:inline-block"></span>策略</span>
-          <span style="display:flex;align-items:center;gap:7px"><span style="width:18px;height:0;border-top:2px dashed #a39c8e;display:inline-block"></span>沪深300</span>
+  <main>
+    <section class="hero">
+      <div>
+        <div class="kicker">A-share paper trading contest</div>
+        <h1>公开比赛，公开复盘</h1>
+        <p class="lead">用同一套真实行情、同一笔模拟本金、同一张公开榜单，把策略想法放到赛场里验证。这里不只看收益率，也看规则、仓位、复盘和讨论质量。</p>
+        <div class="actions">
+          <!-- OWQ:HERO_ACTIONS:START -->
+          <a class="btn blue" href="/register">邮箱验证注册</a>
+          <a class="btn" href="/login">账号密码登录</a>
+          <a class="btn" href="/showcase/public">查看公开榜单</a>
+          <a class="btn" href="/forum">进入策略论坛</a>
+          <a class="btn" href="/support">联系支持</a>
+          <!-- OWQ:HERO_ACTIONS:END -->
         </div>
       </div>
-      <svg viewBox="0 0 760 250" style="width:100%;height:auto;display:block">
-        <line x1="8" y1="62" x2="752" y2="62" stroke="#ddd8cd" stroke-width="1"/>
-        <line x1="8" y1="140" x2="752" y2="140" stroke="#ddd8cd" stroke-width="1"/>
-        <line x1="8" y1="218" x2="752" y2="218" stroke="#ddd8cd" stroke-width="1"/>
-        <path d="M8.0,163.6L8.0,163.6L29.3,144.3L50.5,120.8L71.8,96.9L93.0,77.1L114.3,64.9L135.5,61.7L156.8,65.6L178.1,72.6L199.3,78.0L220.6,78.1L241.8,71.4L263.1,58.6L284.3,42.5L305.6,27.1L326.9,16.0L348.1,50.4L369.4,88.4L390.6,126.1L411.9,159.6L433.1,185.8L454.4,204.0L475.7,185.8L496.9,163.0L518.2,139.2L539.4,118.5L560.7,104.4L581.9,98.2L603.2,98.4L624.5,101.6L645.7,103.4L667.0,100.6L688.2,92.0L709.5,78.6L730.7,63.2L752.0,49.7L752.0,232L8.0,232Z" fill="rgba(29,78,216,.10)" stroke="none"/>
-        <polyline points="8.0,163.6 29.3,146.7 50.5,130.9 71.8,120.7 93.0,119.2 114.3,127.4 135.5,143.3 156.8,162.9 178.1,181.6 199.3,195.3 220.6,201.3 241.8,198.7 263.1,188.6 284.3,173.4 305.6,156.8 326.9,143.4 348.1,136.9 369.4,139.6 390.6,151.1 411.9,168.7 433.1,188.0 454.4,204.5 475.7,214.7 496.9,216.9 518.2,211.1 539.4,198.7 560.7,182.8 581.9,167.5 603.2,156.9 624.5,154.4 645.7,160.9 667.0,175.2 688.2,193.5 709.5,211.6 730.7,225.3 752.0,232.0" fill="none" stroke="#bdb6a7" stroke-width="1.6" stroke-dasharray="5 4"/>
-        <polyline points="8.0,163.6 29.3,144.3 50.5,120.8 71.8,96.9 93.0,77.1 114.3,64.9 135.5,61.7 156.8,65.6 178.1,72.6 199.3,78.0 220.6,78.1 241.8,71.4 263.1,58.6 284.3,42.5 305.6,27.1 326.9,16.0 348.1,50.4 369.4,88.4 390.6,126.1 411.9,159.6 433.1,185.8 454.4,204.0 475.7,185.8 496.9,163.0 518.2,139.2 539.4,118.5 560.7,104.4 581.9,98.2 603.2,98.4 624.5,101.6 645.7,103.4 667.0,100.6 688.2,92.0 709.5,78.6 730.7,63.2 752.0,49.7" fill="none" stroke="#1d4ed8" stroke-width="2.6" stroke-linejoin="round"/>
-      </svg>
-      <svg viewBox="0 0 760 92" style="width:100%;height:auto;display:block;margin-top:4px">
-        <path d="M8.0,8L8.0,8.0L29.3,8.0L50.5,8.0L71.8,8.0L93.0,8.0L114.3,8.0L135.5,8.0L156.8,9.5L178.1,12.2L199.3,14.3L220.6,14.3L241.8,11.7L263.1,8.0L284.3,8.0L305.6,8.0L326.9,8.0L348.1,20.4L369.4,34.2L390.6,47.8L411.9,59.9L433.1,69.4L454.4,76.0L475.7,69.4L496.9,61.2L518.2,52.5L539.4,45.1L560.7,40.0L581.9,37.7L603.2,37.8L624.5,38.9L645.7,39.6L667.0,38.6L688.2,35.5L709.5,30.6L730.7,25.1L752.0,20.2L752.0,8Z" fill="rgba(21,20,15,.07)" stroke="none"/>
-        <polyline points="8.0,8.0 29.3,8.0 50.5,8.0 71.8,8.0 93.0,8.0 114.3,8.0 135.5,8.0 156.8,9.5 178.1,12.2 199.3,14.3 220.6,14.3 241.8,11.7 263.1,8.0 284.3,8.0 305.6,8.0 326.9,8.0 348.1,20.4 369.4,34.2 390.6,47.8 411.9,59.9 433.1,69.4 454.4,76.0 475.7,69.4 496.9,61.2 518.2,52.5 539.4,45.1 560.7,40.0 581.9,37.7 603.2,37.8 624.5,38.9 645.7,39.6 667.0,38.6 688.2,35.5 709.5,30.6 730.7,25.1 752.0,20.2" fill="none" stroke="#56514a" stroke-width="1.6"/>
-      </svg>
-      <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#a39c8e;margin-top:8px;border-top:1px solid #d6d1c6;padding-top:8px">36 个月模拟区间 · 上：累计净值；下：回撤水位</div>
-    </div>
-    <div style="margin-top:50px">
-      <h3 style="font-size:20px;font-weight:600;margin:0 0 14px">因子分层年化收益 <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#a39c8e;font-weight:400">/ FIG.2 · Q1 最低 → Q5 最高</span></h3>
-      <svg viewBox="0 0 540 250" style="width:100%;height:auto;display:block;max-width:600px">
-        <line x1="44" y1="179.6" x2="528" y2="179.6" stroke="#bdb6a7" stroke-width="1.2"/>
-        <text x="38" y="179.6" text-anchor="end" font-family="IBM Plex Mono, monospace" font-size="10" fill="#a39c8e" dy="3">0%</text>
-        <g><rect x="61.6" y="179.6" width="44.8" height="25.6" fill="#1d4ed8"></rect><text x="84.0" y="220.2" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="500" fill="#15140f">−3.8</text><text x="84.0" y="238" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="#56514a">Q1</text></g><g><rect x="141.6" y="165.5" width="44.8" height="14.1" fill="#1d4ed8"></rect><text x="164.0" y="158.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="500" fill="#15140f">+2.1</text><text x="164.0" y="238" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="#56514a">Q2</text></g><g><rect x="221.6" y="136.5" width="44.8" height="43.1" fill="#1d4ed8"></rect><text x="244.0" y="129.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="500" fill="#15140f">+6.4</text><text x="244.0" y="238" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="#56514a">Q3</text></g><g><rect x="301.6" y="104.2" width="44.8" height="75.4" fill="#1d4ed8"></rect><text x="324.0" y="97.2" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="500" fill="#15140f">+11.2</text><text x="324.0" y="238" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="#56514a">Q4</text></g><g><rect x="381.6" y="59.1" width="44.8" height="120.5" fill="#1d4ed8"></rect><text x="404.0" y="52.1" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="500" fill="#15140f">+17.9</text><text x="404.0" y="238" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="#56514a">Q5</text></g><g><rect x="461.6" y="33.5" width="44.8" height="146.1" fill="#15140f"></rect><text x="484.0" y="26.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="500" fill="#15140f">+21.7</text><text x="484.0" y="238" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" fill="#56514a">L/S</text></g>
-      </svg>
-    </div>
-  </section>
+      <div class="arena" aria-label="公开赛功能概览">
+        <div class="arena-head">
+          <div>
+            <div class="kicker">Live arena</div>
+            <h3>当前赛场</h3>
+          </div>
+          <div class="status">LIVE DATABASE</div>
+        </div>
+        <div class="score-grid">
+          <!-- OWQ:HERO_SCORES:START -->
+          <div class="score"><b>开放中</b><span>当前参赛账户</span></div>
+          <div class="score"><b>真实行情</b><span>已接入行情标的</span></div>
+          <div class="score"><b>复盘</b><span>公开策略讨论</span></div>
+          <div class="score"><b>待开赛</b><span>当前榜首收益</span></div>
+          <!-- OWQ:HERO_SCORES:END -->
+        </div>
+        <div class="arena-body">
+          <h3>现在发生什么</h3>
+          <div class="feed">
+            <!-- OWQ:HERO_FEED:START -->
+            <div class="feed-row"><span class="tag">LEADER</span><span>公开赛已开放报名，等待第一批参赛账户形成榜单</span><span class="pill">公开榜单</span></div>
+            <div class="feed-row"><span class="tag">DISCUSS</span><span>论坛等待第一篇带战绩快照的策略复盘</span><span class="pill">策略论坛</span></div>
+            <div class="feed-row"><span class="tag">DATA</span><span>行情源会在服务端自动读取并展示</span><span class="pill">真实数据</span></div>
+            <!-- OWQ:HERO_FEED:END -->
+          </div>
+        </div>
+      </div>
+    </section>
 
-  <section id="roadmap" style="padding:74px 0 0">
-    <div style="display:flex;align-items:baseline;gap:16px;margin-bottom:34px">
-      <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#1d4ed8">04 — ROADMAP</span>
-      <h2 style="font-size:clamp(28px,4vw,42px);font-weight:700;letter-spacing:-1px;margin:0">6 个月，跑通一个闭环</h2>
+    <div class="metric-strip">
+      <!-- OWQ:LIVE_STRIP:START -->
+      <div class="metric"><strong>开放报名</strong><span>Contest players</span></div>
+      <div class="metric"><strong>模拟交易</strong><span>Paper trades</span></div>
+      <div class="metric"><strong>策略讨论</strong><span>Posts and comments</span></div>
+      <div class="metric"><strong>真实行情</strong><span>Latest market date</span></div>
+      <!-- OWQ:LIVE_STRIP:END -->
     </div>
-    <div class="rroad" style="display:grid;grid-template-columns:90px 1fr 220px;gap:0 28px;align-items:center;padding:26px 0;border-top:1px solid #d6d1c6"><div style="font-size:48px;font-weight:700;letter-spacing:-2px;color:#15140f;line-height:1">00</div><div><div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:6px"><h3 style="font-size:21px;font-weight:600;margin:0">环境与数据管道</h3><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#a39c8e">Data Pipeline</span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;padding:2px 10px;border-radius:999px;border:1px solid rgba(29,78,216,.45);color:#1d4ed8">完成</span></div><p style="margin:0;font-size:14.5px;color:#56514a;max-width:62ch">三源统一接口、后复权无前视、含退市股、DuckDB 幂等增量。</p></div><div style="display:flex;align-items:center;gap:12px"><div style="flex:1;height:6px;background:#ddd8cd;border-radius:999px;overflow:hidden"><div style="height:100%;background:#1d4ed8;width:100%"></div></div><span style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#15140f;min-width:42px;text-align:right">100%</span></div></div><div class="rroad" style="display:grid;grid-template-columns:90px 1fr 220px;gap:0 28px;align-items:center;padding:26px 0;border-top:1px solid #d6d1c6"><div style="font-size:48px;font-weight:700;letter-spacing:-2px;color:#15140f;line-height:1">01</div><div><div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:6px"><h3 style="font-size:21px;font-weight:600;margin:0">回测引擎 + 复现经典</h3><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#a39c8e">Backtest Engine</span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;padding:2px 10px;border-radius:999px;border:1px solid rgba(29,78,216,.45);color:#1d4ed8">完成</span></div><p style="margin:0;font-size:14.5px;color:#56514a;max-width:62ch">事件驱动、T+1 次日开盘、涨跌停/停牌不可成交、佣金印花税滑点。</p></div><div style="display:flex;align-items:center;gap:12px"><div style="flex:1;height:6px;background:#ddd8cd;border-radius:999px;overflow:hidden"><div style="height:100%;background:#1d4ed8;width:100%"></div></div><span style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#15140f;min-width:42px;text-align:right">100%</span></div></div><div class="rroad" style="display:grid;grid-template-columns:90px 1fr 220px;gap:0 28px;align-items:center;padding:26px 0;border-top:1px solid #d6d1c6"><div style="font-size:48px;font-weight:700;letter-spacing:-2px;color:#15140f;line-height:1">02</div><div><div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:6px"><h3 style="font-size:21px;font-weight:600;margin:0">因子研究</h3><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#a39c8e">Factor Research</span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;padding:2px 10px;border-radius:999px;border:1px solid rgba(180,83,9,.5);color:#b45309">进行中</span></div><p style="margin:0;font-size:14.5px;color:#56514a;max-width:62ch">单因子检验 IC/ICIR/分层/多空 → 多因子合成 + 中性化。</p></div><div style="display:flex;align-items:center;gap:12px"><div style="flex:1;height:6px;background:#ddd8cd;border-radius:999px;overflow:hidden"><div style="height:100%;background:#b45309;width:55%"></div></div><span style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#15140f;min-width:42px;text-align:right">55%</span></div></div><div class="rroad" style="display:grid;grid-template-columns:90px 1fr 220px;gap:0 28px;align-items:center;padding:26px 0;border-top:1px solid #d6d1c6"><div style="font-size:48px;font-weight:700;letter-spacing:-2px;color:#cbc5b8;line-height:1">03</div><div><div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:6px"><h3 style="font-size:21px;font-weight:600;margin:0">模拟盘验证</h3><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#a39c8e">Paper Trading</span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;padding:2px 10px;border-radius:999px;border:1px solid #d6d1c6;color:#a39c8e">未开始</span></div><p style="margin:0;font-size:14.5px;color:#56514a;max-width:62ch">实时跑 1–2 月，定位滑点/冲击成本/延迟偏差。</p></div><div style="display:flex;align-items:center;gap:12px"><div style="flex:1;height:6px;background:#ddd8cd;border-radius:999px;overflow:hidden"><div style="height:100%;background:#cbc5b8;width:0%"></div></div><span style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#cbc5b8;min-width:42px;text-align:right">0%</span></div></div><div class="rroad" style="display:grid;grid-template-columns:90px 1fr 220px;gap:0 28px;align-items:center;padding:26px 0;border-top:1px solid #d6d1c6"><div style="font-size:48px;font-weight:700;letter-spacing:-2px;color:#cbc5b8;line-height:1">04</div><div><div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:6px"><h3 style="font-size:21px;font-weight:600;margin:0">小资金实盘</h3><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#a39c8e">Live Trading</span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;padding:2px 10px;border-radius:999px;border:1px solid #d6d1c6;color:#a39c8e">未开始</span></div><p style="margin:0;font-size:14.5px;color:#56514a;max-width:62ch">低佣券商 QMT/Ptrade，最小资金实盘 + 每日复盘。</p></div><div style="display:flex;align-items:center;gap:12px"><div style="flex:1;height:6px;background:#ddd8cd;border-radius:999px;overflow:hidden"><div style="height:100%;background:#cbc5b8;width:0%"></div></div><span style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#cbc5b8;min-width:42px;text-align:right">0%</span></div></div>
-  </section>
 
-  <section style="padding:74px 0 0">
-    <div style="display:flex;align-items:baseline;gap:16px;margin-bottom:34px">
-      <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#1d4ed8">05 — STACK</span>
-      <h2 style="font-size:clamp(28px,4vw,42px);font-weight:700;letter-spacing:-1px;margin:0">技术栈</h2>
-    </div>
-    <div class="r" style="display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:#d6d1c6;border:1px solid #d6d1c6">
-      <div style="background:#f1efe9;padding:24px 26px"><div style="display:flex;align-items:baseline;gap:10px;margin-bottom:14px"><span style="font-size:20px;font-weight:600">数据</span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:1px;color:#a39c8e">DATA</span></div><div style="display:flex;flex-wrap:wrap;gap:8px"><span style="font-family:'IBM Plex Mono',monospace;font-size:12.5px;padding:5px 13px;border-radius:999px;border:1px solid rgba(29,78,216,.4);background:rgba(29,78,216,.07);color:#1d4ed8">AkShare</span><span style="font-family:'IBM Plex Mono',monospace;font-size:12.5px;padding:5px 13px;border-radius:999px;border:1px solid rgba(29,78,216,.4);background:rgba(29,78,216,.07);color:#1d4ed8">Tushare</span><span style="font-family:'IBM Plex Mono',monospace;font-size:12.5px;padding:5px 13px;border-radius:999px;border:1px solid #cbc5b8;background:transparent;color:#3a352d">BaoStock</span><span style="font-family:'IBM Plex Mono',monospace;font-size:12.5px;padding:5px 13px;border-radius:999px;border:1px solid #cbc5b8;background:transparent;color:#3a352d">DuckDB</span><span style="font-family:'IBM Plex Mono',monospace;font-size:12.5px;padding:5px 13px;border-radius:999px;border:1px solid #cbc5b8;background:transparent;color:#3a352d">Parquet</span></div></div><div style="background:#f1efe9;padding:24px 26px"><div style="display:flex;align-items:baseline;gap:10px;margin-bottom:14px"><span style="font-size:20px;font-weight:600">回测</span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:1px;color:#a39c8e">BACKTEST</span></div><div style="display:flex;flex-wrap:wrap;gap:8px"><span style="font-family:'IBM Plex Mono',monospace;font-size:12.5px;padding:5px 13px;border-radius:999px;border:1px solid rgba(29,78,216,.4);background:rgba(29,78,216,.07);color:#1d4ed8">backtrader</span><span style="font-family:'IBM Plex Mono',monospace;font-size:12.5px;padding:5px 13px;border-radius:999px;border:1px solid #cbc5b8;background:transparent;color:#3a352d">vectorbt</span><span style="font-family:'IBM Plex Mono',monospace;font-size:12.5px;padding:5px 13px;border-radius:999px;border:1px solid #cbc5b8;background:transparent;color:#3a352d">qlib</span></div></div><div style="background:#f1efe9;padding:24px 26px"><div style="display:flex;align-items:baseline;gap:10px;margin-bottom:14px"><span style="font-size:20px;font-weight:600">研究</span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:1px;color:#a39c8e">RESEARCH</span></div><div style="display:flex;flex-wrap:wrap;gap:8px"><span style="font-family:'IBM Plex Mono',monospace;font-size:12.5px;padding:5px 13px;border-radius:999px;border:1px solid #cbc5b8;background:transparent;color:#3a352d">pandas</span><span style="font-family:'IBM Plex Mono',monospace;font-size:12.5px;padding:5px 13px;border-radius:999px;border:1px solid #cbc5b8;background:transparent;color:#3a352d">numpy</span><span style="font-family:'IBM Plex Mono',monospace;font-size:12.5px;padding:5px 13px;border-radius:999px;border:1px solid #cbc5b8;background:transparent;color:#3a352d">statsmodels</span><span style="font-family:'IBM Plex Mono',monospace;font-size:12.5px;padding:5px 13px;border-radius:999px;border:1px solid #cbc5b8;background:transparent;color:#3a352d">scikit-learn</span></div></div><div style="background:#f1efe9;padding:24px 26px"><div style="display:flex;align-items:baseline;gap:10px;margin-bottom:14px"><span style="font-size:20px;font-weight:600">实盘</span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:1px;color:#a39c8e">LIVE</span></div><div style="display:flex;flex-wrap:wrap;gap:8px"><span style="font-family:'IBM Plex Mono',monospace;font-size:12.5px;padding:5px 13px;border-radius:999px;border:1px solid rgba(29,78,216,.4);background:rgba(29,78,216,.07);color:#1d4ed8">vnpy</span><span style="font-family:'IBM Plex Mono',monospace;font-size:12.5px;padding:5px 13px;border-radius:999px;border:1px solid #cbc5b8;background:transparent;color:#3a352d">QMT</span><span style="font-family:'IBM Plex Mono',monospace;font-size:12.5px;padding:5px 13px;border-radius:999px;border:1px solid #cbc5b8;background:transparent;color:#3a352d">Ptrade</span></div></div>
-    </div>
-  </section>
+    <section id="live">
+      <div class="section-head">
+        <span class="section-no">01 — LIVE</span>
+        <h2>先看赛场，再进入讨论</h2>
+      </div>
+      <!-- OWQ:LIVE_SECTION:START -->
+      <div class="live-grid">
+        <div class="card">
+          <div class="card-title"><span class="tag">LEADERBOARD</span><a href="/showcase/public">查看完整榜单</a></div>
+          <h3>当前公开赛排名</h3>
+          <p class="muted">榜单会从系统里的真实参赛账户生成，不展示虚构收益。</p>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="tag">FORUM</span><a href="/forum">进入论坛</a></div>
+          <h3>最新策略讨论</h3>
+          <p class="muted">参赛者可以把战绩、持仓和成交自动生成复盘草稿，再公开讨论。</p>
+        </div>
+      </div>
+      <div class="data-proof">
+        <div><span class="tag">DATA PROOF</span><strong>真实数据优先</strong><p>服务端会读取应用数据库里的行情源、交易、榜单和论坛数据。</p></div>
+        <a class="btn" href="/data-status">查看数据状态</a>
+      </div>
+      <!-- OWQ:LIVE_SECTION:END -->
+    </section>
 
-  <section id="log" style="padding:74px 0 0">
-    <div style="display:flex;align-items:baseline;gap:16px;margin-bottom:34px">
-      <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#1d4ed8">06 — BUILD LOG</span>
-      <h2 style="font-size:clamp(28px,4vw,42px);font-weight:700;letter-spacing:-1px;margin:0">边做边写</h2>
-    </div>
-    <div class="rlog" style="display:grid;grid-template-columns:130px 1fr;gap:0 28px;padding:26px 0;border-top:1px solid #d6d1c6"><div><div style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#1d4ed8;font-weight:500">2026-06-23</div><div style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#a39c8e;letter-spacing:.5px;margin-top:5px;text-transform:uppercase">research · multifactor</div></div><div><h3 style="font-size:20px;font-weight:600;margin:0 0 7px;letter-spacing:-.3px">研究闭环打通：多因子 → 组合 → 回测</h3><p style="margin:0;font-size:15px;color:#56514a;max-width:74ch">数据/因子/回测三层接成一条龙：标准化合成（等权 / IC 加权）→ 月度 top-N 目标权重 → 回测出净值与指标。合成数据端到端验证通过。</p></div></div><div class="rlog" style="display:grid;grid-template-columns:130px 1fr;gap:0 28px;padding:26px 0;border-top:1px solid #d6d1c6"><div><div style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#1d4ed8;font-weight:500">2026-06-23</div><div style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#a39c8e;letter-spacing:.5px;margin-top:5px;text-transform:uppercase">phase 2 · factors</div></div><div><h3 style="font-size:20px;font-weight:600;margin:0 0 7px;letter-spacing:-.3px">阶段 2：因子研究流水线</h3><p style="margin:0;font-size:15px;color:#56514a;max-width:74ch">单因子检验：动量/反转/波动率/Amihud/乖离；MAD 去极值 + z-score + 市值行业中性化；RankIC / ICIR / t 值 + 分层 + 多空。</p></div></div><div class="rlog" style="display:grid;grid-template-columns:130px 1fr;gap:0 28px;padding:26px 0;border-top:1px solid #d6d1c6"><div><div style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#1d4ed8;font-weight:500">2026-06-23</div><div style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#a39c8e;letter-spacing:.5px;margin-top:5px;text-transform:uppercase">phase 1 · backtest</div></div><div><h3 style="font-size:20px;font-weight:600;margin:0 0 7px;letter-spacing:-.3px">阶段 1：回测框架落地</h3><p style="margin:0;font-size:15px;color:#56514a;max-width:74ch">显式建模 A 股摩擦的事件驱动引擎：T+1 次日开盘、涨跌停/停牌不可成交、佣金印花税过户费滑点、100 股整手。</p></div></div><div class="rlog" style="display:grid;grid-template-columns:130px 1fr;gap:0 28px;padding:26px 0;border-top:1px solid #d6d1c6"><div><div style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#1d4ed8;font-weight:500">2026-06-23</div><div style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#a39c8e;letter-spacing:.5px;margin-top:5px;text-transform:uppercase">phase 0 · data</div></div><div><h3 style="font-size:20px;font-weight:600;margin:0 0 7px;letter-spacing:-.3px">阶段 0：数据管道打通</h3><p style="margin:0;font-size:15px;color:#56514a;max-width:74ch">三源统一接口；后复权无前视、含退市股抗幸存者偏差、量额单位归一；DuckDB 主键幂等 + 增量。冒烟测试通过。</p></div></div><div class="rlog" style="display:grid;grid-template-columns:130px 1fr;gap:0 28px;padding:26px 0;border-top:1px solid #d6d1c6"><div><div style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#1d4ed8;font-weight:500">2026-06-23</div><div style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;color:#a39c8e;letter-spacing:.5px;margin-top:5px;text-transform:uppercase">milestone · kickoff</div></div><div><h3 style="font-size:20px;font-weight:600;margin:0 0 7px;letter-spacing:-.3px">项目启动</h3><p style="margin:0;font-size:15px;color:#56514a;max-width:74ch">确定方向：小资金、中低频、纯多头；完成总体准备计划与方法论；搭建仓库、站点骨架与部署。</p></div></div>
-  </section>
+    <section id="contest">
+      <div class="section-head">
+        <span class="section-no">02 — CONTEST</span>
+        <h2>比赛不是装饰，是这个系统的主入口</h2>
+      </div>
+      <div class="grid3">
+        <div class="card">
+          <div class="num">01</div>
+          <h3>统一起点</h3>
+          <p>每个用户从同样的模拟本金开始，交易、持仓和收益都按同一套规则计算。讨论时少一点口水，多一点可比性。</p>
+        </div>
+        <div class="card">
+          <div class="num">02</div>
+          <h3>真实行情</h3>
+          <p>模拟盘价格来自本地 DuckDB 中同步的真实 A 股行情，成交价使用不复权价格，研究回测和模拟成交口径分开。</p>
+        </div>
+        <div class="card">
+          <div class="num">03</div>
+          <h3>公开战绩</h3>
+          <p>参赛者可以展示个人战绩页、战绩卡、持仓和近期成交。策略好不好，不只靠一句观点，而是看过程。</p>
+        </div>
+      </div>
+    </section>
 
-  <section style="padding:74px 0 0">
-    <div style="display:flex;align-items:baseline;gap:16px;margin-bottom:30px">
-      <span style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#1d4ed8">07 — REFERENCES</span>
-      <h2 style="font-size:clamp(28px,4vw,42px);font-weight:700;letter-spacing:-1px;margin:0">参考与资源</h2>
-    </div>
-    <div class="r" style="display:grid;grid-template-columns:repeat(2,1fr);gap:0 40px">
-      <div style="display:grid;grid-template-columns:64px 1fr;gap:0 16px;padding:14px 0;border-bottom:1px solid #d6d1c6"><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#1d4ed8">计划</span><span style="font-size:14.5px;color:#3a352d">plan/A股量化_个人准备计划.md</span></div><div style="display:grid;grid-template-columns:64px 1fr;gap:0 16px;padding:14px 0;border-bottom:1px solid #d6d1c6"><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#1d4ed8">数据</span><span style="font-size:14.5px;color:#3a352d">AkShare · Tushare · BaoStock</span></div><div style="display:grid;grid-template-columns:64px 1fr;gap:0 16px;padding:14px 0;border-bottom:1px solid #d6d1c6"><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#1d4ed8">框架</span><span style="font-size:14.5px;color:#3a352d">backtrader · vectorbt · qlib · vnpy</span></div><div style="display:grid;grid-template-columns:64px 1fr;gap:0 16px;padding:14px 0;border-bottom:1px solid #d6d1c6"><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#1d4ed8">平台</span><span style="font-size:14.5px;color:#3a352d">聚宽 · 掘金 · 米筐</span></div><div style="display:grid;grid-template-columns:64px 1fr;gap:0 16px;padding:14px 0;border-bottom:1px solid #d6d1c6"><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#1d4ed8">书单</span><span style="font-size:14.5px;color:#3a352d">《因子投资：方法与实践》·《主动投资组合管理》</span></div><div style="display:grid;grid-template-columns:64px 1fr;gap:0 16px;padding:14px 0;border-bottom:1px solid #d6d1c6"><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#1d4ed8">合规</span><span style="font-size:14.5px;color:#3a352d">程序化交易管理规定 (2025-07-07)</span></div>
-    </div>
-  </section>
+    <section id="discussion">
+      <div class="section-head">
+        <span class="section-no">03 — DISCUSSION</span>
+        <h2>把每一笔模拟交易变成可讨论的策略记录</h2>
+      </div>
+      <div class="discussion">
+        <div class="thread">
+          <div class="thread-row"><span class="tag">POST</span><div><strong>发起复盘</strong><p>从比赛页一键生成带排名、收益、持仓和成交的复盘草稿。</p></div></div>
+          <div class="thread-row"><span class="tag">COMMENT</span><div><strong>围绕证据讨论</strong><p>评论区可以讨论入场逻辑、仓位、风险和执行偏差。</p></div></div>
+          <div class="thread-row"><span class="tag">PROFILE</span><div><strong>沉淀个人策略轨迹</strong><p>个人页会聚合战绩、交易、持仓和策略帖，方便持续观察。</p></div></div>
+        </div>
+        <div>
+          <h3>这里鼓励什么样的互动</h3>
+          <p style="margin-top:12px">好的讨论不是“今天买什么”，而是把假设、条件、执行和结果拆开。你可以提出一个规则，也可以挑战别人的复盘，但需要围绕公开数据和模拟交易记录展开。</p>
+          <div class="note" style="margin-top:20px">这不是荐股社区。所有内容用于技术研究、模拟训练和策略交流，不构成投资建议。</div>
+        </div>
+      </div>
+    </section>
 
-  <footer style="margin-top:70px;border-top:2px solid #15140f;padding:32px 0 64px;display:flex;justify-content:space-between;gap:30px;flex-wrap:wrap">
-    <div style="max-width:560px;font-size:13px;color:#7c766a;line-height:1.7">
-      <b style="color:#1d4ed8">免责声明：</b>本项目所有内容仅为技术研究与学习记录，<b style="color:#3a352d">不构成任何投资建议</b>。量化交易有风险，实盘需谨慎，盈亏自负。<br>© 2026 OurWorlds Quant Lab · MIT License
-    </div>
-    <div style="display:flex;flex-direction:column;gap:8px;font-size:14px">
-      <a href="https://github.com/leiMizzou/ourworld-quant" target="_blank" rel="noopener" style="color:#56514a">→ GitHub 仓库</a>
-      <a href="#roadmap" style="color:#56514a">→ 路线图</a>
-      <a href="#log" style="color:#56514a">→ 构建日志</a>
-      <a href="#overview" style="color:#56514a">→ 回到顶部</a>
-    </div>
+    <section id="rules">
+      <div class="section-head">
+        <span class="section-no">04 — RULES</span>
+        <h2>赛制尽量贴近 A 股现实约束</h2>
+      </div>
+      <div>
+        <div class="rule"><b>交易规则</b><p>买入按 100 股整数倍，费用包含佣金、过户费和卖出印花税。当天买入不可当天卖出，账户页可以进入下一交易日释放可卖数量。</p></div>
+        <div class="rule"><b>行情口径</b><p>模拟盘用不复权价格作为可成交口径，研究报告可以继续用后复权价格保持收益连续性。两套口径分开，避免把研究价格当成交价格。</p></div>
+        <div class="rule"><b>比赛展示</b><p>公开榜单按模拟账户权益排序，个人页展示收益、持仓、成交和策略分享。排行榜是入口，复盘质量才是长期看点。</p></div>
+        <div class="rule"><b>组合设计</b><p>登录后可以从真实行情生成反转、动量候选，也可以导入模型预测候选，先生成演练计划，再选择是否执行。</p></div>
+      </div>
+    </section>
+
+    <section id="flow">
+      <div class="section-head">
+        <span class="section-no">05 — FLOW</span>
+        <h2>四步参与</h2>
+      </div>
+      <div class="flow">
+        <!-- OWQ:FLOW_STEP_1:START -->
+        <div class="step"><span>STEP 1</span><h3>邮箱验证</h3><p>确认邮箱后设置用户名和密码，再登录参赛。</p></div>
+        <!-- OWQ:FLOW_STEP_1:END -->
+        <div class="step"><span>STEP 2</span><h3>设计组合</h3><p>选择标的、导入篮子或用真实行情生成候选。</p></div>
+        <div class="step"><span>STEP 3</span><h3>执行交易</h3><p>按当前基础行情成交，账户实时更新权益。</p></div>
+        <div class="step"><span>STEP 4</span><h3>发帖复盘</h3><p>把战绩和逻辑公开，接受评论和挑战。</p></div>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-head">
+        <span class="section-no">06 — LINKS</span>
+        <h2>直接进入</h2>
+      </div>
+      <div class="links">
+        <!-- OWQ:LINK_TILES:START -->
+        <a class="link-tile" href="/register"><strong>邮箱注册</strong><p>验证邮箱、设置账号密码并加入公开赛。</p></a>
+        <a class="link-tile" href="/showcase/public"><strong>公开榜单</strong><p>查看排名和参赛者战绩。</p></a>
+        <a class="link-tile" href="/forum"><strong>策略论坛</strong><p>阅读复盘，参与讨论。</p></a>
+        <a class="link-tile" href="/data-status"><strong>数据状态</strong><p>查看行情来源、预测候选和赛场活跃度。</p></a>
+        <!-- OWQ:LINK_TILES:END -->
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div>OurWorlds Quant Arena · 真实行情模拟盘公开赛</div>
+    <div>所有内容仅用于技术研究与模拟训练，不构成投资建议。 <a href="/terms">服务条款</a> · <a href="/privacy">隐私说明</a> · <a href="/risk">风险提示</a> · <a href="/support">支持</a></div>
   </footer>
-
 </div>
 </body>
 </html>

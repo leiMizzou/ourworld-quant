@@ -1,0 +1,10 @@
+# 数据层依赖。建议在虚拟环境里:
+#   python -m venv .venv && source .venv/bin/activate
+#   pip install -r src/data/requirements.txt
+pandas>=2.0
+duckdb>=0.10
+pyarrow>=14.0
+akshare>=1.12          # 免费,无需 token(主源)
+baostock>=0.8.8        # 免费,无需 token(校验源)
+tushare>=1.2.89        # 需 token,可选(高质量源)
+tqdm>=4.66             # 进度条

@@ -1,0 +1,40 @@
+[project]
+name = "ourworld-quant"
+version = "0.1.0"
+description = "A-share quant research, paper trading, contest showcase, and forum MVP."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "numpy>=1.26",
+  "pandas>=2.0",
+]
+
+[project.optional-dependencies]
+data = [
+  "duckdb>=0.10",
+  "pyarrow>=14.0",
+  "akshare>=1.12",
+  "baostock>=0.8.8",
+  "tushare>=1.2.89",
+  "tqdm>=4.66",
+]
+app = [
+  "qrcode[pil]>=7.4",
+]
+test = [
+  "pytest>=8.0",
+]
+dev = [
+  "duckdb>=0.10",
+  "pyarrow>=14.0",
+  "akshare>=1.12",
+  "baostock>=0.8.8",
+  "tushare>=1.2.89",
+  "tqdm>=4.66",
+  "qrcode[pil]>=7.4",
+  "pytest>=8.0",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
