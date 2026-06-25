@@ -9,7 +9,7 @@
 [![Status](https://img.shields.io/badge/status-building-orange.svg)]()
 [![Made with](https://img.shields.io/badge/made%20with-Python-blue.svg)]()
 
-🌐 **在线站点 / Site:** https://quant.ourworlds.app &nbsp;·&nbsp; 📓 **构建日志 / Build Log:** [站点内](https://quant.ourworlds.app/#log)
+🌐 **在线站点 / Site:** https://quant.ourworlds.app &nbsp;·&nbsp; 📓 **构建日志 / Build Log:** [GitHub 提交历史](https://github.com/leiMizzou/ourworld-quant/commits/main)
 
 </div>
 
@@ -18,8 +18,10 @@
 这是一个**边做边公开**的个人量化项目。目标不是炫技或喊单,而是把"一个有工程能力的个人,如何从零搭起一套 A 股量化研究到实盘的完整闭环"这件事,**完整、透明、可复现地记录下来**——代码开源、过程上站、心得做自媒体。
 
 - 🧱 **可复现**:数据管道、回测框架、因子研究、策略,全部开源可跑。
-- 📖 **透明**:每个阶段的进展、踩的坑、改的错,都写进[构建日志](docs/index.html)。
+- 📖 **透明**:每个阶段的进展、踩的坑、改的错,都记录在 [GitHub 提交历史](https://github.com/leiMizzou/ourworld-quant/commits/main)。
 - 🎯 **务实**:适配小资金(≤10万)、中低频、纯多头的现实约束,不碰拼不过机构的高频。
+
+> 🧭 **项目定位(重要)**:本项目的**主线是个人量化研究与可复现的回测/因子方法论**——见 `src/data`(数据管道)、`src/factors`(因子检验)、`src/backtest`(回测引擎)、`src/research`(多因子闭环)。`src/app` 下的社区模拟盘 / 公开赛 / 论坛是一个**已搭好的技术 Demo**,用于演示交互与自我复盘,**不是本项目对外运营的主线产品**,也不对外承担运营或合规承诺。
 
 > 💡 本项目所有内容仅为技术研究与学习记录,**不构成任何投资建议**。量化有风险,实盘需谨慎。
 
@@ -113,8 +115,8 @@ python3 -m unittest discover -s tests
 |---|---|---|---|
 | **0** | 环境与数据管道 | 可靠的本地数据管道 | ✅ 完成 |
 | **1** | 回测引擎 + 复现经典策略 | 可信任的回测框架 | ✅ 完成 |
-| **2** | 因子研究 + 多因子组合 | 多因子选股策略 + 研究笔记 | 🟡 进行中 |
-| **3** | 模拟盘验证 | 回测/模拟一致的策略 | ⬜ 未开始 |
+| **2** | 因子研究 + 多因子组合 | 多因子选股策略 + 研究笔记 | 🟡 进行中(当前 demo 仅小样本、需切到 `hfq` + 含退市的代表性股票池) |
+| **3** | 模拟盘验证 | 回测/模拟一致的策略 | 🟡 平台已搭(技术 Demo),策略级一致性验证未开始 |
 | **4** | 小资金实盘 | 真实实盘曲线 | ⬜ 未开始 |
 
 > 完整路线图与方法论见 [`plan/A股量化_个人准备计划.md`](plan/A股量化_个人准备计划.md)。
