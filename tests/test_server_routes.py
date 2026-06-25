@@ -42,6 +42,9 @@ class ServerRoutesTest(unittest.TestCase):
         self.tmpdir = tempfile.TemporaryDirectory()
         self.con = db.bootstrap(Path(self.tmpdir.name) / "app.sqlite")
         AppHandler.con = self.con
+        # These routes assert state via self.con, so keep the handler on the shared
+        # connection; ensure no other test left a per-request db_path on the class.
+        AppHandler.db_path = None
         self.httpd = ThreadingHTTPServer(("127.0.0.1", 0), AppHandler)
         self.port = self.httpd.server_address[1]
         self.thread = threading.Thread(target=self.httpd.serve_forever, daemon=True)

@@ -41,6 +41,12 @@ TRUE_VALUES = {"1", "true", "yes", "on"}
 FALSE_VALUES = {"0", "false", "no", "off"}
 RATE_LIMIT_BUCKETS: dict[tuple[str, str], list[float]] = {}
 RATE_LIMIT_LOCK = threading.Lock()
+# Serializes all state-changing (POST) request handling. Several service writes do a
+# read-modify-write (e.g. place_order reads holdings.qty then writes the new absolute
+# qty), which separate per-request connections + WAL do NOT make atomic — concurrent
+# writers would lose updates. Holding this lock for the duration of each POST keeps the
+# whole read-modify-write-commit sequence atomic across worker threads.
+DB_WRITE_LOCK = threading.RLock()
 SERVER_STARTED_AT = time.time()
 METRICS_LOCK = threading.Lock()
 HTTP_METRICS = {
@@ -484,7 +490,32 @@ def history_rows(rows) -> str:
 
 class AppHandler(BaseHTTPRequestHandler):
     server_version = "OurWorldQuantApp/0.1"
+    # Fallback shared connection (used by tests that assign AppHandler.con directly).
     con = None
+    # When set (production main()), each request opens its own SQLite connection so that
+    # ThreadingHTTPServer worker threads never share one connection's transaction state.
+    db_path = None
+    _owns_con = False
+
+    def setup(self):
+        super().setup()
+        # Per-request connection: avoids interleaving transactions on a single shared
+        # connection across threads, which could otherwise commit another request's
+        # half-applied write (e.g. a cash debit without the matching holdings insert).
+        if self.db_path is not None:
+            self.con = db.connect(self.db_path)
+            self._owns_con = True
+
+    def finish(self):
+        try:
+            super().finish()
+        finally:
+            if self._owns_con:
+                try:
+                    self.con.close()
+                except Exception:
+                    pass
+                self._owns_con = False
 
     def log_message(self, fmt, *args):  # noqa: D401
         """Keep the default server quieter."""
@@ -760,7 +791,11 @@ class AppHandler(BaseHTTPRequestHandler):
             self.end_headers()
 
     def do_POST(self):
-        self.safe_dispatch(self.handle_post)
+        # Serialize writes: POST is the only state-changing verb in this app, so holding
+        # DB_WRITE_LOCK here makes every read-modify-write service call atomic and prevents
+        # concurrent orders from losing holdings/cash updates.
+        with DB_WRITE_LOCK:
+            self.safe_dispatch(self.handle_post)
 
     def handle_post(self):
         parsed = urlparse(self.path)
@@ -5147,6 +5182,10 @@ def main(argv: list[str] | None = None) -> int:
         con.close()
         return 0
     AppHandler.con = con
+    # Serve with one SQLite connection per request (thread-per-request server). The
+    # bootstrap connection above has already created/migrated the schema; each worker
+    # opens its own connection to this path so transactions never interleave.
+    AppHandler.db_path = args.db if args.db is not None else db.DEFAULT_DB_PATH
     httpd = ThreadingHTTPServer((args.host, args.port), AppHandler)
     print(f"Serving OurWorlds Quant app at http://{args.host}:{args.port}")
     signal_handlers = install_shutdown_signal_handlers()
