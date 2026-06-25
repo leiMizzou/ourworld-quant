@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import shutil
 import stat
 import subprocess
 import unittest
@@ -9,8 +10,13 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
+# The public market-sync script is zsh; the syntax check is skipped where zsh is absent
+# (e.g. Linux CI) and runs on the maintainer's macOS host.
+HAS_ZSH = shutil.which("zsh") is not None
+
 
 class DeployScriptsTest(unittest.TestCase):
+    @unittest.skipUnless(HAS_ZSH, "requires zsh on PATH")
     def test_public_market_sync_script_is_executable_and_valid_zsh(self):
         script = ROOT / "deploy" / "sync-market-public.sh"
 

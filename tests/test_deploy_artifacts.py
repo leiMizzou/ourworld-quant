@@ -2,14 +2,22 @@ from __future__ import annotations
 
 import plistlib
 import subprocess
+import sys
 import unittest
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
 
+# These artifacts are macOS deploy targets: the scripts are zsh and the launchd plists
+# bake in this machine's absolute paths. They validate the maintainer's local setup, so
+# they only run where that environment exists (skipped on Linux CI, run on the Mac).
+HAS_BIN_ZSH = Path("/bin/zsh").exists()
+IS_MACOS = sys.platform == "darwin"
+
 
 class DeployArtifactsTest(unittest.TestCase):
+    @unittest.skipUnless(HAS_BIN_ZSH, "requires /bin/zsh (macOS deploy scripts)")
     def test_deploy_shell_scripts_parse(self):
         for path in [
             ROOT / "deploy" / "check-public.sh",
@@ -22,6 +30,7 @@ class DeployArtifactsTest(unittest.TestCase):
                 result = subprocess.run(["/bin/zsh", "-n", str(path)], cwd=ROOT, check=False, capture_output=True, text=True)
                 self.assertEqual(result.returncode, 0, result.stderr)
 
+    @unittest.skipUnless(IS_MACOS, "launchd plists validate the maintainer's macOS deploy paths")
     def test_launchd_plists_are_valid_and_log_to_data_logs(self):
         for path in sorted((ROOT / "deploy" / "launchd").glob("*.plist")):
             with self.subTest(path=path.name):
@@ -127,6 +136,7 @@ class DeployArtifactsTest(unittest.TestCase):
         self.assertIn("--prune-audit-log", text)
         self.assertIn("--prune-email-login-sessions", text)
 
+    @unittest.skipUnless(HAS_BIN_ZSH, "requires /bin/zsh (macOS deploy scripts)")
     def test_public_env_example_can_be_sourced_by_zsh(self):
         script = """
 set -euo pipefail
@@ -140,6 +150,7 @@ set +a
         result = subprocess.run(["/bin/zsh", "-c", script], cwd=ROOT, check=False, capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
 
+    @unittest.skipUnless(HAS_BIN_ZSH, "requires /bin/zsh (macOS deploy scripts)")
     def test_dotenv_example_can_be_sourced_by_zsh(self):
         script = """
 set -euo pipefail
