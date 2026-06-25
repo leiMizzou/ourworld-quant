@@ -6,7 +6,6 @@ app SQLite database. It does not treat docs/demo values as research evidence.
 from __future__ import annotations
 
 import argparse
-import csv
 import os
 import sqlite3
 from dataclasses import dataclass

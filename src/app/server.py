@@ -2691,7 +2691,7 @@ class AppHandler(BaseHTTPRequestHandler):
         self.send_html("忘记密码", body)
 
     def render_password_reset_request_result(self, email: str):
-        body = f"""
+        body = """
 <section class="card">
   <h2>重置密码邮件已处理</h2>
   <p>如果该邮箱已经注册,我们会发送一封一次性重置密码邮件。请在 15 分钟内打开链接并设置新密码。</p>

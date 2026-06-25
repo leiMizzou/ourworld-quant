@@ -38,3 +38,9 @@ dev = [
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py311"
+# Uses ruff's default lint rules (pyflakes F + a subset of pycodestyle E). The codebase
+# is currently clean under these. Line-length (E501) is intentionally not enabled yet;
+# broaden the rule set (e.g. add "I", "UP", "B") incrementally as the code is tidied.

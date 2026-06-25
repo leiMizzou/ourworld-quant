@@ -11,7 +11,7 @@ from __future__ import annotations
 import pandas as pd
 
 from .. import config
-from ..utils import log, normalize_code, polite_sleep, retry, to_tushare_code
+from ..utils import normalize_code, polite_sleep, retry, to_tushare_code
 from .base import BAR_COLUMNS, STOCK_COLUMNS, DataSource
 
 

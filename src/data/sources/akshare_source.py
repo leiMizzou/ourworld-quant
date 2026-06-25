@@ -7,9 +7,8 @@ from __future__ import annotations
 
 import pandas as pd
 
-from .. import config
 from ..utils import bare_code, log, normalize_code, polite_sleep, retry
-from .base import ADJUST_NONE, BAR_COLUMNS, STOCK_COLUMNS, DataSource
+from .base import BAR_COLUMNS, STOCK_COLUMNS, DataSource
 
 _ADJ_MAP = {"hfq": "hfq", "qfq": "qfq", "none": ""}
 

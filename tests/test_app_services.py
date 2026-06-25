@@ -143,7 +143,8 @@ class AppServicesTest(unittest.TestCase):
             enforce_rate_limit=False,
         )
         services.confirm_email_login_session(self.con, confirmed)
-        recent = services.create_email_login_session(
+        # Recent session is intentionally created so the prune keeps it (binding unused).
+        services.create_email_login_session(
             self.con,
             "recent@example.com",
             "2026-06-24",
