@@ -2151,10 +2151,12 @@ class AppHandler(BaseHTTPRequestHandler):
         return display_nickname(row)
 
     def landing_nav_cta(self, user=None) -> str:
+        # This block now owns the whole login-area of the landing nav (the static 登录 link was
+        # folded in here) so it flips fully with login state — no stray 登录 link when signed in.
         if user:
-            return '<a class="primary" href="/app">进入模拟盘</a>'
+            return '<a href="/account">账户</a><a class="primary" href="/app">进入模拟盘</a>'
         label = self.public_join_label(primary=False if self.public_registration_available() else True)
-        return f'<a class="primary" href="{self.public_join_href()}">{escape(label)}</a>'
+        return f'<a href="/login">登录</a><a class="primary" href="{self.public_join_href()}">{escape(label)}</a>'
 
     def landing_hero_actions(self, user=None) -> str:
         if user:
