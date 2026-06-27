@@ -984,6 +984,8 @@ class AppHandler(BaseHTTPRequestHandler):
             self.render_preview()
         elif path == "/lessons":
             self.render_lessons()
+        elif path == "/research":
+            self.render_research()
         elif path == "/data-status":
             self.render_data_status()
         elif path == "/guide":
@@ -1127,6 +1129,8 @@ class AppHandler(BaseHTTPRequestHandler):
             self.render_preview(head=True)
         elif path == "/lessons":
             self.render_lessons(head=True)
+        elif path == "/research":
+            self.render_research(head=True)
         elif path == "/data-status":
             self.render_data_status(head=True)
         elif path == "/guide":
@@ -1911,7 +1915,7 @@ class AppHandler(BaseHTTPRequestHandler):
             admin_link = '<a href="/admin">管理</a>' if self.is_admin_user(user) else ""
             nav = (
                 '<div class="nav">'
-                '<a href="/learn">学习</a><a href="/app">高级模拟盘</a><a href="/market">基础数据</a><a href="/portfolio-lab">组合设计</a><a href="/showcase">比赛展示</a>'
+                '<a href="/learn">学习</a><a href="/app">高级模拟盘</a><a href="/market">基础数据</a><a href="/portfolio-lab">组合设计</a><a href="/research">研究引擎</a><a href="/showcase">比赛展示</a>'
                 f'<a href="/forum">论坛</a><a href="/guide">指南</a><a href="/account/ai">AI教练</a><a href="/support">支持</a><a href="/account">账户</a>{admin_link}'
                 f'<span>{escape(user["nickname"])}</span>'
                 f'<form method="post" action="/logout">{csrf_input(user)}<button type="submit">退出</button></form>'
@@ -2630,6 +2634,7 @@ class AppHandler(BaseHTTPRequestHandler):
             "/",
             "/preview",
             "/lessons",
+            "/research",
             "/data-status",
             "/guide",
             "/guide/demo",
@@ -2925,6 +2930,7 @@ class AppHandler(BaseHTTPRequestHandler):
             {"path": "/", "changefreq": "daily", "priority": "1.0"},
             {"path": "/preview", "changefreq": "daily", "priority": "0.9"},
             {"path": "/lessons", "changefreq": "monthly", "priority": "0.8"},
+            {"path": "/research", "changefreq": "weekly", "priority": "0.7"},
             {"path": "/data-status", "changefreq": "hourly", "priority": "0.8"},
             {"path": "/guide", "changefreq": "monthly", "priority": "0.7"},
             {"path": "/guide/demo", "changefreq": "monthly", "priority": "0.6"},
@@ -4206,13 +4212,93 @@ class AppHandler(BaseHTTPRequestHandler):
             meta={"description": "幸存者偏差、前视偏差、复权口径——三个最常见的量化回测陷阱,用真实A股数据讲清楚,免登录免API key。"},
         )
 
+    def render_research(self, head: bool = False):
+        """Builder tier (public, educational): surface the research engine so engaged users can
+        graduate from the paper-trading sim to building their own strategies. Reuses the offline
+        preview artifact for a real backtest snapshot; explains the pipeline and how to run it."""
+        data = self._load_preview_data() or {}
+        m = data.get("metrics") or {}
+        sv = data.get("survivorship") or {}
+
+        def pctf(x):
+            return pct(float(x) * 100) if x is not None else "—"
+
+        snapshot = ""
+        if m.get("total_return") is not None:
+            delta = sv.get("delta_survivors_minus_full") if not sv.get("error") else None
+            surv_line = (
+                f'<p class="muted">幸存者偏差实测:只测存活股会把总收益高估 {pct(float(delta.get("total_return", 0)) * 100)}、'
+                f'夏普高估 {float(delta.get("sharpe", 0)):+.2f}——所以这里的票池<strong>默认含退市股</strong>。</p>'
+                if delta else ""
+            )
+            snapshot = f"""
+<section class="card">
+  <div class="card-title"><span>最新研究快照(真实回测,含退市)</span><span class="muted">截至 {escape(str(data.get('as_of') or ''))}</span></div>
+  <div class="cards">
+    <div class="card"><p>{metric_label('total_return', '总收益率')}</p><div class="metric">{pctf(m.get('total_return'))}</div></div>
+    <div class="card"><p>{metric_label('cagr', '年化')}</p><div class="metric">{pctf(m.get('cagr'))}</div></div>
+    <div class="card"><p>{metric_label('sharpe', '夏普')}</p><div class="metric">{(f"{float(m.get('sharpe')):.3f}" if m.get('sharpe') is not None else '—')}</div></div>
+    <div class="card"><p>{metric_label('max_drawdown', '最大回撤')}</p><div class="metric bad">{pctf(m.get('max_drawdown'))}</div></div>
+  </div>
+  {surv_line}
+  <p class="muted">完整报告(因子 IC、截面回归、预测候选、回测明细)在本机运行 <code>python -m src.research.real_data_report</code> 生成 <code>reports/real-data-report.md</code>。</p>
+</section>
+"""
+        cli = (
+            "# 1) 取数落库(含退市股票池,缓解幸存者偏差)\n"
+            "python -m src.data.cli stock-list --source akshare\n"
+            "python -m src.data.cli daily --source akshare --adjust hfq --limit 300\n\n"
+            "# 2) 单因子评估(IC / 分层收益)\n"
+            "python -m src.factors.run --factor reversal --window 20\n\n"
+            "# 3) 单策略回测(T+1 / 费用 / 涨跌停 / 退市强制平仓)\n"
+            "python -m src.backtest.run --signal reversal --lookback 20 --top 20\n\n"
+            "# 4) 多因子合成 → 组合 → 回测(默认等权,无前视)\n"
+            "python -m src.research.multifactor --top 30 --freq M\n\n"
+            "# 5) 真实数据报告 + 预测候选(reports/ 下)\n"
+            "python -m src.research.real_data_report\n"
+        )
+        body = f"""
+<section class="card">
+  <p><span class="pill">Builder 层</span> <span class="pill ok">真实数据 · 含退市股</span></p>
+  <h2>从模拟盘毕业:用研究引擎自己造策略</h2>
+  <p class="muted">模拟盘帮你建立手感和纪律;研究引擎让你像工程师一样,从数据出发自己设计、回测、迭代策略。这套引擎全部开源、可在本机跑通,下面是它的全貌。</p>
+</section>
+<section class="card">
+  <div class="card-title"><span>研究闭环</span></div>
+  <div class="cards">
+    <div class="card"><p>① 数据</p><p class="muted">akshare/tushare/baostock → DuckDB,统一口径(量=股、额=元),含退市股票池。</p></div>
+    <div class="card"><p>② 因子</p><p class="muted">reversal/momentum/volatility/amihud/ma_bias,截面 winsorize+zscore 标准化。</p></div>
+    <div class="card"><p>③ 回测</p><p class="muted">事件驱动、T+1、费用/滑点/涨跌停、退市按最后收盘价强制平仓。</p></div>
+    <div class="card"><p>④ 合成</p><p class="muted">多因子按方向合成总分,月度等权 top-N(默认无前视;IC 加权仅演示)。</p></div>
+    <div class="card"><p>⑤ 预测</p><p class="muted">截面回归(前 70% 训练、后 30% OOS)产出下一期候选 → 可一键导入模拟盘。</p></div>
+  </div>
+  <p class="muted">每一步都对应 <code>src/</code> 下一个可独立运行的模块,结果可复现、可复盘。</p>
+</section>
+{snapshot}
+<section class="card">
+  <div class="card-title"><span>在本机跑起来</span></div>
+  <pre style="background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:14px;overflow:auto;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;line-height:1.6;white-space:pre">{escape(cli)}</pre>
+</section>
+<section class="card">
+  <div class="card-title"><span>接回模拟盘</span></div>
+  <p>研究产出的<strong>预测候选</strong>(<code>reports/predictions.csv</code>)可以一键导入模拟盘当作演练计划——研究和实操在同一套真实行情上闭环。</p>
+  <p><a class="btn" href="/app">回模拟盘 · 从模型预测生成篮子</a> <a class="btn secondary" href="/lessons">先复习量化三大坑</a></p>
+</section>
+"""
+        self.send_html(
+            "研究引擎 · 从模拟盘毕业",
+            body,
+            head=head,
+            meta={"description": "OurWorlds Quant 研究引擎:数据→因子→回测→多因子→预测的开源闭环,含退市股、可复现,帮你从模拟盘毕业到自己造策略。"},
+        )
+
     def _preview_ctas(self) -> str:
         return (
             '<section class="card"><div class="card-title"><span>想自己上手?</span></div>'
             '<p><a class="btn blue" href="/register">免费注册,拿 10 万模拟本金</a> '
             '<a class="btn secondary" href="/lessons">量化三大坑(免登录)</a> '
-            '<a class="btn secondary" href="/showcase/public">看公开排行榜</a> '
-            '<a class="btn secondary" href="/data-status">数据透明页</a></p></section>'
+            '<a class="btn secondary" href="/research">研究引擎</a> '
+            '<a class="btn secondary" href="/showcase/public">看公开排行榜</a></p></section>'
         )
 
     def render_preview(self, head: bool = False):

@@ -487,6 +487,15 @@ class ServerRoutesTest(unittest.TestCase):
         self.assertIn("复权口径", payload)
         self.assertIn("被高估了", payload)  # real survivorship numbers wired in
 
+    def test_research_page_is_public_indexable_builder_tier(self):
+        status, headers, payload = self.request("GET", "/research")  # no login
+        self.assertEqual(status, 200)
+        self.assertNotIn("X-Robots-Tag", headers)  # indexable (engineer-persona acquisition)
+        self.assertIn("研究闭环", payload)
+        self.assertIn("从模拟盘毕业", payload)
+        self.assertIn("src.research.real_data_report", payload)  # CLI run instructions
+        self.assertIn("reports/predictions.csv", payload)  # bridge back to paper trading
+
     def test_lessons_page_works_without_artifact(self):
         missing = Path(self.tmpdir.name) / "none.json"
         with patch.dict(os.environ, {"OWQ_PREVIEW_JSON": str(missing)}, clear=False):
