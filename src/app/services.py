@@ -2388,6 +2388,45 @@ def post_auth_landing(con: sqlite3.Connection, user_id: int) -> str:
     return "/app" if planned else "/learn"
 
 
+def weekly_review(con: sqlite3.Connection, user_id: int) -> dict | None:
+    """A lightweight weekly retention hook: this week's equity change + trade count.
+
+    Baseline is the last snapshot BEFORE the 7-day window (so a quiet week reads ~0%), falling
+    back to the earliest snapshot for brand-new accounts. Returns None if the account has no
+    snapshots yet.
+    """
+    account = account_for_user(con, user_id)
+    if account is None:
+        return None
+    aid = account["id"]
+    latest = con.execute(
+        "SELECT equity, return_pct FROM equity_snapshots WHERE account_id=? ORDER BY id DESC LIMIT 1",
+        (aid,),
+    ).fetchone()
+    if latest is None:
+        return None
+    base = con.execute(
+        "SELECT equity FROM equity_snapshots WHERE account_id=? AND created_at < datetime('now','-7 days') "
+        "ORDER BY id DESC LIMIT 1",
+        (aid,),
+    ).fetchone() or con.execute(
+        "SELECT equity FROM equity_snapshots WHERE account_id=? ORDER BY id ASC LIMIT 1",
+        (aid,),
+    ).fetchone()
+    start_equity = float(base["equity"]) if base and base["equity"] else float(latest["equity"])
+    week_change_pct = (float(latest["equity"]) / start_equity - 1.0) * 100 if start_equity else 0.0
+    trades = con.execute(
+        "SELECT COUNT(*) AS c FROM orders WHERE account_id=? AND created_at >= datetime('now','-7 days')",
+        (aid,),
+    ).fetchone()["c"]
+    return {
+        "equity": float(latest["equity"]),
+        "return_pct": float(latest["return_pct"] or 0.0),
+        "week_change_pct": week_change_pct,
+        "trades": int(trades),
+    }
+
+
 def order_history(con: sqlite3.Connection, user_id: int):
     account = account_for_user(con, user_id)
     if account is None:

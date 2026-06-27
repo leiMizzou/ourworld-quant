@@ -4334,6 +4334,27 @@ class AppHandler(BaseHTTPRequestHandler):
             for s in signals
         ) or '<tr><td colspan="9" class="muted">暂无演练计划</td></tr>'
         ret_class = "ok" if snap["return_pct"] >= 0 else "bad"
+        wr = services.weekly_review(self.con, user["id"])
+        if wr:
+            wk_cls = "ok" if wr["week_change_pct"] >= 0 else "bad"
+            wk_nudge = (
+                "本周还没有交易。复盘的第一步是先有记录——在上面下一两笔模拟单,或保存一个演练计划。"
+                if wr["trades"] == 0
+                else "记录这周的假设、风险控制和执行偏差,公开复盘比闷头交易学得快。"
+            )
+            weekly_html = f"""
+<section class="card">
+  <div class="card-title"><span>本周复盘</span><span class="muted">最近 7 天</span></div>
+  <div class="cards">
+    <div class="card"><p>{metric_label('return_pct', '本周净值变化')}</p><div class="metric {wk_cls}">{pct(wr['week_change_pct'])}</div></div>
+    <div class="card"><p>本周成交</p><div class="metric">{wr['trades']} 笔</div></div>
+  </div>
+  <p class="muted">{wk_nudge}</p>
+  <p><a class="btn" href="/forum/new?template=performance">生成战绩复盘帖</a> <a class="btn secondary" href="/account/ai">问 AI 教练复盘</a></p>
+</section>
+"""
+        else:
+            weekly_html = ""
         learning_pending = self.con.execute(
             """
             SELECT COUNT(*) AS count
@@ -4360,6 +4381,7 @@ class AppHandler(BaseHTTPRequestHandler):
   <div class="card-title"><span>资产曲线</span><span class="muted">模拟账户净值,阴影为最大回撤区间</span></div>
   <div data-equity-curve></div>
 </section>
+{weekly_html}
 <section class="card">
   <h2>模拟交易</h2>
   <form class="formline" method="post" action="/orders">

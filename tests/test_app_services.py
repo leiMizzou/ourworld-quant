@@ -669,6 +669,16 @@ class AppServicesTest(unittest.TestCase):
         services.create_practice_signal(self.con, user_id, "反转观察", "000001.SZ", "buy", 100, "测试")
         self.assertEqual(services.post_auth_landing(self.con, user_id), "/app")
 
+    def test_weekly_review_reports_change_and_trade_count(self):
+        user_id = self.register_user()
+        wr = services.weekly_review(self.con, user_id)
+        self.assertIsNotNone(wr)
+        self.assertEqual(wr["trades"], 0)
+        self.assertIn("week_change_pct", wr)
+        services.place_order(self.con, user_id, "000001.SZ", "buy", 100)
+        wr2 = services.weekly_review(self.con, user_id)
+        self.assertEqual(wr2["trades"], 1)
+
     def test_prediction_rationale_carries_date_and_basis_caveat(self):
         pred_path = Path(self.tmpdir.name) / "predictions.csv"
         pred_path.write_text(

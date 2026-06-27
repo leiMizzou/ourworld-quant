@@ -409,6 +409,9 @@ class ServerRoutesTest(unittest.TestCase):
         # simulated account priced off demo / real-but-non-realtime data.
         self.assertIn("你的模拟训练账户", payload)
         self.assertIn("行情:", payload)
+        # Weekly-review retention card (Phase 3) with its review-post CTA.
+        self.assertIn("本周复盘", payload)
+        self.assertIn("/forum/new?template=performance", payload)
 
     def test_equity_curve_api_and_dashboard_container(self):
         token = services.create_wechat_session(self.con)
