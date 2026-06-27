@@ -5851,8 +5851,15 @@ class AppHandler(BaseHTTPRequestHandler):
   <h2>排行榜 Showcase</h2>
   <table><thead><tr><th>排名</th><th>用户</th><th>总资产</th><th>收益率</th></tr></thead><tbody>{rows}</tbody></table>
   <p class="muted">公开榜单: <a href="/showcase/public">{escape(share_url)}</a></p>
-  <p class="muted">我的战绩页: <a href="/u/{user['id']}">{escape(profile_url)}</a></p>
-  <p><a class="btn" href="/forum/new?template=performance">生成战绩复盘帖</a></p>
+</section>
+<section class="card">
+  <div class="card-title"><span>分享我的战绩</span></div>
+  <img src="/u/{int(user['id'])}/card.svg" alt="我的模拟战绩卡" loading="lazy" style="max-width:100%;border:1px solid var(--line);border-radius:10px;margin:6px 0">
+  <p class="muted">这是<strong>模拟训练账户</strong>的战绩卡(估值/回测已含退市股,但仍是模拟、非真实委托)。把下面的链接分享到社媒,会自动带上这张卡片预览。</p>
+  <p><a class="btn" href="/u/{int(user['id'])}">打开我的公开战绩页 →</a>
+     <button type="button" class="btn secondary" data-copy="{escape(profile_url, quote=True)}">复制分享链接</button>
+     <a class="btn secondary" href="/forum/new?template=performance">生成战绩复盘帖</a></p>
+  <p class="muted">链接: <a href="/u/{int(user['id'])}">{escape(profile_url)}</a></p>
 </section>
 """
         self.send_html("比赛展示", body, user=user)

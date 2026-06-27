@@ -510,6 +510,17 @@ class ServerRoutesTest(unittest.TestCase):
         self.assertEqual(status, 200)  # graceful fallback, still public, still has CTAs
         self.assertIn("免费注册", payload)
 
+    def test_showcase_share_card_renders(self):
+        token = services.create_wechat_session(self.con)
+        user_id = services.confirm_wechat_session(self.con, token, "ShareCard")
+        cookie = f"owq_session={self.sign_cookie(user_id)}"
+        status, _, payload = self.request("GET", "/showcase", headers={"Cookie": cookie})
+        self.assertEqual(status, 200)
+        self.assertIn("分享我的战绩", payload)
+        self.assertIn(f"/u/{user_id}/card.svg", payload)  # embeds the existing shareable card
+        self.assertIn("data-copy", payload)               # copy-link affordance (app.js enhances)
+        self.assertIn("模拟训练账户", payload)             # honest framing
+
     def test_equity_curve_api_requires_login(self):
         status, _, _ = self.request("GET", "/api/equity-curve")
         self.assertIn(status, {302, 303})  # redirect to login, not a JSON leak

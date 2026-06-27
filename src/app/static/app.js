@@ -82,6 +82,20 @@
   document.addEventListener("click", function (e) {
     var t = e.target;
     if (!t || !t.closest) return;
+    var copyBtn = t.closest("[data-copy]");
+    if (copyBtn) {
+      e.preventDefault();
+      var url = copyBtn.getAttribute("data-copy");
+      var done = function (ok) {
+        var prev = copyBtn.textContent;
+        copyBtn.textContent = ok ? "已复制 ✓" : "请手动复制下方链接";
+        setTimeout(function () { copyBtn.textContent = prev; }, 1600);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).then(function () { done(true); }, function () { done(false); });
+      } else { done(false); } // no-JS / old browser: the link is shown right below the button
+      return;
+    }
     var node = t.closest("[data-metric]");
     if (node) { e.preventDefault(); toggle(node); return; }
     if (activeTip && !t.closest(".owq-tip")) closeTip(); // outside click closes
