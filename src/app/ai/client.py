@@ -20,7 +20,11 @@ from urllib.parse import urlparse
 
 DEFAULT_ALLOWLIST = {"api.deepseek.com"}
 DEFAULT_BASE_URL = "https://api.deepseek.com"
-DEFAULT_MODEL = "deepseek-chat"
+DEFAULT_MODEL = "deepseek-v4-flash"
+MODEL_OPTIONS = (
+    ("deepseek-v4-flash", "DeepSeek V4 Flash"),
+    ("deepseek-v4-pro", "DeepSeek V4 Pro"),
+)
 
 
 class EgressError(ValueError):

@@ -9,13 +9,18 @@ import argparse
 import csv
 import hashlib
 import hmac
+import importlib.util
 import io
 import json
 import os
+import re
+import shutil
 import shlex
 import signal
 import smtplib
 import ssl
+import subprocess
+import sys
 import threading
 import time
 import urllib.error
@@ -30,6 +35,7 @@ from urllib.parse import parse_qs, quote, urlencode, urlparse
 
 from . import data_bridge, db, doctor, email_config, services
 from .ai import service as ai_service
+from ..metrics_glossary import METRIC_GLOSSARY, tooltip_text
 
 
 SESSION_COOKIE = "owq_session"
@@ -74,30 +80,264 @@ SENSITIVE_ENV_NAMES = (
     "TUSHARE_TOKEN",
     "OWQ_DEEPSEEK_API_KEY",
 )
+DEFAULT_DEMO_TTS_VOICE = "zh-CN-XiaoxiaoNeural"
+DEFAULT_DEMO_VOICE_PATH = db.REPO_ROOT / "data" / "demo" / "ourworld-quant-guide.mp3"
+STATIC_DIR = db.REPO_ROOT / "src" / "app" / "static"
+USAGE_FLOW_STEPS = (
+    {
+        "title": "公开了解",
+        "path": "/",
+        "summary": "先看首页、公开榜单、数据透明页和论坛,确认这是模拟盘训练系统。",
+        "detail": "未登录用户可以查看赛场状态、行情覆盖、公开战绩和策略复盘,但不能提交交易或发帖。",
+    },
+    {
+        "title": "邮箱注册",
+        "path": "/register",
+        "summary": "填写邮箱并同意条款,收到注册码后到确认页设置用户名和密码。",
+        "detail": "注册码和备用链接 15 分钟内有效。完成后仍需回到登录页使用账号密码登录。",
+    },
+    {
+        "title": "登录进入模拟盘",
+        "path": "/login",
+        "summary": "使用用户名或邮箱加密码进入模拟盘,系统自动创建 100 万模拟资金账户。",
+        "detail": "登录后可以查看总资产、现金、收益率、持仓、行情和最近成交。",
+    },
+    {
+        "title": "制定演练计划",
+        "path": "/app",
+        "summary": "先保存策略演练计划,再逐条或批量执行为模拟成交。",
+        "detail": "可以手动选择标的,也可以从行情反转/动量候选或研究篮子导入待执行计划。",
+    },
+    {
+        "title": "组合与数据",
+        "path": "/portfolio-lab",
+        "summary": "组合设计页读取真实行情和预测候选,把研究结果转成可执行演练。",
+        "detail": "基础数据页负责同步行情,数据透明页公开展示当前行情覆盖、最新交易日和预测匹配状态。",
+    },
+    {
+        "title": "公开展示和讨论",
+        "path": "/showcase",
+        "summary": "加入公开赛后,榜单、个人战绩页和战绩卡会展示模拟盘结果。",
+        "detail": "可以从比赛页生成战绩复盘帖,再到论坛围绕策略、回撤和执行偏差讨论。",
+    },
+    {
+        "title": "账户和运维",
+        "path": "/account",
+        "summary": "账户页负责资料、导出、重置模拟账户和关闭账户;管理员在后台处理系统运维。",
+        "detail": "管理员可备份数据库、查看体检、处理举报和支持请求,正式发布前必须完成真实发信和严格体检。",
+    },
+)
+USAGE_GAPS = (
+    "新用户以前需要在多个页面之间猜路径,注册、确认、登录、模拟盘和公开赛关系不够集中。",
+    "数据状态、组合设计和模拟交易虽然已经打通,但缺少一页把“先看数据、再生成计划、再执行复盘”的闭环讲清楚。",
+    "演示主要依赖管理员生成 demo 数据,普通访客无法在不登录的情况下快速理解完整操作。",
+    "没有语音解说入口,对录屏、路演和非技术用户讲解不够友好。",
+)
+USAGE_IMPROVEMENTS = (
+    "新增公开使用指南,把访客、注册用户、参赛用户和管理员的路径合并到一页。",
+    "新增自动演示页,用纯 HTML/CSS 自动轮播核心步骤,在当前安全 CSP 下不启用脚本。",
+    "新增 EdgeTTS 语音生成命令,可把固定演示文案生成 MP3 并由演示页播放。",
+    "导航、首页入口和 sitemap 增加指南/演示入口,降低新用户第一次使用的路径成本。",
+)
+DEMO_NARRATION_TEXT = (
+    "欢迎使用 OurWorlds Quant 模拟盘。第一步,先通过首页、公开榜单、数据透明页和论坛了解赛场。"
+    "第二步,使用邮箱注册。系统会发送一次性注册码,确认邮箱后设置用户名和密码。"
+    "第三步,回到登录页,使用用户名或邮箱和密码进入模拟盘。"
+    "第四步,在模拟盘里先保存策略演练计划,再把计划执行成模拟成交。"
+    "第五步,到组合设计页使用真实行情和研究预测候选,把研究结果转成待执行计划。"
+    "第六步,加入公开赛,查看排名、个人战绩页和战绩卡。"
+    "第七步,把战绩复盘发布到论坛,围绕策略逻辑、执行偏差和风险控制继续讨论。"
+    "所有交易都是模拟训练,不构成投资建议,也不产生真实证券委托。"
+)
+LEARNING_PRESETS = (
+    {
+        "level": "零基础",
+        "difficulty": "beginner",
+        "template": "reversal",
+        "title": "量化投资到底是什么?",
+        "summary": "先弄清楚数据、规则、策略和模拟盘分别在做什么。",
+        "goal": "我是零基础,想先理解量化投资到底是什么,它和主观投资、AI聊天选股有什么区别,并用一个最简单的模拟盘练习建立基本概念。",
+    },
+    {
+        "level": "零基础",
+        "difficulty": "beginner",
+        "template": "reversal",
+        "title": "我该先学哪些基础?",
+        "summary": "按最短路径梳理行情、交易规则、回测陷阱和复盘。",
+        "goal": "我是新手,想知道学习量化投资最先应该掌握哪些基础知识,每个知识点为什么重要,以及如何用模拟盘做一次安全的小练习。",
+    },
+    {
+        "level": "零基础",
+        "difficulty": "beginner",
+        "template": "momentum",
+        "title": "AI 能帮我做什么?",
+        "summary": "理解 AI 适合做拆解、解释、记录,不适合替你下判断。",
+        "goal": "我想学习 AI 在量化投资学习中能帮我做什么,哪些事情不能让 AI 替我决定,并设计一个用 AI 辅助记录和复盘的入门练习。",
+    },
+    {
+        "level": "入门练习",
+        "difficulty": "balanced",
+        "template": "reversal",
+        "title": "做一次反转观察",
+        "summary": "观察短期跌幅靠前的候选,学习假设、仓位和复盘记录。",
+        "goal": "我想通过一次反转观察练习,学习什么是策略假设、候选筛选、仓位控制和复盘记录,不要追求收益,重点学习如何验证想法。",
+    },
+    {
+        "level": "入门练习",
+        "difficulty": "balanced",
+        "template": "momentum",
+        "title": "做一次动量观察",
+        "summary": "观察短期强势候选,理解趋势、回撤和过拟合风险。",
+        "goal": "我想做一次动量观察练习,学习如何看趋势信号、如何避免追涨冲动、如何设置观察指标和复盘问题。",
+    },
+    {
+        "level": "入门练习",
+        "difficulty": "balanced",
+        "template": "prediction",
+        "title": "理解模型预测候选",
+        "summary": "把预测结果当成学习材料,而不是买卖指令。",
+        "goal": "我想学习如何理解模型预测候选,知道预测值、行情、风险记录和模拟盘验证之间是什么关系,并设计一次只用于学习的预测候选观察练习。",
+    },
+    {
+        "level": "进阶复盘",
+        "difficulty": "advanced",
+        "template": "risk_review",
+        "title": "如何控制风险?",
+        "summary": "从仓位、回撤、交易成本和停止条件建立风险框架。",
+        "goal": "我想系统学习量化练习里的风险控制,包括仓位、回撤、交易成本、停止继续练习的条件,并形成一套可以复盘的检查清单。",
+    },
+    {
+        "level": "进阶复盘",
+        "difficulty": "advanced",
+        "template": "risk_review",
+        "title": "如何复盘模拟盘?",
+        "summary": "把成交、持仓和演练依据转成可学习的复盘问题。",
+        "goal": "我已经知道模拟盘只是训练,想学习如何复盘自己的成交、持仓、演练依据和结果,找出方法上的问题而不是只看赚亏。",
+    },
+    {
+        "level": "进阶复盘",
+        "difficulty": "advanced",
+        "template": "prediction",
+        "title": "怎么避免过拟合?",
+        "summary": "学习样本内外、未来函数、幸存者偏差和成本低估。",
+        "goal": "我想学习量化研究里常见的过拟合和回测陷阱,包括未来函数、幸存者偏差、样本内外和成本低估,并设计一个模拟盘层面的检查练习。",
+    },
+)
 
 
 CSS = """
-:root{color-scheme:light;--ink:#171510;--muted:#645f55;--line:#d9d3c8;--paper:#fbfaf6;--panel:#f0ede6;--blue:#1d4ed8;--red:#b91c1c;--green:#15803d}
-*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-a{color:var(--blue);text-decoration:none}a:hover{text-decoration:underline}
-.wrap{max-width:1180px;margin:0 auto;padding:28px}
-    .top{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);padding-bottom:18px;margin-bottom:24px}
-    .brand{font-size:21px;font-weight:700;letter-spacing:.2px}.nav{display:flex;gap:16px;align-items:center;flex-wrap:wrap}.nav span{color:var(--muted)}.nav form{margin:0}.nav button{border:0;background:transparent;color:var(--blue);padding:0}.nav .primary{background:var(--blue);color:#fff;border:1px solid var(--blue);border-radius:7px;padding:7px 11px}
-.grid{display:grid;grid-template-columns:1.3fr .9fr;gap:18px}.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px}
-.card{background:var(--panel);border:1px solid var(--line);padding:18px;border-radius:8px}.card h2,.card h3{margin:0 0 10px;font-size:18px}.card p{margin:0 0 8px;color:var(--muted)}
-	.metric{font-size:28px;font-weight:750;line-height:1.1}.muted{color:var(--muted)}.ok{color:var(--green)}.bad{color:var(--red)}.warn{color:#b45309}
-	.badge{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:2px 8px;font-size:12px;font-weight:700;background:#fff}
-table{width:100%;border-collapse:collapse;background:transparent}th,td{text-align:left;border-bottom:1px solid var(--line);padding:9px 6px;vertical-align:top}th{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
-input,select,textarea,button{font:inherit}input,select,textarea{width:100%;border:1px solid var(--line);background:#fff;border-radius:7px;padding:9px 10px}textarea{min-height:150px;resize:vertical}
-.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.formline{display:grid;grid-template-columns:1.1fr .8fr .8fr auto;gap:10px;align-items:end}
-button,.btn{display:inline-block;border:1px solid var(--blue);background:var(--blue);color:#fff;border-radius:7px;padding:9px 13px;cursor:pointer;text-decoration:none}.btn.secondary,button.secondary{background:transparent;color:var(--blue)}
-.msg{border:1px solid #9ec5fe;background:#eaf2ff;color:#0b3a84;padding:10px 12px;border-radius:8px;margin-bottom:16px}.err{border-color:#fecaca;background:#fff1f2;color:#991b1b}
+:root{color-scheme:light;--ink:#101217;--muted:#59616f;--soft:#eef1f5;--paper:#f7f8fa;--panel:#ffffff;--line:#d8dee8;--blue:#1d4ed8;--green:#087f5b;--amber:#b45309;--red:#b91c1c}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:'Space Grotesk','Noto Sans SC',-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}a:hover{text-decoration:underline}
+h1,h2,h3,p{letter-spacing:0}p{margin:0;color:var(--muted)}
+.wrap{max-width:1180px;margin:0 auto;padding:0 36px 36px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:20px;border-bottom:2px solid var(--ink);padding:24px 0;margin-bottom:28px}
+.brand{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:800;letter-spacing:0;color:var(--ink)}
+.brand::before{content:"";width:12px;height:12px;background:var(--blue);display:inline-block;flex:0 0 auto}
+.nav{display:flex;gap:22px;align-items:center;flex-wrap:wrap;font-size:14px;color:var(--muted)}
+.nav a,.nav button{color:var(--muted)}.nav a:hover,.nav button:hover{color:var(--ink)}
+.nav span{color:var(--ink);font-weight:700}.nav form{margin:0}
+.nav .primary{background:var(--ink);color:#fff;border:1px solid var(--ink);border-radius:7px;padding:8px 14px;font-weight:700}
+.grid{display:grid;grid-template-columns:1.3fr .9fr;gap:16px;margin-bottom:16px}.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:16px}
+.card{background:var(--panel);border:1px solid var(--line);padding:22px;border-radius:8px;margin-bottom:16px;overflow-x:auto}.cards .card,.grid .card,.live-grid .card{margin-bottom:0}
+.card h2,.card h3{margin:0 0 12px;font-weight:800;line-height:1.15;color:var(--ink)}.card h2{font-size:22px}.card h3{font-size:18px}
+.card p{margin-top:10px;color:var(--muted)}.card>p:first-child{margin-top:0}
+.card a:not(.btn):not(.link-tile),td a,.post a,.mini-post a,.rank-row a{color:var(--blue);font-weight:600}
+.metric{font-size:32px;font-weight:800;line-height:1.05;color:var(--ink);word-break:break-word}.metric strong{display:block;font-size:clamp(26px,4vw,42px);line-height:1;font-weight:800}.metric span{display:block;margin-top:8px;font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}
+.identity .metric{font-size:22px}.muted{color:var(--muted)}.ok{color:var(--green)}.bad{color:var(--red)}.warn{color:var(--amber)}
+[data-equity-curve] svg{width:100%;height:auto;display:block;overflow:visible}
+.provenance{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 18px;font-size:12px}.provenance b{display:inline-flex;align-items:center;gap:6px;padding:4px 11px;border:1px solid var(--line);border-radius:999px;font-weight:600;color:var(--ink)}.provenance b.real{color:var(--green);border-color:var(--green)}.provenance b.demo{color:var(--amber);border-color:var(--amber)}
+.metric-info{border-bottom:1px dashed var(--muted);cursor:help}.metric-info:focus-visible{outline:2px solid var(--blue);outline-offset:2px}.metric-info[aria-expanded=true]{color:var(--blue);border-bottom-color:var(--blue)}
+.owq-tip{position:absolute;z-index:60;max-width:320px;background:var(--ink);color:#fff;padding:13px 15px;border-radius:9px;font-size:13px;line-height:1.55;box-shadow:0 10px 30px rgba(0,0,0,.28)}.owq-tip h4{margin:0 0 4px;font-size:13px;color:#fff}.owq-tip .owq-tip-f{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:#cbd5e1;margin-top:7px;word-break:break-word}.owq-tip .owq-tip-b{margin-top:9px;color:#fde68a}
+.badge,.pill{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:999px;padding:3px 8px;font-size:12px;font-weight:700;background:#fff;color:var(--muted);white-space:nowrap}
+.card-title{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:14px;font-size:13px;color:var(--muted)}
+.flow-map{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin:16px 0}.flow-step{background:#fff;border:1px solid var(--line);border-radius:8px;padding:18px}.flow-step span{display:inline-block;color:var(--blue);font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px}.flow-step strong{display:block;font-size:18px;line-height:1.2;margin-bottom:8px}.flow-step p{margin:0 0 10px}.flow-step a{font-weight:700;color:var(--blue)}
+.preset-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:16px 0}.preset-form{margin:0}.preset-card{display:block;width:100%;min-height:178px;text-align:left;background:#fff;color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:18px;white-space:normal}.preset-card:hover{border-color:var(--ink);background:#fbfcfe}.preset-card strong{display:block;font-size:18px;line-height:1.2;margin:8px 0}.preset-card span{display:inline-flex;margin-right:6px}.preset-card p{margin:8px 0 0;color:var(--muted);font-weight:400}
+.markdown-body{background:#fff;border:1px solid var(--line);border-radius:8px;padding:18px;overflow:auto}.markdown-body h3,.markdown-body h4{margin:18px 0 8px;font-weight:800;line-height:1.2}.markdown-body h3:first-child,.markdown-body h4:first-child{margin-top:0}.markdown-body p{margin:10px 0;color:var(--ink)}.markdown-body ul,.markdown-body ol{margin:10px 0 10px 22px;padding:0;color:var(--ink)}.markdown-body li{margin:6px 0}.markdown-body code{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;background:var(--soft);border:1px solid var(--line);border-radius:5px;padding:1px 5px}.markdown-body strong{font-weight:800}
+.guide-list{margin:0;padding-left:20px;color:var(--muted)}.guide-list li{margin:7px 0}
+.demo-board{display:grid;grid-template-columns:1fr .8fr;gap:18px;align-items:stretch}.demo-stage{display:grid;position:relative;min-height:360px;overflow:hidden;background:#fff;border:1px solid var(--line);border-radius:8px}.demo-frame{grid-area:1/1;padding:22px;opacity:0;transform:translateY(10px);animation:demo-frame 49s infinite}.demo-frame:nth-child(1){animation-delay:0s}.demo-frame:nth-child(2){animation-delay:7s}.demo-frame:nth-child(3){animation-delay:14s}.demo-frame:nth-child(4){animation-delay:21s}.demo-frame:nth-child(5){animation-delay:28s}.demo-frame:nth-child(6){animation-delay:35s}.demo-frame:nth-child(7){animation-delay:42s}.demo-frame h3{font-size:22px;margin:0 0 8px}.demo-path{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:4px 10px;background:#fff;font-weight:700;color:var(--blue)}.demo-screen{margin-top:16px;border:1px solid var(--line);border-radius:8px;padding:14px;background:var(--paper)}.demo-screen .bar{height:9px;border-radius:999px;background:var(--blue);margin:10px 0}.demo-progress{height:8px;background:#fff;border:1px solid var(--line);border-radius:999px;overflow:hidden;margin:12px 0}.demo-progress span{display:block;height:100%;background:var(--blue);animation:demo-progress 49s linear infinite}.demo-steps{display:grid;gap:8px}.demo-steps a{display:block;border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:#fff;color:var(--ink)}.voice-box audio{width:100%;margin:8px 0}.voice-command{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px;overflow:auto}
+@keyframes demo-frame{0%,12%{opacity:1;transform:translateY(0)}14%,100%{opacity:0;transform:translateY(10px)}}@keyframes demo-progress{from{width:0}to{width:100%}}
+table{width:100%;border-collapse:collapse;background:transparent}th,td{text-align:left;border-bottom:1px solid var(--line);padding:10px 8px;vertical-align:top}th{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:500}tr:hover td{background:#fbfcfe}
+input,select,textarea,button{font:inherit}label{display:block;margin:12px 0 6px;font-weight:700;color:var(--ink)}input,select,textarea{width:100%;min-height:42px;border:1px solid var(--line);background:#fff;border-radius:7px;padding:9px 10px;color:var(--ink)}textarea{min-height:150px;resize:vertical}input[type=checkbox],input[type=radio]{width:auto;min-height:auto}input:focus,select:focus,textarea:focus{outline:2px solid rgba(29,78,216,.18);border-color:var(--blue)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}.formline{display:grid;grid-template-columns:1.1fr .8fr .8fr auto;gap:12px;align-items:end}
+td form{display:flex;align-items:center;gap:8px;flex-wrap:wrap}td form input:not([type=hidden]),td form select{width:auto;min-width:150px;flex:1 1 150px}
+button,.btn{display:inline-flex;align-items:center;justify-content:center;border:1.5px solid var(--ink);background:var(--ink);color:#fff;border-radius:7px;padding:10px 15px;min-height:42px;font-weight:700;cursor:pointer;text-decoration:none;white-space:nowrap}.btn:hover,button:hover{text-decoration:none}.btn.blue{background:var(--blue);border-color:var(--blue);color:#fff}.btn.dark{background:var(--ink);color:#fff}.btn.secondary,button.secondary{background:transparent;color:var(--ink);border-color:var(--ink)}
+.nav button{border:0;background:transparent;color:var(--muted);padding:0;min-height:auto;font-weight:500}.nav button:hover{color:var(--ink)}
+.msg{border:1px solid #bfdbfe;background:#eff6ff;color:#1e3a8a;padding:11px 13px;border-radius:8px;margin-bottom:16px}.err{border-color:#fecaca;background:#fff1f2;color:#991b1b}
 .qr{display:grid;grid-template-columns:220px 1fr;gap:22px;align-items:center}.qr img{width:220px;height:220px;border:1px solid var(--line);background:#fff;padding:10px;border-radius:8px}
-.post{border-top:1px solid var(--line);padding:14px 0}.tag{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:2px 8px;color:var(--muted);font-size:12px}
+.post{border-top:1px solid var(--line);padding:14px 0}.tag{display:inline-flex;align-items:center;font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:var(--blue);letter-spacing:1px;text-transform:uppercase}
 .avatar{width:56px;height:56px;border-radius:50%;object-fit:cover;border:1px solid var(--line);background:#fff}.identity{display:flex;align-items:center;gap:12px}
-.footer{border-top:1px solid var(--line);margin-top:28px;padding-top:18px;color:var(--muted);display:flex;gap:14px;flex-wrap:wrap;font-size:13px}
-@media(max-width:880px){.grid,.cards,.qr,.formline,.row{grid-template-columns:1fr}.wrap{padding:18px}.top{align-items:flex-start;gap:12px;flex-direction:column}}
+.rank-list,.post-list{display:grid;gap:10px;margin-top:16px}.rank-row{display:grid;grid-template-columns:52px 1fr auto;gap:12px;align-items:center;border-top:1px solid var(--line);padding:12px 0}.rank-row span{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:var(--blue)}.rank-row strong{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--green)}
+.mini-post{border-top:1px solid var(--line);padding:12px 0}.mini-post strong{display:block;margin-bottom:6px}.mini-post p{margin:0 0 8px;font-size:14px}.mini-post span{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:var(--muted)}
+.data-proof{display:flex;align-items:center;justify-content:space-between;gap:20px;margin:16px 0;background:#fff;border:1px solid var(--line);border-radius:8px;padding:20px 22px}.data-proof strong{display:block;font-size:22px;line-height:1.2;margin:6px 0}.data-proof p{max-width:72ch}
+.link-tile{display:block;background:#fff;border:1px solid var(--line);border-radius:8px;padding:18px;min-height:120px;color:var(--ink)}.link-tile strong{display:block;margin-bottom:8px}.link-tile p{margin-top:0}
+.live-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:16px;align-items:start}
+.score{background:#fff;padding:18px 20px;min-height:106px}.score b{display:block;font-size:30px;line-height:1;color:var(--ink);margin-bottom:8px}.score span{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;text-transform:uppercase;color:var(--muted);letter-spacing:1px}
+.step{background:var(--ink);color:#fff;border-radius:8px;padding:22px;min-height:178px}.step p{color:#d7dce5;margin-top:12px}.step span{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:#8fb4ff}
+.footer{border-top:2px solid var(--ink);margin-top:76px;padding:30px 0 58px;color:var(--muted);display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap;font-size:13px}
+@media(prefers-reduced-motion:reduce){.demo-frame,.demo-progress span{animation:none}.demo-frame{position:static;opacity:1;transform:none}.demo-stage{display:block}}
+@media(max-width:880px){.grid,.cards,.qr,.formline,.row,.flow-map,.preset-grid,.demo-board,.live-grid,.data-proof{grid-template-columns:1fr}.wrap{padding:0 20px 28px}.top{align-items:flex-start;gap:12px;flex-direction:column}.data-proof{align-items:flex-start;flex-direction:column}.nav{gap:14px 18px}}
+@media(max-width:560px){.card{padding:18px}.metric{font-size:28px}.rank-row{grid-template-columns:40px 1fr}.score{min-height:auto}}
 """
+
+
+def markdown_inline(text: str) -> str:
+    parts = str(text or "").split("`")
+    rendered: list[str] = []
+    for idx, part in enumerate(parts):
+        if idx % 2:
+            rendered.append(f"<code>{escape(part)}</code>")
+            continue
+        safe = escape(part)
+        safe = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", safe)
+        rendered.append(safe)
+    return "".join(rendered)
+
+
+def render_markdown(text: str) -> str:
+    """Render a small safe Markdown subset produced by the AI coach."""
+    lines = str(text or "").replace("\r\n", "\n").replace("\r", "\n").split("\n")
+    html: list[str] = []
+    list_type = ""
+
+    def close_list() -> None:
+        nonlocal list_type
+        if list_type:
+            html.append(f"</{list_type}>")
+            list_type = ""
+
+    for raw in lines:
+        line = raw.strip()
+        if not line:
+            close_list()
+            continue
+        heading = re.match(r"^(#{1,4})\s+(.+)$", line)
+        if heading:
+            close_list()
+            level = 3 if len(heading.group(1)) <= 2 else 4
+            html.append(f"<h{level}>{markdown_inline(heading.group(2))}</h{level}>")
+            continue
+        numbered = re.match(r"^\d+[\.)]\s+(.+)$", line)
+        if numbered:
+            if list_type != "ol":
+                close_list()
+                html.append("<ol>")
+                list_type = "ol"
+            html.append(f"<li>{markdown_inline(numbered.group(1))}</li>")
+            continue
+        bulleted = re.match(r"^[-*]\s+(.+)$", line)
+        if bulleted:
+            if list_type != "ul":
+                close_list()
+                html.append("<ul>")
+                list_type = "ul"
+            html.append(f"<li>{markdown_inline(bulleted.group(1))}</li>")
+            continue
+        close_list()
+        html.append(f"<p>{markdown_inline(line)}</p>")
+    close_list()
+    return "".join(html) or '<p class="muted">暂无内容</p>'
 
 
 def env_flag(name: str, default: bool = False) -> bool:
@@ -143,6 +383,55 @@ def max_form_bytes() -> int:
     except ValueError:
         return DEFAULT_MAX_FORM_BYTES
     return max(4096, min(value, 5 * 1024 * 1024))
+
+
+def usage_demo_voice_path(path: str | Path | None = None) -> Path:
+    raw = str(path or "").strip() or os.getenv("OWQ_DEMO_VOICE_PATH", "").strip()
+    return Path(raw) if raw else DEFAULT_DEMO_VOICE_PATH
+
+
+def edge_tts_command() -> list[str]:
+    configured = os.getenv("OWQ_EDGE_TTS_BIN", "edge-tts").strip() or "edge-tts"
+    resolved = shutil.which(configured)
+    if resolved:
+        return [resolved]
+    configured_path = Path(configured).expanduser()
+    if configured_path.exists():
+        return [str(configured_path)]
+    if importlib.util.find_spec("edge_tts") is not None:
+        return [sys.executable, "-m", "edge_tts"]
+    raise RuntimeError("未找到 edge-tts。请先安装 edge-tts 或设置 OWQ_EDGE_TTS_BIN。")
+
+
+def generate_usage_demo_voice(path: str | Path | None = None, voice: str | None = None) -> Path:
+    output = usage_demo_voice_path(path)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    tmp = output.with_name(output.name + ".tmp")
+    if tmp.exists():
+        tmp.unlink()
+    selected_voice = (voice or os.getenv("OWQ_DEMO_TTS_VOICE", "") or DEFAULT_DEMO_TTS_VOICE).strip()
+    rate = os.getenv("OWQ_DEMO_TTS_RATE", "+0%").strip()
+    cmd = edge_tts_command() + [
+        "--voice",
+        selected_voice,
+        "--text",
+        DEMO_NARRATION_TEXT,
+        "--write-media",
+        str(tmp),
+    ]
+    if rate:
+        cmd.extend(["--rate", rate])
+    try:
+        subprocess.run(cmd, check=True, capture_output=True, text=True, timeout=180)
+    except subprocess.CalledProcessError as exc:
+        detail = sanitize_diagnostic_message((exc.stderr or exc.stdout or str(exc)), limit=300)
+        raise RuntimeError(f"EdgeTTS 生成失败: {detail}") from exc
+    except subprocess.TimeoutExpired as exc:
+        raise RuntimeError("EdgeTTS 生成超时。") from exc
+    if not tmp.exists() or tmp.stat().st_size <= 0:
+        raise RuntimeError("EdgeTTS 未生成有效音频文件。")
+    tmp.replace(output)
+    return output
 
 
 def hsts_max_age_seconds() -> int:
@@ -429,6 +718,66 @@ def signal_status_cn(status: str) -> str:
     return {"pending": "待执行", "executed": "已执行", "cancelled": "已取消"}.get(status, status)
 
 
+def preview_equity_svg(points: list) -> str:
+    """Server-rendered equity-curve SVG for the public /preview page (works with NO JS)."""
+    pts = [p for p in points if p.get("equity") is not None]
+    if len(pts) < 2:
+        return ""
+    W, H, pad = 640, 220, 32
+    eq = [float(p["equity"]) for p in pts]
+    lo, hi = min(eq), max(eq)
+    if hi == lo:
+        hi = lo + 1.0
+    n = len(eq)
+    px = lambda i: pad + i * (W - 2 * pad) / (n - 1)  # noqa: E731
+    py = lambda v: H - pad - (v - lo) / (hi - lo) * (H - 2 * pad)  # noqa: E731
+    peak, cur, dd_peak, dd_trough, worst = eq[0], 0, 0, 0, 0.0
+    for i, v in enumerate(eq):
+        if v > peak:
+            peak, cur = v, i
+        drop = v / peak - 1
+        if drop < worst:
+            worst, dd_trough, dd_peak = drop, i, cur
+    base = eq[0]
+    poly = " ".join(f"{px(i):.1f},{py(v):.1f}" for i, v in enumerate(eq))
+    stroke = "var(--green)" if eq[-1] >= base else "var(--red)"
+    band = ""
+    if worst < -0.0001 and dd_trough > dd_peak:
+        band = (
+            f'<rect x="{px(dd_peak):.1f}" y="{pad}" width="{px(dd_trough) - px(dd_peak):.1f}" '
+            f'height="{H - 2 * pad}" fill="rgba(220,38,38,0.10)"></rect>'
+        )
+    baseline = (
+        f'<line x1="{pad}" y1="{py(base):.1f}" x2="{W - pad}" y2="{py(base):.1f}" '
+        'stroke="var(--muted)" stroke-dasharray="4 4" stroke-width="1" opacity="0.6"></line>'
+    )
+    return (
+        f'<svg viewBox="0 0 {W} {H}" role="img" aria-label="真实回测净值曲线" '
+        'style="width:100%;height:auto;display:block;margin-top:8px">'
+        f"{band}{baseline}"
+        f'<polyline fill="none" stroke="{stroke}" stroke-width="2" stroke-linejoin="round" points="{poly}"></polyline>'
+        "</svg>"
+    )
+
+
+def metric_label(key: str, text: str) -> str:
+    """Render a metric label that teaches what the number means.
+
+    The ``title`` attribute is the no-JS fallback (it shows the plain-language definition on
+    hover/long-press even with scripts disabled); ``app.js`` upgrades any ``[data-metric]``
+    node into a tap/focus rich tooltip sourced from ``/api/glossary``. Falls back to the bare
+    escaped label if the key is unknown, so a typo can never blank out a heading.
+    """
+    info = METRIC_GLOSSARY.get(key)
+    if not info:
+        return escape(text)
+    return (
+        f'<span class="metric-info" data-metric="{escape(key)}" '
+        f'title="{escape(tooltip_text(key))}" tabindex="0" role="button" '
+        f'aria-label="{escape(text)} — 点击查看含义">{escape(text)}</span>'
+    )
+
+
 def avatar_html(user, size: int = 56) -> str:
     url = str(user["avatar_url"] or "").strip()
     if not (url.startswith("https://") or url.startswith("http://")):
@@ -631,8 +980,24 @@ class AppHandler(BaseHTTPRequestHandler):
             self.render_robots()
         elif path == "/sitemap.xml":
             self.render_sitemap()
+        elif path == "/preview":
+            self.render_preview()
+        elif path == "/lessons":
+            self.render_lessons()
         elif path == "/data-status":
             self.render_data_status()
+        elif path == "/guide":
+            self.render_usage_guide(query)
+        elif path == "/guide/demo":
+            self.render_usage_demo(query)
+        elif path == "/guide/demo/audio.mp3":
+            self.render_usage_demo_audio()
+        elif path.startswith("/static/"):
+            self.render_static_asset(path)
+        elif path == "/api/glossary":
+            self.send_json({"metrics": METRIC_GLOSSARY})
+        elif path == "/api/equity-curve":
+            self.require_user(self.api_equity_curve, enforce_consent=False)
         elif path == "/support":
             if not self.require_rate_limit("support:view", 120, 60):
                 return
@@ -697,6 +1062,10 @@ class AppHandler(BaseHTTPRequestHandler):
             self.redirect("/account?err=" + quote("请使用页面上的退出按钮退出登录。") if user else "/login")
         elif path == "/app":
             self.require_user(lambda user: self.render_dashboard(user, query))
+        elif path == "/learn":
+            self.require_user(lambda user: self.render_learn(user, query))
+        elif path.startswith("/learn/tasks/") and path.count("/") == 3:
+            self.require_user(lambda user: self.render_learning_task(user, path, query))
         elif path == "/market":
             self.require_user(lambda user: self.render_market(user, query))
         elif path == "/portfolio-lab":
@@ -754,8 +1123,20 @@ class AppHandler(BaseHTTPRequestHandler):
             self.render_robots(head=True)
         elif path == "/sitemap.xml":
             self.render_sitemap(head=True)
+        elif path == "/preview":
+            self.render_preview(head=True)
+        elif path == "/lessons":
+            self.render_lessons(head=True)
         elif path == "/data-status":
             self.render_data_status(head=True)
+        elif path == "/guide":
+            self.render_usage_guide(parse_qs(""), head=True)
+        elif path == "/guide/demo":
+            self.render_usage_demo(parse_qs(""), head=True)
+        elif path == "/guide/demo/audio.mp3":
+            self.render_usage_demo_audio(head=True)
+        elif path.startswith("/static/"):
+            self.render_static_asset(path, head=True)
         elif path == "/support":
             self.send_html("OK", "", head=True)
         elif path == "/livez":
@@ -766,7 +1147,7 @@ class AppHandler(BaseHTTPRequestHandler):
             self.render_ready(head=True)
         elif path == "/metrics":
             self.render_metrics(head=True)
-        elif path in {"/register", "/forgot-password", "/login", "/showcase/public", "/forum", "/legal", "/terms", "/privacy", "/risk", "/support"}:
+        elif path in {"/register", "/forgot-password", "/login", "/auth/email/confirm", "/guide", "/guide/demo", "/showcase/public", "/forum", "/legal", "/terms", "/privacy", "/risk", "/support"}:
             self.send_html("OK", "", head=True)
         elif path.startswith("/forum/") and path.count("/") == 2:
             self.send_html("OK", "", head=True)
@@ -774,7 +1155,7 @@ class AppHandler(BaseHTTPRequestHandler):
             self.send_text("", "image/svg+xml; charset=utf-8", head=True)
         elif path.startswith("/u/") and path.count("/") == 2:
             self.send_html("OK", "", head=True)
-        elif path in {"/app", "/market", "/portfolio-lab", "/account", "/account/ai", "/account/consent", "/contest", "/showcase", "/forum/new"}:
+        elif path in {"/learn", "/app", "/market", "/portfolio-lab", "/account", "/account/ai", "/account/consent", "/contest", "/showcase", "/forum/new"} or (path.startswith("/learn/tasks/") and path.count("/") == 3):
             user = self.current_user()
             if not user:
                 self.redirect("/login")
@@ -798,7 +1179,7 @@ class AppHandler(BaseHTTPRequestHandler):
     # writes (ai_usage / ai_interactions / a per-user-PK key upsert), which are
     # concurrency-safe without the global lock. Holding DB_WRITE_LOCK across that network
     # call would block every other write, so these paths are dispatched outside it.
-    AI_UNLOCKED_POST_PATHS = {"/account/ai", "/account/ai-review"}
+    AI_UNLOCKED_POST_PATHS = {"/account/ai", "/account/ai-review", "/learn/coach"}
 
     def do_POST(self):
         # Serialize writes: POST is the only state-changing verb in this app, so holding
@@ -841,6 +1222,10 @@ class AppHandler(BaseHTTPRequestHandler):
             if not self.require_rate_limit("auth:email-confirm:post", 30, 60):
                 return
             self.handle_email_confirm(form)
+        elif path == "/auth/email/code":
+            if not self.require_rate_limit("auth:email-code:post", 20, 60):
+                return
+            self.handle_email_code_confirm(form)
         elif path == "/auth/wechat/dev-confirm":
             if not self.legacy_wechat_enabled():
                 self.not_found()
@@ -876,6 +1261,12 @@ class AppHandler(BaseHTTPRequestHandler):
             self.require_user(lambda user: self.handle_account_ai(user, form), form=form, csrf_redirect="/account/ai")
         elif path == "/account/ai-review":
             self.require_active_user(lambda user: self.handle_account_ai_review(user, form), form=form, csrf_redirect="/account/ai")
+        elif path == "/learn/coach":
+            self.require_active_user(lambda user: self.handle_learning_coach(user, form), form=form, csrf_redirect="/learn")
+        elif path.startswith("/learn/tasks/") and path.endswith("/preview"):
+            self.require_active_user(lambda user: self.handle_learning_task_preview(user, path, form), form=form, csrf_redirect="/learn")
+        elif path.startswith("/learn/tasks/") and path.endswith("/save-signals"):
+            self.require_active_user(lambda user: self.handle_learning_task_save_signals(user, path, form), form=form, csrf_redirect="/learn")
         elif path == "/account/password":
             self.require_user(lambda user: self.handle_account_password(user, form), form=form, csrf_redirect="/account")
         elif path == "/account/delete":
@@ -1292,36 +1683,46 @@ class AppHandler(BaseHTTPRequestHandler):
     def email_login_url(self, token: str) -> str:
         return f"{self.base_url()}/auth/email/confirm?token={quote(token)}"
 
-    def send_login_email(self, email: str, token: str) -> str:
+    def send_login_email(self, email: str, token: str, code: str) -> str:
         login_url = self.email_login_url(token)
-        subject = "OurWorlds Quant 邮箱验证链接"
+        subject = "OurWorlds Quant 注册码"
         text = (
-            "请点击下面的链接打开 OurWorlds Quant 模拟盘公开赛邮箱确认页。\n\n"
+            "请使用下面的注册码完成 OurWorlds Quant 模拟盘公开赛邮箱确认。\n\n"
+            f"注册码: {code}\n\n"
+            f"确认页: {self.base_url()}/auth/email/confirm\n"
+            "你也可以直接打开下面的备用确认链接:\n\n"
             f"{login_url}\n\n"
-            "打开页面后设置用户名和密码,再使用账号密码登录。链接 15 分钟内有效,且只能使用一次。"
+            "确认后设置用户名和密码,再使用账号密码登录。注册码和链接 15 分钟内有效,且只能使用一次。"
             "如果不是你本人操作,请忽略这封邮件。"
         )
         html = (
-            "<p>请点击下面的链接打开 OurWorlds Quant 模拟盘公开赛邮箱确认页。</p>"
-            f'<p><a href="{escape(login_url, quote=True)}">打开邮箱确认页</a></p>'
-            "<p>打开页面后设置用户名和密码,再使用账号密码登录。链接 15 分钟内有效,且只能使用一次。"
+            "<p>请使用下面的注册码完成 OurWorlds Quant 模拟盘公开赛邮箱确认。</p>"
+            f'<p style="font-size:24px;font-weight:700">{escape(code)}</p>'
+            f'<p><a href="{escape(self.base_url() + "/auth/email/confirm", quote=True)}">打开邮箱确认页</a></p>'
+            f'<p>备用链接: <a href="{escape(login_url, quote=True)}">直接确认邮箱</a></p>'
+            "<p>确认后设置用户名和密码,再使用账号密码登录。注册码和链接 15 分钟内有效,且只能使用一次。"
             "如果不是你本人操作,请忽略这封邮件。</p>"
         )
         return self.send_transactional_email(email, subject, text, html)
 
-    def send_password_reset_email(self, email: str, token: str) -> str:
+    def send_password_reset_email(self, email: str, token: str, code: str) -> str:
         reset_url = self.email_login_url(token)
-        subject = "OurWorlds Quant 重置密码链接"
+        subject = "OurWorlds Quant 设置/重置密码注册码"
         text = (
-            "请点击下面的链接打开 OurWorlds Quant 登录密码重置页。\n\n"
+            "请使用下面的注册码打开 OurWorlds Quant 登录密码设置/重置页。\n\n"
+            f"注册码: {code}\n\n"
+            f"确认页: {self.base_url()}/auth/email/confirm\n"
+            "你也可以直接打开下面的备用重置链接:\n\n"
             f"{reset_url}\n\n"
-            "打开页面后设置新密码,再使用用户名或邮箱和新密码登录。链接 15 分钟内有效,且只能使用一次。"
+            "确认后设置新密码,再使用用户名或邮箱和新密码登录。注册码和链接 15 分钟内有效,且只能使用一次。"
             "如果不是你本人操作,请忽略这封邮件。"
         )
         html = (
-            "<p>请点击下面的链接打开 OurWorlds Quant 登录密码重置页。</p>"
-            f'<p><a href="{escape(reset_url, quote=True)}">打开重置密码页</a></p>'
-            "<p>打开页面后设置新密码,再使用用户名或邮箱和新密码登录。链接 15 分钟内有效,且只能使用一次。"
+            "<p>请使用下面的注册码打开 OurWorlds Quant 登录密码设置/重置页。</p>"
+            f'<p style="font-size:24px;font-weight:700">{escape(code)}</p>'
+            f'<p><a href="{escape(self.base_url() + "/auth/email/confirm", quote=True)}">打开验证码确认页</a></p>'
+            f'<p>备用链接: <a href="{escape(reset_url, quote=True)}">直接打开重置密码页</a></p>'
+            "<p>确认后设置新密码,再使用用户名或邮箱和新密码登录。注册码和链接 15 分钟内有效,且只能使用一次。"
             "如果不是你本人操作,请忽略这封邮件。</p>"
         )
         return self.send_transactional_email(email, subject, text, html)
@@ -1510,8 +1911,8 @@ class AppHandler(BaseHTTPRequestHandler):
             admin_link = '<a href="/admin">管理</a>' if self.is_admin_user(user) else ""
             nav = (
                 '<div class="nav">'
-                '<a href="/app">模拟盘</a><a href="/market">基础数据</a><a href="/portfolio-lab">组合设计</a><a href="/showcase">比赛展示</a>'
-                f'<a href="/forum">论坛</a><a href="/account/ai">AI助教</a><a href="/support">支持</a><a href="/account">账户</a>{admin_link}'
+                '<a href="/learn">学习</a><a href="/app">高级模拟盘</a><a href="/market">基础数据</a><a href="/portfolio-lab">组合设计</a><a href="/showcase">比赛展示</a>'
+                f'<a href="/forum">论坛</a><a href="/guide">指南</a><a href="/account/ai">AI教练</a><a href="/support">支持</a><a href="/account">账户</a>{admin_link}'
                 f'<span>{escape(user["nickname"])}</span>'
                 f'<form method="post" action="/logout">{csrf_input(user)}<button type="submit">退出</button></form>'
                 "</div>"
@@ -1520,8 +1921,8 @@ class AppHandler(BaseHTTPRequestHandler):
             nav_join = self.public_join_button("primary", primary=False if self.public_registration_available() else True)
             nav = (
                 '<div class="nav">'
-                '<a href="/">首页</a><a href="/showcase/public">排行榜</a><a href="/forum">论坛</a>'
-                f'<a href="/data-status">数据状态</a><a href="/support">支持</a><a href="/login">登录</a>{nav_join}'
+                '<a href="/">首页</a><a href="/preview">试一试</a><a href="/lessons">三大坑</a><a href="/showcase/public">排行榜</a><a href="/forum">论坛</a>'
+                f'<a href="/data-status">数据状态</a><a href="/guide">指南</a><a href="/support">支持</a><a href="/login">登录</a>{nav_join}'
                 "</div>"
             )
         html = f"""<!doctype html>
@@ -1531,12 +1932,16 @@ class AppHandler(BaseHTTPRequestHandler):
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>{escape(title)} · OurWorlds Quant</title>
   {self.social_meta_html(title, meta)}
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700;900&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>{CSS}</style>
+  <script src="/static/app.js" defer></script>
 </head>
 <body>
   <main class="wrap">
     <header class="top">
-      <a class="brand" href="/">OurWorlds Quant 模拟盘</a>
+      <a class="brand" href="/">OurWorlds Quant Arena</a>
       {nav}
     </header>
     {body}
@@ -1622,6 +2027,32 @@ class AppHandler(BaseHTTPRequestHandler):
         total_count = int(summary.get("market_code_count") or 0)
         count = real_count or total_count
         return f"{count} 只" if count else "待同步"
+
+    def market_provenance(self) -> dict:
+        """Where the prices that value the account come from: demo vs real, and how stale."""
+        rows = [r for r in services.market_source_summary(self.con) if r["source"]]
+        real = [r for r in rows if r["source"] != "demo"]
+        pool = real or rows
+        as_of = max((str(r["date_max"]) for r in pool if r["date_max"]), default="")
+        return {"is_real": bool(real), "as_of": as_of[:10]}  # date only, drop any time part
+
+    def provenance_chip(self) -> str:
+        """A server-rendered chip (works without JS) telling the user what they're looking at:
+        their own simulated account, priced off demo or real-but-non-realtime market data."""
+        prov = self.market_provenance()
+        if prov["is_real"]:
+            label = f"真实行情(截至 {escape(prov['as_of'])},非实时)" if prov["as_of"] else "真实行情(非实时)"
+            cls = "real"
+        else:
+            label = "演示数据"
+            cls = "demo"
+        return (
+            '<div class="provenance">'
+            "<b>你的模拟训练账户</b>"
+            f'<b class="{cls}">行情: {label}</b>'
+            '<span class="muted">所有数字均为模拟训练,不产生真实委托</span>'
+            "</div>"
+        )
 
     def landing_date_text(self, value) -> str:
         text = str(value or "").strip()
@@ -1717,6 +2148,7 @@ class AppHandler(BaseHTTPRequestHandler):
             [
                 join,
                 '<a class="btn" href="/login">账号密码登录</a>',
+                '<a class="btn" href="/guide">使用指南</a>',
                 '<a class="btn" href="/showcase/public">查看公开榜单</a>',
                 '<a class="btn" href="/forum">进入策略论坛</a>',
                 '<a class="btn" href="/support">联系支持</a>',
@@ -1744,6 +2176,7 @@ class AppHandler(BaseHTTPRequestHandler):
                 '<a class="link-tile" href="/showcase/public"><strong>公开榜单</strong><p>查看排名和参赛者战绩。</p></a>',
                 '<a class="link-tile" href="/forum"><strong>策略论坛</strong><p>阅读复盘，参与讨论。</p></a>',
                 '<a class="link-tile" href="/data-status"><strong>数据状态</strong><p>查看行情来源、预测候选和赛场活跃度。</p></a>',
+                '<a class="link-tile" href="/guide"><strong>使用指南</strong><p>按流程了解注册、模拟交易、组合设计和公开复盘。</p></a>',
             ]
         )
 
@@ -1930,6 +2363,164 @@ class AppHandler(BaseHTTPRequestHandler):
             head=head,
         )
 
+    def usage_flow_cards(self) -> str:
+        cards = []
+        for idx, step in enumerate(USAGE_FLOW_STEPS, start=1):
+            cards.append(
+                '<div class="flow-step">'
+                f"<span>STEP {idx}</span>"
+                f"<strong>{escape(step['title'])}</strong>"
+                f"<p>{escape(step['summary'])}</p>"
+                f"<p class=\"muted\">{escape(step['detail'])}</p>"
+                f"<a href=\"{escape(step['path'], quote=True)}\">进入 {escape(step['path'])}</a>"
+                "</div>"
+            )
+        return "".join(cards)
+
+    def render_usage_guide(self, query, head: bool = False):
+        gap_items = "".join(f"<li>{escape(item)}</li>" for item in USAGE_GAPS)
+        improvement_items = "".join(f"<li>{escape(item)}</li>" for item in USAGE_IMPROVEMENTS)
+        body = f"""
+{self.message_html(query)}
+<section class="card">
+  <h2>网站使用流程</h2>
+  <p>这套系统从公开了解、邮箱注册、密码登录、模拟交易、组合设计、公开展示到论坛复盘形成闭环。下面按真实用户路径展开。</p>
+  <div class="flow-map">{self.usage_flow_cards()}</div>
+  <p><a class="btn" href="/guide/demo">观看自动演示</a> <a class="btn secondary" href="/register">开始注册</a> <a class="btn secondary" href="/showcase/public">查看榜单</a></p>
+</section>
+<section class="grid">
+  <div class="card">
+    <h2>当前不足</h2>
+    <ul class="guide-list">{gap_items}</ul>
+  </div>
+  <div class="card">
+    <h2>本次优化</h2>
+    <ul class="guide-list">{improvement_items}</ul>
+  </div>
+</section>
+<section class="card">
+  <h2>角色路径</h2>
+  <table>
+    <thead><tr><th>角色</th><th>第一步</th><th>核心页面</th><th>完成目标</th></tr></thead>
+    <tbody>
+      <tr><td>访客</td><td>看首页和指南</td><td><a href="/data-status">数据状态</a> / <a href="/showcase/public">公开榜单</a> / <a href="/forum">论坛</a></td><td>判断赛场、数据和讨论是否值得加入</td></tr>
+      <tr><td>新用户</td><td>邮箱注册并输入注册码</td><td><a href="/register">注册</a> / <a href="/auth/email/confirm">注册码确认</a> / <a href="/login">登录</a></td><td>设置密码并进入模拟盘</td></tr>
+      <tr><td>参赛用户</td><td>制定演练计划</td><td><a href="/app">模拟盘</a> / <a href="/portfolio-lab">组合设计</a> / <a href="/showcase/public">公开榜单</a></td><td>执行模拟交易、跟踪收益、公开复盘</td></tr>
+      <tr><td>管理员</td><td>完成发布体检</td><td><a href="/admin">管理后台</a> / <a href="/readyz">严格体检</a> / <a href="/support">支持请求</a></td><td>保障发信、行情、备份和内容治理可用</td></tr>
+    </tbody>
+  </table>
+</section>
+"""
+        self.send_html(
+            "使用指南",
+            body,
+            meta={
+                "title": "OurWorlds Quant 使用指南",
+                "description": "按流程了解邮箱注册、模拟交易、组合设计、公开榜单、论坛复盘和后台运维。",
+                "url": self.public_url("/guide"),
+            },
+            head=head,
+        )
+
+    def render_usage_demo(self, query, head: bool = False):
+        frames = []
+        step_links = []
+        for idx, step in enumerate(USAGE_FLOW_STEPS, start=1):
+            width = 24 + idx * 9
+            frames.append(
+                '<div class="demo-frame">'
+                f'<span class="demo-path">{escape(step["path"])}</span>'
+                f"<h3>{idx}. {escape(step['title'])}</h3>"
+                f"<p>{escape(step['summary'])}</p>"
+                '<div class="demo-screen">'
+                f"<strong>{escape(step['title'])}</strong>"
+                f'<div class="bar" style="width:{min(width, 92)}%"></div>'
+                f"<p>{escape(step['detail'])}</p>"
+                "</div>"
+                "</div>"
+            )
+            step_links.append(f'<a href="{escape(step["path"], quote=True)}">第 {idx} 站: {escape(step["title"])}</a>')
+        voice_path = usage_demo_voice_path()
+        if voice_path.exists() and voice_path.stat().st_size > 0:
+            voice_html = """
+<div class="voice-box">
+  <h3>EdgeTTS 语音解说</h3>
+  <audio controls preload="metadata" src="/guide/demo/audio.mp3"></audio>
+  <p class="muted">音频来自预生成的 EdgeTTS MP3,可用于现场演示或录屏。</p>
+</div>
+"""
+        else:
+            command = ".venv/bin/python -m src.app.server --env-file deploy/public.env --generate-demo-voice"
+            voice_html = f"""
+<div class="voice-box">
+  <h3>EdgeTTS 语音解说</h3>
+  <p>当前还没有生成演示 MP3。安装 edge-tts 后运行下面命令,页面会自动显示播放器。</p>
+  <div class="voice-command">{escape(command)}</div>
+  <p class="muted">默认 voice: {escape(DEFAULT_DEMO_TTS_VOICE)}。也可通过 OWQ_DEMO_TTS_VOICE 或 --demo-voice 指定其他 EdgeTTS 声音。</p>
+</div>
+"""
+        body = f"""
+{self.message_html(query)}
+<section class="card">
+  <h2>自动演示</h2>
+  <p>演示会每 7 秒切换一站,串起公开了解、注册确认、密码登录、模拟交易、组合设计、公开展示和论坛复盘。浏览器偏好减少动画时会直接展开全部步骤。</p>
+  <div class="demo-progress"><span></span></div>
+  <div class="demo-board">
+    <div class="demo-stage">{''.join(frames)}</div>
+    <div>
+      {voice_html}
+      <div class="demo-steps">
+        {''.join(step_links)}
+      </div>
+    </div>
+  </div>
+  <p><a class="btn" href="/guide">返回使用指南</a> <a class="btn secondary" href="/register">开始注册</a> <a class="btn secondary" href="/showcase/public">查看公开榜单</a></p>
+</section>
+"""
+        self.send_html(
+            "自动演示",
+            body,
+            meta={
+                "title": "OurWorlds Quant 自动演示",
+                "description": "自动演示 OurWorlds Quant 从注册、模拟交易、组合设计到公开复盘的完整使用流程。",
+                "url": self.public_url("/guide/demo"),
+            },
+            head=head,
+        )
+
+    def render_usage_demo_audio(self, head: bool = False):
+        voice_path = usage_demo_voice_path()
+        if not voice_path.exists() or voice_path.stat().st_size <= 0:
+            self.send_text("演示语音尚未生成。请运行 --generate-demo-voice。", "text/plain; charset=utf-8", status=404, head=head)
+            return
+        self.send_binary_file(voice_path, "audio/mpeg", head=head)
+
+    STATIC_CONTENT_TYPES = {
+        ".js": "text/javascript; charset=utf-8",
+        ".css": "text/css; charset=utf-8",
+        ".svg": "image/svg+xml; charset=utf-8",
+        ".json": "application/json; charset=utf-8",
+        ".map": "application/json; charset=utf-8",
+    }
+
+    def render_static_asset(self, path: str, head: bool = False):
+        # Serve client assets from STATIC_DIR for the progressive-enhancement layer.
+        # The CSP allows script-src 'self', so only same-origin files run; never any
+        # attacker-writable location. Reject traversal/absolute paths before touching disk.
+        rel = path[len("/static/"):]
+        if not rel or rel.startswith("/") or "\\" in rel or ".." in rel.split("/"):
+            self.not_found()
+            return
+        content_type = self.STATIC_CONTENT_TYPES.get(Path(rel).suffix.lower())
+        if content_type is None:
+            self.not_found()
+            return
+        target = (STATIC_DIR / rel).resolve()
+        if not target.is_relative_to(STATIC_DIR.resolve()) or not target.is_file():
+            self.not_found()
+            return
+        self.send_binary_file(target, content_type, head=head)
+
     def send_json(self, payload: dict, status: int = 200, user_id: int | None = None):
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
         self.send_response(status)
@@ -1958,6 +2549,17 @@ class AppHandler(BaseHTTPRequestHandler):
         self.send_security_headers("asset")
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        if not head:
+            self.wfile.write(body)
+
+    def send_binary_file(self, path: Path, content_type: str, status: int = 200, head: bool = False):
+        body = b"" if head else path.read_bytes()
+        self.send_response(status)
+        self.send_security_headers("asset")
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(path.stat().st_size))
+        self.send_header("Cache-Control", "public, max-age=3600")
         self.end_headers()
         if not head:
             self.wfile.write(body)
@@ -2026,7 +2628,11 @@ class AppHandler(BaseHTTPRequestHandler):
         clean = path if path is not None else urlparse(self.path).path
         if clean in {
             "/",
+            "/preview",
+            "/lessons",
             "/data-status",
+            "/guide",
+            "/guide/demo",
             "/showcase/public",
             "/forum",
             "/legal",
@@ -2071,7 +2677,7 @@ class AppHandler(BaseHTTPRequestHandler):
         if kind == "html":
             directives = [
                 "default-src 'self'",
-                "script-src 'none'",
+                "script-src 'self'",
                 "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
                 "font-src 'self' https://fonts.gstatic.com data:",
                 "img-src 'self' data: https: http:",
@@ -2317,7 +2923,11 @@ class AppHandler(BaseHTTPRequestHandler):
     def sitemap_entries(self) -> list[dict[str, str]]:
         entries = [
             {"path": "/", "changefreq": "daily", "priority": "1.0"},
+            {"path": "/preview", "changefreq": "daily", "priority": "0.9"},
+            {"path": "/lessons", "changefreq": "monthly", "priority": "0.8"},
             {"path": "/data-status", "changefreq": "hourly", "priority": "0.8"},
+            {"path": "/guide", "changefreq": "monthly", "priority": "0.7"},
+            {"path": "/guide/demo", "changefreq": "monthly", "priority": "0.6"},
             {"path": "/showcase/public", "changefreq": "hourly", "priority": "0.9"},
             {"path": "/forum", "changefreq": "hourly", "priority": "0.8"},
             {"path": "/legal", "lastmod": LEGAL_VERSION, "changefreq": "monthly", "priority": "0.4"},
@@ -2428,7 +3038,7 @@ class AppHandler(BaseHTTPRequestHandler):
   <h3>数据用途</h3>
   <p>这些数据用于登录识别、模拟交易结算、公开赛排名、个人战绩页、论坛互动、系统安全、备份和故障排查。公开榜单、个人战绩页、战绩卡、论坛内容会被公开访问。</p>
   <h3>邮箱验证与账号登录</h3>
-  <p>本站通过一次性邮件链接完成邮箱验证,会保存邮箱地址用于识别账户、发送验证链接和处理必要的安全审计。用户设置的密码只保存哈希,不保存明文。发信密钥只应通过环境变量配置,不得写入代码仓库。</p>
+  <p>本站通过一次性邮件注册码或备用链接完成邮箱验证,会保存邮箱地址用于识别账户、发送验证邮件和处理必要的安全审计。用户设置的密码只保存哈希,不保存明文。发信密钥只应通过环境变量配置,不得写入代码仓库。</p>
   <h3>支持请求</h3>
   <p>通过联系支持页提交的邮箱、主题和问题描述会进入站内后台,仅用于处理注册、登录、数据、社区或商务请求。管理员处理和导出支持请求会写入审计日志。</p>
   <h3>导出与删除</h3>
@@ -2509,17 +3119,34 @@ class AppHandler(BaseHTTPRequestHandler):
             for value, label in labels.items()
         )
 
+    def default_support_category(self) -> str:
+        return "other" if self.public_registration_available() else "registration"
+
     def render_support(self, query):
         user = self.current_user()
         email_value = str(user["email"] or "") if user else ""
         subject_value = ""
-        category_value = "other"
+        join_mode = not self.public_registration_available()
+        category_value = self.default_support_category()
+        title = "申请加入" if join_mode else "联系支持"
+        description = (
+            "当前新用户注册暂未开放。请留下联系邮箱和参赛申请说明,管理员会在后台处理并联系你。"
+            if join_mode
+            else "注册、登录、数据、比赛、社区或商务问题都可以在这里提交。请求会进入站内后台,管理员处理后会保留状态和审计记录。"
+        )
+        subject_placeholder = "例如: 申请加入模拟盘公开赛" if join_mode else "例如: 无法收到注册确认邮件"
+        message_placeholder = (
+            "请简单说明你希望申请加入公开赛、需要开通的邮箱账号,以及是否已有测试账号。"
+            if join_mode
+            else "请写清楚你遇到的问题、相关页面和希望我们处理的事项。"
+        )
+        submit_label = "提交申请" if join_mode else "提交支持请求"
         csrf = csrf_input(user) if user else ""
         body = f"""
 {self.message_html(query)}
 <section class="card">
-  <h2>联系支持</h2>
-  <p>注册、登录、数据、比赛、社区或商务问题都可以在这里提交。请求会进入站内后台,管理员处理后会保留状态和审计记录。</p>
+  <h2>{title}</h2>
+  <p>{description}</p>
   <form method="post" action="/support">
     {csrf}
     <label>联系邮箱</label>
@@ -2527,20 +3154,20 @@ class AppHandler(BaseHTTPRequestHandler):
     <label>问题类型</label>
     <select name="category">{self.support_category_options(category_value)}</select>
     <label>主题</label>
-    <input name="subject" required maxlength="120" value="{escape(subject_value)}" placeholder="例如: 无法收到注册确认邮件">
+    <input name="subject" required maxlength="120" value="{escape(subject_value)}" placeholder="{escape(subject_placeholder)}">
     <label>问题描述</label>
-    <textarea name="message" required maxlength="3000" placeholder="请写清楚你遇到的问题、相关页面和希望我们处理的事项。"></textarea>
+    <textarea name="message" required maxlength="3000" placeholder="{escape(message_placeholder)}"></textarea>
     <p><label><input type="checkbox" name="accept_terms" value="1" style="width:auto"> 我已阅读并同意 <a href="/terms">服务条款</a>、<a href="/privacy">隐私说明</a> 和 <a href="/risk">风险提示</a></label></p>
-    <p><button type="submit">提交支持请求</button> <a class="btn secondary" href="/login">返回登录</a></p>
+    <p><button type="submit">{submit_label}</button> <a class="btn secondary" href="/login">返回登录</a></p>
   </form>
 </section>
 """
         self.send_html(
-            "联系支持",
+            title,
             body,
             user=user,
             meta={
-                "title": "联系支持 · OurWorlds Quant",
+                "title": f"{title} · OurWorlds Quant",
                 "description": "提交注册、登录、数据、比赛、社区或商务支持请求。",
                 "url": f"{self.base_url()}/support",
             },
@@ -2555,13 +3182,17 @@ class AppHandler(BaseHTTPRequestHandler):
         if form.get("accept_terms") != "1":
             self.redirect("/support?err=" + quote("请先阅读并同意服务条款、隐私说明和风险提示。"))
             return
+        if self.public_registration_available():
+            category = form.get("category", "other")
+        else:
+            category = self.default_support_category()
         try:
             request_id = services.create_support_request(
                 self.con,
                 form.get("email", ""),
                 form.get("subject", ""),
                 form.get("message", ""),
-                category=form.get("category", "other"),
+                category=category,
                 requester_user_id=int(user["id"]) if user else None,
                 ip_address=self.client_ip(),
                 user_agent=self.headers.get("User-Agent", ""),
@@ -2593,7 +3224,7 @@ class AppHandler(BaseHTTPRequestHandler):
             user=user,
             target_type="support_request",
             target_id=request_id,
-            detail={"category": services.normalize_support_category(form.get("category", "other"))},
+            detail={"category": services.normalize_support_category(category)},
         )
         self.redirect("/support?msg=" + quote("支持请求已提交,管理员会在后台处理。"))
 
@@ -2616,7 +3247,11 @@ class AppHandler(BaseHTTPRequestHandler):
         user = services.get_user(self.con, user_id)
         self.clear_rate_limit_subject("auth:login:identifier", identifier_subject)
         self.audit("auth.password_login", user=user, target_type="user", target_id=user_id)
-        self.redirect("/app?msg=" + quote("登录成功。"), user_id=user_id)
+        # Returning active users (have traded / saved a plan) go to the dashboard; brand-new
+        # users get the guided learn home. Activity-derived → existing users auto-grandfathered.
+        landing = services.post_auth_landing(self.con, user_id)
+        msg = "登录成功。" if landing == "/app" else "登录成功,先从学习工作台开始(随时可进模拟盘)。"
+        self.redirect(f"{landing}?msg=" + quote(msg), user_id=user_id)
 
     def render_register(self, query):
         mode = self.auth_mode()
@@ -2634,14 +3269,14 @@ class AppHandler(BaseHTTPRequestHandler):
             return
         if mode == "email_dev":
             if self.email_dev_auth_show_links():
-                mode_note = "<p>当前启用本地邮箱测试注册:系统会在页面上显示一次性验证链接。正式运营必须配置真实发信服务并关闭 OWQ_EMAIL_DEV_AUTH。</p>"
+                mode_note = "<p>当前启用本地邮箱测试注册:系统会在页面上显示一次性注册码和备用验证链接。正式运营必须配置真实发信服务并关闭 OWQ_EMAIL_DEV_AUTH。</p>"
             else:
                 body = f"""
 {self.message_html(query)}
 <section class="card">
   <h2>邮箱注册暂未开放</h2>
   <p>当前公网环境尚未配置真实发信服务,新用户邮箱注册暂未开放;系统不会展示测试链接,也不会用注册申请创建登录态。已有账号可以继续使用用户名/邮箱和密码登录。</p>
-  <p>正式开放报名后,系统会向邮箱发送一次性验证链接;打开链接后设置用户名和密码,再回到登录页进入模拟盘。</p>
+  <p>正式开放报名后,系统会向邮箱发送一次性注册码;确认后设置用户名和密码,再回到登录页进入模拟盘。</p>
   <p><a class="btn" href="/login">去登录</a> <a class="btn secondary" href="/support">联系支持</a> <a class="btn secondary" href="/">先看看赛场</a> <a class="btn secondary" href="/legal">查看服务说明</a></p>
 </section>
 """
@@ -2650,18 +3285,18 @@ class AppHandler(BaseHTTPRequestHandler):
         else:
             provider = self.email_sender_provider()
             provider_text = "Cloudflare Email Sending" if provider == "cloudflare" else "SMTP"
-            mode_note = f"<p>邮箱验证链接会发送到你的邮箱。当前发信服务: {provider_text}。</p>"
+            mode_note = f"<p>邮箱注册码会发送到你的邮箱。当前发信服务: {provider_text}。</p>"
         body = f"""
 {self.message_html(query)}
 <section class="card">
   <h2>邮箱验证注册</h2>
-  <p>输入邮箱后会收到一次性验证链接。打开链接后需要设置用户名和密码,再使用账号密码登录模拟盘。</p>
+  <p>输入邮箱后会收到一次性注册码。确认后需要设置用户名和密码,未来使用账号密码登录模拟盘。</p>
   {mode_note}
   <form method="post" action="/register">
     <label>邮箱</label>
     <input name="email" type="email" required placeholder="you@example.com" value="">
     <p><label><input type="checkbox" name="accept_terms" value="1" style="width:auto"> 我已阅读并同意 <a href="/terms">服务条款</a>、<a href="/privacy">隐私说明</a> 和 <a href="/risk">风险提示</a></label></p>
-    <p><button type="submit">发送验证邮件</button> <a class="btn secondary" href="/login">已有账号登录</a> <a class="btn secondary" href="/">先看看赛场</a></p>
+    <p><button type="submit">发送注册码</button> <a class="btn secondary" href="/login">已有账号登录</a> <a class="btn secondary" href="/">先看看赛场</a></p>
   </form>
 </section>
 """
@@ -2686,22 +3321,22 @@ class AppHandler(BaseHTTPRequestHandler):
             self.send_html("忘记密码", body)
             return
         if mode == "email_dev":
-            mode_note = "<p>当前启用本地邮箱测试重置:已存在账号会在页面上显示一次性重置链接。正式运营必须配置真实发信服务。</p>"
+            mode_note = "<p>当前启用本地邮箱测试重置:已存在账号会在页面上显示一次性重置注册码和备用链接。正式运营必须配置真实发信服务。</p>"
         else:
             provider = self.email_sender_provider()
             provider_text = "Cloudflare Email Sending" if provider == "cloudflare" else "SMTP"
-            mode_note = f"<p>如果邮箱已注册,系统会发送一次性重置密码链接。当前发信服务: {provider_text}。</p>"
+            mode_note = f"<p>如果邮箱已注册,系统会发送一次性设置/重置密码注册码。当前发信服务: {provider_text}。</p>"
         body = f"""
 {self.message_html(query)}
 <section class="card">
   <h2>重置登录密码</h2>
-  <p>输入注册邮箱后,如果该邮箱已有账号,会收到一封一次性重置密码邮件。链接 15 分钟内有效,且只能使用一次。</p>
+  <p>输入注册邮箱后,如果该邮箱已有账号,会收到一封一次性设置/重置密码邮件。注册码 15 分钟内有效,且只能使用一次。</p>
   {mode_note}
   <form method="post" action="/forgot-password">
     <label>注册邮箱</label>
     <input name="email" type="email" required placeholder="you@example.com" value="">
     <p><label><input type="checkbox" name="accept_terms" value="1" style="width:auto"> 我已阅读并同意 <a href="/terms">服务条款</a>、<a href="/privacy">隐私说明</a> 和 <a href="/risk">风险提示</a></label></p>
-    <p><button type="submit">发送重置邮件</button> <a class="btn secondary" href="/login">返回登录</a> <a class="btn secondary" href="/register">邮箱注册</a></p>
+    <p><button type="submit">发送重置码</button> <a class="btn secondary" href="/login">返回登录</a> <a class="btn secondary" href="/register">邮箱注册</a></p>
   </form>
 </section>
 """
@@ -2711,7 +3346,7 @@ class AppHandler(BaseHTTPRequestHandler):
         body = """
 <section class="card">
   <h2>重置密码邮件已处理</h2>
-  <p>如果该邮箱已经注册,我们会发送一封一次性重置密码邮件。请在 15 分钟内打开链接并设置新密码。</p>
+  <p>如果该邮箱已经注册,我们会发送一封一次性设置/重置密码邮件。请在 15 分钟内使用注册码确认并设置新密码。</p>
   <p><a class="btn" href="/login">返回登录</a> <a class="btn secondary" href="/forgot-password">重新填写邮箱</a></p>
 </section>
 """
@@ -2730,12 +3365,13 @@ class AppHandler(BaseHTTPRequestHandler):
             if mode == "email_dev" and not self.email_dev_auth_show_links():
                 self.redirect("/register?err=" + quote("公网测试验证链接已关闭。请等待真实发信服务配置完成后再注册。"))
                 return
-            token = services.create_email_login_session(
+            token, code = services.create_email_login_session(
                 self.con,
                 email,
                 terms_version=LEGAL_VERSION,
                 privacy_version=LEGAL_VERSION,
                 risk_version=LEGAL_VERSION,
+                return_code=True,
             )
         except ValueError as exc:
             self.redirect("/register?err=" + quote(str(exc)))
@@ -2752,14 +3388,15 @@ class AppHandler(BaseHTTPRequestHandler):
 <section class="card">
   <h2>测试邮箱验证链接已生成</h2>
   <p>邮箱: {escape(email)}</p>
-  <p>正式运营配置发信服务后,这里会改为发送邮件,不会展示链接。打开链接后需要设置用户名和密码,再使用账号密码登录。</p>
-  <p><a class="btn" href="{escape(login_url, quote=True)}">打开邮箱确认页</a></p>
+  <p>测试注册码: <code>{escape(code)}</code></p>
+  <p>正式运营配置发信服务后,这里会改为发送邮件,不会展示注册码和链接。确认后需要设置用户名和密码,再使用账号密码登录。</p>
+  <p><a class="btn" href="/auth/email/confirm">输入注册码</a> <a class="btn secondary" href="{escape(login_url, quote=True)}">打开备用确认链接</a></p>
 </section>
 """
             self.send_html("邮箱验证", body)
             return
         try:
-            provider = self.send_login_email(email, token)
+            provider = self.send_login_email(email, token, code)
             services.mark_email_login_sent(self.con, token)
         except Exception as exc:  # noqa: BLE001
             services.delete_email_login_session(self.con, token)
@@ -2780,8 +3417,8 @@ class AppHandler(BaseHTTPRequestHandler):
         body = f"""
 <section class="card">
   <h2>验证邮件已发送</h2>
-  <p>我们已经向 {escape(email)} 发送了一封一次性邮箱验证邮件。链接 15 分钟内有效,打开后需要设置用户名和密码,再使用账号密码登录。</p>
-  <p><a class="btn secondary" href="/register">换一个邮箱</a></p>
+  <p>我们已经向 {escape(email)} 发送了一封一次性邮箱验证邮件。注册码 15 分钟内有效,确认后需要设置用户名和密码,再使用账号密码登录。</p>
+  <p><a class="btn" href="/auth/email/confirm">输入注册码</a> <a class="btn secondary" href="/register">换一个邮箱</a></p>
 </section>
 """
         self.send_html("邮箱验证", body)
@@ -2801,23 +3438,25 @@ class AppHandler(BaseHTTPRequestHandler):
             return
         email_hash = services.email_token_hash(email)[:16]
         existing_user = services.get_user_by_email(self.con, email)
+        known_account = bool(existing_user)
         has_password = bool(existing_user and str(existing_user["password_hash"] or "").strip())
         self.audit(
             "auth.password_reset_requested",
             target_type="email",
             target_id=email_hash,
-            detail={"known_account": "1" if has_password else "0", "mode": mode},
+            detail={"known_account": "1" if known_account else "0", "has_password": "1" if has_password else "0", "mode": mode},
         )
-        if not has_password:
+        if not known_account:
             self.render_password_reset_request_result(email)
             return
         try:
-            token = services.create_email_login_session(
+            token, code = services.create_email_login_session(
                 self.con,
                 email,
                 terms_version=LEGAL_VERSION,
                 privacy_version=LEGAL_VERSION,
                 risk_version=LEGAL_VERSION,
+                return_code=True,
             )
         except ValueError as exc:
             self.redirect("/forgot-password?err=" + quote(str(exc)))
@@ -2828,8 +3467,9 @@ class AppHandler(BaseHTTPRequestHandler):
 <section class="card">
   <h2>测试重置密码链接已生成</h2>
   <p>邮箱: {escape(email)}</p>
-  <p>正式运营配置发信服务后,这里会改为发送邮件,不会展示链接。打开链接后设置新密码,再使用账号密码登录。</p>
-  <p><a class="btn" href="{escape(reset_url, quote=True)}">打开重置密码页</a> <a class="btn secondary" href="/login">返回登录</a></p>
+  <p>测试重置码: <code>{escape(code)}</code></p>
+  <p>正式运营配置发信服务后,这里会改为发送邮件,不会展示注册码和链接。确认后设置新密码,再使用账号密码登录。</p>
+  <p><a class="btn" href="/auth/email/confirm">输入重置码</a> <a class="btn secondary" href="{escape(reset_url, quote=True)}">打开备用重置链接</a> <a class="btn secondary" href="/login">返回登录</a></p>
 </section>
 """
             self.audit(
@@ -2841,7 +3481,7 @@ class AppHandler(BaseHTTPRequestHandler):
             self.send_html("重置密码", body)
             return
         try:
-            provider = self.send_password_reset_email(email, token)
+            provider = self.send_password_reset_email(email, token, code)
             services.mark_email_login_sent(self.con, token)
         except Exception as exc:  # noqa: BLE001
             services.delete_email_login_session(self.con, token)
@@ -2889,11 +3529,14 @@ class AppHandler(BaseHTTPRequestHandler):
                 extra_cookies=[self.email_confirm_cookie_header(token)],
             )
             return
-        token = self.current_email_confirm_token()
-        state, error = self.email_confirm_state(token)
+        handle = self.current_email_confirm_token()
+        if not handle:
+            self.render_email_code_entry(query)
+            return
+        state, error = self.email_confirm_state(handle)
         if error:
             self.redirect(
-                "/register?err=" + quote(error),
+                "/auth/email/confirm?err=" + quote(error),
                 extra_cookies=[self.email_confirm_cookie_header(clear=True)],
             )
             return
@@ -2906,9 +3549,9 @@ class AppHandler(BaseHTTPRequestHandler):
         is_reset = bool(existing_user and existing_user["password_hash"])
         title = "重置登录密码" if is_reset else "设置登录账号"
         description = (
-            "邮箱已通过一次性链接确认。请确认用户名并设置新密码;完成后需要回到登录页使用新密码进入模拟盘。"
+            "邮箱已确认。请确认用户名并设置新密码;完成后需要回到登录页使用新密码进入模拟盘。"
             if is_reset
-            else "邮箱已通过一次性链接确认。请设置用户名和密码;完成后需要回到登录页使用账号密码进入模拟盘。"
+            else "邮箱已确认。请设置用户名和密码;完成后需要回到登录页使用账号密码进入模拟盘。"
         )
         button = "重置密码并去登录" if is_reset else "设置密码并去登录"
         retry_path = "/forgot-password" if is_reset else "/register"
@@ -2925,16 +3568,45 @@ class AppHandler(BaseHTTPRequestHandler):
     <input name="password" type="password" autocomplete="new-password" required minlength="10">
     <label>确认密码</label>
     <input name="password_confirm" type="password" autocomplete="new-password" required minlength="10">
-    <p><button type="submit">{button}</button> <a class="btn secondary" href="{retry_path}">重新获取链接</a></p>
+    <p><button type="submit">{button}</button> <a class="btn secondary" href="{retry_path}">重新获取邮件</a></p>
   </form>
 </section>
 """
         self.send_html("设置登录账号", body)
 
-    def email_confirm_state(self, token: str | None) -> tuple[dict, str]:
-        if not token:
-            return {}, "验证链接缺少 token。"
-        acceptance = services.email_login_legal_acceptance(self.con, token)
+    def render_email_code_entry(self, query):
+        body = f"""
+{self.message_html(query)}
+<section class="card">
+  <h2>输入邮箱注册码</h2>
+  <p>请输入邮件里的 8 位注册码。确认后即可设置登录密码;忘记密码时也可以用邮件里的重置码进入同一个确认流程。</p>
+  <form method="post" action="/auth/email/code">
+    <label>邮箱</label>
+    <input name="email" type="email" required autocomplete="email" placeholder="you@example.com">
+    <label>注册码</label>
+    <input name="code" inputmode="numeric" autocomplete="one-time-code" required pattern="[0-9 ]{{8,15}}" placeholder="8 位数字">
+    <p><button type="submit">确认注册码</button> <a class="btn secondary" href="/register">重新注册</a> <a class="btn secondary" href="/forgot-password">忘记密码</a></p>
+  </form>
+</section>
+"""
+        self.send_html("邮箱注册码", body)
+
+    def email_confirm_handle_hash(self, handle: str | None) -> str:
+        value = str(handle or "").strip()
+        if not value:
+            return ""
+        if value.startswith("hash:"):
+            try:
+                return services.normalize_email_login_session_hash(value[5:])
+            except ValueError:
+                return ""
+        return services.email_token_hash(value)
+
+    def email_confirm_state(self, handle: str | None) -> tuple[dict, str]:
+        token_hash = self.email_confirm_handle_hash(handle)
+        if not token_hash:
+            return {}, "验证会话无效。"
+        acceptance = services.email_login_legal_acceptance_by_hash(self.con, token_hash)
         if not acceptance:
             return {}, "请先阅读并同意服务条款、隐私说明和风险提示后再登录。"
         if (
@@ -2942,20 +3614,45 @@ class AppHandler(BaseHTTPRequestHandler):
             or acceptance.get("accepted_privacy_version") != LEGAL_VERSION
             or acceptance.get("accepted_risk_version") != LEGAL_VERSION
         ):
-            return {}, "服务条款已更新,请重新阅读并获取验证链接。"
-        state = services.email_login_session_status(self.con, token)
+            return {}, "服务条款已更新,请重新阅读并获取注册码。"
+        state = services.email_login_session_status_by_hash(self.con, token_hash)
         if state["status"] != "pending":
             message = {
-                "confirmed": "验证链接已使用,请重新获取验证邮件。",
-                "expired": "验证链接已过期,请重新获取验证邮件。",
-                "missing": "验证链接无效,请重新获取验证邮件。",
-            }.get(state["status"], "验证链接不可用,请重新获取验证邮件。")
+                "confirmed": "验证码已使用,请重新获取邮件。",
+                "expired": "验证码已过期,请重新获取邮件。",
+                "missing": "验证码无效,请重新获取邮件。",
+            }.get(state["status"], "验证码不可用,请重新获取邮件。")
             return {}, message
         return state, ""
 
+    def handle_email_code_confirm(self, form):
+        try:
+            email = services.normalize_email(form.get("email", ""))
+            code_result = services.verify_email_login_code(self.con, email, form.get("code", ""))
+        except ValueError as exc:
+            self.audit_security_event(
+                "security.email_code_failed",
+                target_type="email_login_session",
+                detail={"reason": str(exc)[:80]},
+            )
+            self.redirect("/auth/email/confirm?err=" + quote(str(exc)))
+            return
+        token_hash = code_result["token_hash"]
+        self.audit(
+            "auth.email_code_verified",
+            target_type="email_login_session",
+            target_id=token_hash[:16],
+            detail={"email_hash": services.email_token_hash(email)[:16]},
+        )
+        self.redirect(
+            "/auth/email/confirm",
+            extra_cookies=[self.email_confirm_cookie_header(f"hash:{token_hash}")],
+        )
+
     def handle_email_confirm(self, form):
-        token = form.get("token", "") or self.current_email_confirm_token()
-        state, error = self.email_confirm_state(token)
+        handle = form.get("token", "") or self.current_email_confirm_token()
+        token_hash = self.email_confirm_handle_hash(handle)
+        state, error = self.email_confirm_state(handle)
         if error:
             self.redirect(
                 "/register?err=" + quote(error),
@@ -2979,7 +3676,7 @@ class AppHandler(BaseHTTPRequestHandler):
             self.redirect("/auth/email/confirm?err=" + quote(str(exc)))
             return
         try:
-            user_id = services.confirm_email_login_session(self.con, token)
+            user_id = services.confirm_email_login_session_by_hash(self.con, token_hash)
             services.set_user_password(
                 self.con,
                 user_id,
@@ -3095,7 +3792,7 @@ class AppHandler(BaseHTTPRequestHandler):
         consent_id = self.record_current_consent(user_id, "dev_confirm")
         self.audit("auth.dev_confirm", user=services.get_user(self.con, user_id), target_type="user", target_id=user_id)
         self.audit("legal.consent", user=services.get_user(self.con, user_id), target_type="user_consent", target_id=consent_id, detail={"version": LEGAL_VERSION, "source": "dev_confirm"})
-        self.redirect("/app?msg=" + quote("注册成功,已进入模拟盘。"), user_id=user_id)
+        self.redirect("/learn?msg=" + quote("注册成功,先从学习工作台开始。"), user_id=user_id)
 
     def render_wechat_callback(self, query):
         code = query.get("code", [""])[0]
@@ -3121,7 +3818,486 @@ class AppHandler(BaseHTTPRequestHandler):
         consent_id = self.record_current_consent(user_id, "wechat_callback")
         self.audit("auth.wechat_callback", user=services.get_user(self.con, user_id), target_type="user", target_id=user_id)
         self.audit("legal.consent", user=services.get_user(self.con, user_id), target_type="user_consent", target_id=consent_id, detail={"version": LEGAL_VERSION, "source": "wechat_callback"})
-        self.redirect("/app?msg=" + quote("微信扫码注册成功。"), user_id=user_id)
+        self.redirect("/learn?msg=" + quote("微信扫码注册成功,先从学习工作台开始。"), user_id=user_id)
+
+    def learning_difficulty_options(self, selected: str = "beginner") -> str:
+        current = services.normalize_learning_difficulty(selected)
+        return "".join(
+            f'<option value="{escape(value)}"{" selected" if value == current else ""}>{escape(label)}</option>'
+            for value, label in services.LEARNING_DIFFICULTIES.items()
+        )
+
+    def learning_template_options(self, selected: str = "reversal", include_risk: bool = True) -> str:
+        current = services.normalize_learning_template(selected)
+        items = services.LEARNING_TEMPLATES.items()
+        if not include_risk:
+            items = [(value, label) for value, label in items if value != "risk_review"]
+        return "".join(
+            f'<option value="{escape(value)}"{" selected" if value == current else ""}>{escape(label)}</option>'
+            for value, label in items
+        )
+
+    def learning_preset_cards(self, user, ai_ready: bool) -> str:
+        cards = []
+        for preset in LEARNING_PRESETS:
+            chips = (
+                f'<span class="badge">{escape(preset["level"])}</span>'
+                f'<span class="badge">{escape(services.LEARNING_TEMPLATES[preset["template"]])}</span>'
+            )
+            content = (
+                f"{chips}"
+                f"<strong>{escape(preset['title'])}</strong>"
+                f"<p>{escape(preset['summary'])}</p>"
+            )
+            if ai_ready:
+                cards.append(
+                    '<form class="preset-form" method="post" action="/learn/coach">'
+                    f"{csrf_input(user)}"
+                    f'<input type="hidden" name="goal" value="{escape(preset["goal"], quote=True)}">'
+                    f'<input type="hidden" name="difficulty" value="{escape(preset["difficulty"])}">'
+                    f'<input type="hidden" name="template" value="{escape(preset["template"])}">'
+                    f'<button type="submit" class="preset-card">{content}</button>'
+                    "</form>"
+                )
+            else:
+                cards.append(
+                    '<a class="preset-card" href="/account/ai">'
+                    f"{content}"
+                    '<p><strong>先配置 DeepSeek API key 后可一键创建。</strong></p>'
+                    "</a>"
+                )
+        return '<div class="preset-grid">' + "".join(cards) + "</div>"
+
+    def learning_task_id_from_path(self, path: str) -> int:
+        parts = path.strip("/").split("/")
+        if len(parts) < 3 or parts[0] != "learn" or parts[1] != "tasks":
+            raise ValueError("学习任务路径无效")
+        return int(parts[2])
+
+    def render_learn(self, user, query):
+        key_row = ai_service.get_key_row(self.con, user["id"])
+        ai_ready = key_row is not None and bool(int(key_row["enabled"]))
+        task_rows = services.learning_tasks(self.con, user["id"], limit=6)
+        tasks_html = "".join(
+            '<tr>'
+            f'<td><a href="/learn/tasks/{int(task["id"])}">#{int(task["id"])}</a></td>'
+            f'<td>{escape(task["goal"])}</td>'
+            f'<td>{escape(services.LEARNING_TEMPLATES.get(task["template"], task["template"]))}</td>'
+            f'<td>{escape(task["status"])}</td>'
+            f'<td>{escape(task["created_at"])}</td>'
+            '</tr>'
+            for task in task_rows
+        ) or '<tr><td colspan="5" class="muted">暂无学习任务。先写一个目标,让 AI 教练帮你拆解。</td></tr>'
+        ai_box = (
+            """
+<div class="msg">
+  DeepSeek API key 已配置。你可以直接创建学习任务,AI 会先做方法拆解,不会替你下单。
+</div>
+"""
+            if ai_ready
+            else """
+<div class="msg err">
+  还没有配置 DeepSeek API key。课程可以先看,AI 教练需要先到“账户 → AI 教练配置”填入你自己的 key。
+</div>
+"""
+        )
+        submit = (
+            '<button type="submit">让 AI 拆解目标</button>'
+            if ai_ready
+            else '<a class="btn" href="/account/ai">配置 DeepSeek API key</a>'
+        )
+        body = f"""
+{self.message_html(query)}
+<section class="card">
+  <h2>新手 AI 学习工作台</h2>
+  <p>这里先帮你理解量化投资的基本环节,再把一个学习目标拆成可演练、可记录、可复盘的模拟盘任务。</p>
+  <p><a class="btn secondary" href="/lessons">先看:量化三大坑(免登录、免 key)</a> <a class="btn secondary" href="/app">想直接上手?进入模拟盘 →</a></p>
+  <div class="flow-map">
+    <div class="flow-step"><span>STEP 1</span><strong>量化投资是什么</strong><p>用数据、规则和程序把投资想法转成可检验流程。它不是 AI 替你预测涨跌,也不是自动稳赚。</p></div>
+    <div class="flow-step"><span>STEP 2</span><strong>你需要理解哪些环节</strong><p>数据、交易规则、策略假设、回测陷阱、模拟盘执行和复盘,分别解决不同问题。</p></div>
+    <div class="flow-step"><span>STEP 3</span><strong>目标如何拆成任务</strong><p>把“我想学习量化”拆成一个观察模板、几个参数、一组记录问题和一次可复盘练习。</p></div>
+    <div class="flow-step"><span>STEP 4</span><strong>以练代学</strong><p>AI 先解释方法,系统生成候选草稿,你确认后保存为待执行计划,再用模拟结果复盘。</p></div>
+  </div>
+</section>
+<section class="card">
+  <h2>不知道问什么? 从这些任务开始</h2>
+  <p>按你的基础选择一个常见问题,系统会直接把它送给 AI 教练拆解成学习任务。</p>
+  {self.learning_preset_cards(user, ai_ready)}
+</section>
+<section class="grid">
+  <div class="card">
+    <h2>创建学习任务</h2>
+    {ai_box}
+    <form method="post" action="/learn/coach">
+      {csrf_input(user)}
+      <label>我想学习或练习的目标</label>
+      <textarea name="goal" maxlength="500" required placeholder="例如: 我想学习如何用 AI 帮我设计一个低风险的量化练习,并知道应该看哪些指标。"></textarea>
+      <div class="row">
+        <div><label>当前基础</label><select name="difficulty">{self.learning_difficulty_options()}</select></div>
+        <div><label>练习模板</label><select name="template">{self.learning_template_options()}</select></div>
+      </div>
+      <p>{submit}</p>
+    </form>
+  </div>
+  <div class="card">
+    <h2>新手边界</h2>
+    <ul class="guide-list">
+      <li>AI 只做方法教学、目标拆解和草稿说明。</li>
+      <li>具体候选由系统按行情/预测数据确定,不是模型荐股。</li>
+      <li>保存后只是待执行计划,不会自动成交。</li>
+      <li>执行、取消、复盘都由你自己确认。</li>
+    </ul>
+    <p><a class="btn secondary" href="/app">进入高级模拟盘</a> <a class="btn secondary" href="/account/ai">AI 教练配置</a></p>
+  </div>
+</section>
+<section class="card">
+  <h2>最近学习任务</h2>
+  <table><thead><tr><th>ID</th><th>目标</th><th>模板</th><th>状态</th><th>创建时间</th></tr></thead><tbody>{tasks_html}</tbody></table>
+</section>
+"""
+        self.send_html("学习工作台", body, user=user)
+
+    def learning_preview_rows_html(self, rows: list[dict]) -> str:
+        return "".join(
+            "<tr>"
+            f"<td>{escape(row['code'])}</td>"
+            f"<td>{escape(row.get('name') or '-')}</td>"
+            f"<td>{side_cn(row['side'])}</td>"
+            f"<td>{int(row['qty'])}</td>"
+            f"<td>{escape(row.get('rationale') or '-')}</td>"
+            "</tr>"
+            for row in rows
+        )
+
+    def render_learning_task_page(
+        self,
+        user,
+        task,
+        query,
+        preview_rows: list[dict] | None = None,
+        preview_error: str = "",
+        preview_params: dict | None = None,
+    ):
+        preview_params = preview_params or {}
+        template = services.normalize_learning_template(preview_params.get("template") or task["template"])
+        qty = escape(str(preview_params.get("qty") or "100"))
+        limit = escape(str(preview_params.get("limit") or "3"))
+        strategy_name = escape(str(preview_params.get("strategy_name") or f"学习任务 {int(task['id'])} · {services.LEARNING_TEMPLATES[template]}"))
+        rationale_note = escape(str(preview_params.get("rationale_note") or "按 AI 教练建议做小仓位观察,记录假设、风险和复盘问题。"))
+        coach_text = render_markdown(task["coach_text"] or "AI 教练暂无输出。")
+        saved_count = services.learning_task_signal_count(self.con, user["id"], int(task["id"]))
+        preview_html = ""
+        if preview_error:
+            preview_html = f'<div class="msg err">{escape(preview_error)}</div>'
+        elif preview_rows is not None:
+            rows_html = self.learning_preview_rows_html(preview_rows) or '<tr><td colspan="5" class="muted">暂无候选</td></tr>'
+            preview_html = f"""
+<div class="msg">以下只是草稿预览,尚未写入模拟盘。确认后会保存为待执行演练计划。</div>
+<table><thead><tr><th>代码</th><th>名称</th><th>方向</th><th>数量</th><th>依据</th></tr></thead><tbody>{rows_html}</tbody></table>
+"""
+        body = f"""
+{self.message_html(query)}
+<section class="card">
+  <h2>学习任务 #{int(task['id'])}</h2>
+  <p><span class="badge">{escape(services.LEARNING_DIFFICULTIES.get(task['difficulty'], task['difficulty']))}</span> <span class="badge">{escape(services.LEARNING_TEMPLATES.get(task['template'], task['template']))}</span> <span class="badge">{escape(task['status'])}</span></p>
+  <h3>目标</h3>
+  <p>{escape(task['goal'])}</p>
+  <h3>AI 教练拆解</h3>
+  <div class="markdown-body">{coach_text}</div>
+  <p class="muted">已从该任务保存 {saved_count} 条演练计划。保存后仍需到高级模拟盘手动执行。</p>
+</section>
+<section class="card">
+  <h2>演练计划草稿</h2>
+  <form method="post" action="/learn/tasks/{int(task['id'])}/preview">
+    {csrf_input(user)}
+    <div class="formline">
+      <div><label>练习模板</label><select name="template">{self.learning_template_options(template, include_risk=False)}</select></div>
+      <div><label>数量/标的</label><input name="qty" type="number" min="100" step="100" value="{qty}"></div>
+      <div><label>候选数</label><input name="limit" type="number" min="1" max="10" step="1" value="{limit}"></div>
+      <button type="submit">预览草稿</button>
+    </div>
+    <label>策略名称</label>
+    <input name="strategy_name" value="{strategy_name}" maxlength="80">
+    <label>附加记录要求</label>
+    <input name="rationale_note" value="{rationale_note}" maxlength="300">
+  </form>
+  {preview_html}
+  <form method="post" action="/learn/tasks/{int(task['id'])}/save-signals">
+    {csrf_input(user)}
+    <input type="hidden" name="template" value="{escape(template)}">
+    <input type="hidden" name="qty" value="{qty}">
+    <input type="hidden" name="limit" value="{limit}">
+    <input type="hidden" name="strategy_name" value="{strategy_name}">
+    <input type="hidden" name="rationale_note" value="{rationale_note}">
+    <p><button type="submit">确认保存为待执行计划</button> <a class="btn secondary" href="/app">去高级模拟盘</a> <a class="btn secondary" href="/learn">返回学习工作台</a></p>
+  </form>
+</section>
+"""
+        self.send_html("学习任务", body, user=user)
+
+    def render_learning_task(self, user, path, query):
+        try:
+            task_id = self.learning_task_id_from_path(path)
+        except ValueError:
+            self.not_found()
+            return
+        task = services.learning_task(self.con, user["id"], task_id)
+        if task is None:
+            self.not_found()
+            return
+        self.render_learning_task_page(user, task, query)
+
+    def handle_learning_coach(self, user, form):
+        if not self.require_user_write_limit(user, "learning_coach", 8, 3600, "/learn"):
+            return
+        difficulty = services.normalize_learning_difficulty(form.get("difficulty", "beginner"))
+        template = services.normalize_learning_template(form.get("template", "reversal"))
+        result = ai_service.coach_learning_goal(
+            self.con,
+            user["id"],
+            secret=SECRET,
+            leak_check_secrets=self.sensitive_secret_values(),
+            goal=form.get("goal", ""),
+            difficulty=difficulty,
+            template=template,
+        )
+        self.audit(
+            "ai.learning_coach",
+            user=user,
+            target_type="ai",
+            detail={"ok": result["ok"], "blocked": result.get("blocked", False), "error": result.get("error", "")},
+        )
+        if not result["ok"]:
+            self.redirect("/learn?err=" + quote(result["text"]))
+            return
+        try:
+            task_id = services.create_learning_task(
+                self.con,
+                user["id"],
+                form.get("goal", ""),
+                difficulty,
+                template,
+                result["text"],
+            )
+        except ValueError as exc:
+            self.redirect("/learn?err=" + quote(str(exc)))
+            return
+        self.audit("learning.task_create", user=user, target_type="learning_task", target_id=task_id, detail={"template": template})
+        self.redirect(f"/learn/tasks/{task_id}?msg=" + quote("AI 教练已完成目标拆解。"))
+
+    def handle_learning_task_preview(self, user, path, form):
+        try:
+            task_id = self.learning_task_id_from_path(path)
+        except ValueError:
+            self.not_found()
+            return
+        task = services.learning_task(self.con, user["id"], task_id)
+        if task is None:
+            self.not_found()
+            return
+        params = {
+            "template": form.get("template", task["template"]),
+            "qty": form.get("qty", "100"),
+            "limit": form.get("limit", "3"),
+            "strategy_name": form.get("strategy_name", ""),
+            "rationale_note": form.get("rationale_note", ""),
+        }
+        try:
+            rows = services.learning_template_rows(
+                self.con,
+                user["id"],
+                params["template"],
+                qty=params["qty"],
+                limit=int(params["limit"] or "3"),
+            )
+        except Exception as exc:  # noqa: BLE001 - show preview errors inline
+            self.render_learning_task_page(user, task, parse_qs(""), preview_error=str(exc), preview_params=params)
+            return
+        self.render_learning_task_page(user, task, parse_qs(""), preview_rows=rows, preview_params=params)
+
+    def handle_learning_task_save_signals(self, user, path, form):
+        task_id = 0
+        try:
+            task_id = self.learning_task_id_from_path(path)
+            count = services.create_practice_signals_from_learning_task(
+                self.con,
+                user["id"],
+                task_id,
+                form.get("strategy_name", ""),
+                form.get("template", ""),
+                qty=form.get("qty", "100"),
+                limit=int(form.get("limit", "3") or "3"),
+                rationale_note=form.get("rationale_note", ""),
+            )
+        except Exception as exc:  # noqa: BLE001
+            target = f"/learn/tasks/{task_id}" if task_id else "/learn"
+            self.redirect(target + "?err=" + quote(str(exc)))
+            return
+        self.audit("learning.signals_saved", user=user, target_type="learning_task", target_id=task_id, detail={"count": count, "template": form.get("template", "")})
+        self.redirect(f"/learn/tasks/{task_id}?msg=" + quote(f"已保存 {count} 条待执行演练计划。请到高级模拟盘确认是否执行。"))
+
+    def _load_preview_data(self):
+        """Load the offline /preview + /lessons artifact (path overridable via OWQ_PREVIEW_JSON)."""
+        path = Path(os.getenv("OWQ_PREVIEW_JSON") or (db.REPO_ROOT / "reports" / "preview.json"))
+        if path.exists():
+            try:
+                return json.loads(path.read_text(encoding="utf-8"))
+            except Exception:  # noqa: BLE001 - 工件损坏时退化
+                return None
+        return None
+
+    def render_lessons(self, head: bool = False):
+        """Public, no-login, no-key '坑即课程': the three biases turned into lessons, the
+        survivorship one backed by the platform's own real numbers."""
+        data = self._load_preview_data() or {}
+        sv = data.get("survivorship") or {}
+
+        def pctf(x):
+            return pct(float(x) * 100) if x is not None else "—"
+
+        delta = sv.get("delta_survivors_minus_full") if not sv.get("error") else None
+        if delta:
+            full = sv.get("full") or {}
+            only = sv.get("survivors_only") or {}
+            surv_real = (
+                f'<p class="muted">用真实数据实测:把 {int(sv.get("n_delisted", 0))} 只退市股放回票池,同一策略总收益从 '
+                f'{pctf(only.get("total_return"))}(只测存活)掉到 {pctf(full.get("total_return"))}(含退市),'
+                f'{metric_label("sharpe", "夏普")}从 {float(only.get("sharpe") or 0):.2f} 掉到 {float(full.get("sharpe") or 0):.2f}——'
+                f'被高估了 {pct(float(delta.get("total_return", 0)) * 100)}。</p>'
+                '<p><a class="btn secondary" href="/preview">在 /preview 看这条实测曲线</a></p>'
+            )
+        else:
+            surv_real = '<p class="muted">(运行 <code>--preview-only</code> 生成实测数据后,这里会显示平台自己的真实对比。)</p>'
+
+        lessons = f"""
+<section class="card">
+  <div class="card-title"><span>坑 1 · 幸存者偏差</span><span class="pill warn">最常见</span></div>
+  <p><strong>症状</strong>:回测看起来很赚,实盘却不行。</p>
+  <p><strong>真相</strong>:你的票池只剩"活下来的"股票,退市的那些(连同它们的亏损)被悄悄删掉了。回测于是把"幸存者"当成了全部。</p>
+  {surv_real}
+  <p><strong>怎么避免</strong>:回测票池必须包含退市股。本平台的回测<strong>默认含退市股</strong>,并对消失的持仓按最后收盘价强制平仓,而不是当它没发生过。</p>
+</section>
+<section class="card">
+  <div class="card-title"><span>坑 2 · 前视偏差(用了未来的信息)</span></div>
+  <p><strong>症状</strong>:样本内{metric_label("sharpe", "夏普")}高得离谱,换个时间段就崩。</p>
+  <p><strong>真相</strong>:你不小心用了"当时还不知道"的信息——比如用<strong>全样本 IC</strong> 给因子加权、用整段历史拟合回归系数,再拿去"预测"同一段。模型偷看了答案,自然好看。</p>
+  <p><strong>怎么避免</strong>:任何调参/加权只能用<strong>截至当下</strong>的信息(滚动 / walk-forward);上线模型与上报的 OOS 指标要用留出集分开评估。本平台里 <code>--ic-weight</code> 这种全样本加权被明确标注"仅演示、有前视",绝不喂给对外展示的数字。</p>
+</section>
+<section class="card">
+  <div class="card-title"><span>坑 3 · 复权口径(拆股看起来像暴跌)</span></div>
+  <p><strong>症状</strong>:某只票某天"暴跌 50%",但持有人其实没亏。</p>
+  <p><strong>真相</strong>:那天它分红或拆股了。<strong>不复权价(none)</strong>会在除权日跳空,看起来像暴跌,其实只是价格口径问题,不是真实涨跌。</p>
+  <p><strong>怎么避免</strong>:研究/回测用<strong>后复权(hfq)</strong>价才能反映真实连续收益;而你下单看到的成交价是不复权现价。本平台在"预测→演练"交接处会提示这两套口径可能背离。</p>
+</section>
+"""
+        body = f"""
+<section class="card">
+  <p><span class="pill ok">免登录 · 免 API key</span></p>
+  <h2>三个让回测"看起来很赚"的坑</h2>
+  <p class="muted">大多数"稳赚回测"不是骗子,而是踩了这三个坑。看懂它们,你就比多数散户更懂量化了。下面每一课都对应本平台在代码里真实做的处理。</p>
+</section>
+{lessons}
+{self._preview_ctas()}
+"""
+        self.send_html(
+            "量化三大坑 · 免登录科普",
+            body,
+            head=head,
+            meta={"description": "幸存者偏差、前视偏差、复权口径——三个最常见的量化回测陷阱,用真实A股数据讲清楚,免登录免API key。"},
+        )
+
+    def _preview_ctas(self) -> str:
+        return (
+            '<section class="card"><div class="card-title"><span>想自己上手?</span></div>'
+            '<p><a class="btn blue" href="/register">免费注册,拿 10 万模拟本金</a> '
+            '<a class="btn secondary" href="/lessons">量化三大坑(免登录)</a> '
+            '<a class="btn secondary" href="/showcase/public">看公开排行榜</a> '
+            '<a class="btn secondary" href="/data-status">数据透明页</a></p></section>'
+        )
+
+    def render_preview(self, head: bool = False):
+        """Public, no-signup, no-JS preview: a real backtest + the survivorship teaching."""
+        data = self._load_preview_data()
+        if not data or not data.get("equity_points"):
+            body = (
+                '<section class="card"><h2>真实回测预览</h2>'
+                '<p class="muted">预览数据尚未生成。可运行 '
+                "<code>python -m src.research.real_data_report --preview-only</code> 生成。</p></section>"
+                f"{self._preview_ctas()}"
+            )
+            self.send_html("真实回测预览", body, head=head)
+            return
+
+        def pctf(x):
+            return pct(float(x) * 100) if x is not None else "—"
+
+        def numf(x, d=2):
+            return f"{float(x):.{d}f}" if x is not None else "—"
+
+        m = data.get("metrics") or {}
+        sv = data.get("survivorship") or {}
+        as_of = escape(str(data.get("as_of") or ""))
+        n_codes = int(data.get("n_codes") or 0)
+        svg = preview_equity_svg(data["equity_points"])
+        cards = (
+            f'<div class="card"><p>{metric_label("total_return", "总收益率")}</p><div class="metric">{pctf(m.get("total_return"))}</div></div>'
+            f'<div class="card"><p>{metric_label("cagr", "年化收益率")}</p><div class="metric">{pctf(m.get("cagr"))}</div></div>'
+            f'<div class="card"><p>{metric_label("sharpe", "夏普比率")}</p><div class="metric">{numf(m.get("sharpe"), 3)}</div></div>'
+            f'<div class="card"><p>{metric_label("max_drawdown", "最大回撤")}</p><div class="metric bad">{pctf(m.get("max_drawdown"))}</div></div>'
+        )
+        surv_html = ""
+        delta = sv.get("delta_survivors_minus_full") if not sv.get("error") else None
+        if delta:
+            full = sv.get("full") or {}
+            only = sv.get("survivors_only") or {}
+            surv_html = (
+                '<section class="card">'
+                '<div class="card-title"><span>为什么很多"稳赚回测"是假的</span></div>'
+                f"<p>同一个策略,只要把<strong>已经退市的 {int(sv.get('n_delisted', 0))} 只股票</strong>从票池里去掉"
+                "(很多人就是这么干的,因为退市数据不好拿),绩效就会凭空变好:</p>"
+                '<div class="cards">'
+                f'<div class="card"><p>总收益被高估</p><div class="metric warn">{pct(float(delta.get("total_return", 0)) * 100)}</div></div>'
+                f'<div class="card"><p>夏普被高估</p><div class="metric warn">{float(delta.get("sharpe", 0)):+.2f}</div></div>'
+                "</div>"
+                f'<p class="muted">真实(含退市): 总收益 {pctf(full.get("total_return"))} · 夏普 {numf(full.get("sharpe"))}　|　'
+                f'有偏(只测存活): 总收益 {pctf(only.get("total_return"))} · 夏普 {numf(only.get("sharpe"))}</p>'
+                "<p>这就是<strong>幸存者偏差</strong>。我们的回测<strong>默认含退市股</strong>——数字也许不好看,但它是真的。</p>"
+                "</section>"
+            )
+        body = f"""
+<section class="card">
+  <p><span class="pill ok">真实历史 A 股数据</span> <span class="pill">含退市股回测</span> <span class="pill">截至 {as_of}</span></p>
+  <h2>免注册,先看一个策略在真实数据上的真实表现</h2>
+  <p class="muted">不喊单、不炫技。下面是一个多因子策略在 {n_codes} 只 A 股(含中途退市)上的真实回测,以及我们如何诚实地标注它的缺陷。所有内容仅用于模拟训练与方法演示,不构成投资建议。</p>
+</section>
+<section class="card">
+  <div class="card-title"><span>真实回测绩效(含退市股)</span><span class="muted">点按指标名看含义</span></div>
+  <div class="cards">{cards}</div>
+  {svg}
+  <p class="muted">阴影=区间最大回撤,虚线=初始本金。曲线向下也照样展示——因为这才是真实的。</p>
+</section>
+{surv_html}
+{self._preview_ctas()}
+"""
+        self.send_html(
+            "真实回测预览 · 免注册",
+            body,
+            head=head,
+            meta={"description": "免注册查看一个多因子策略在真实A股数据(含退市股)上的真实回测,以及幸存者偏差如何让大多数回测看起来更好。"},
+        )
+
+    def api_equity_curve(self, user):
+        """Read-only time series for the dashboard equity chart (progressive enhancement)."""
+        rows = services.equity_history(self.con, user["id"], limit=120)
+        points = [
+            {
+                "date": str(r["created_at"])[:10],
+                "equity": float(r["equity"] or 0.0),
+                "return_pct": float(r["return_pct"] or 0.0),
+            }
+            for r in rows
+        ]
+        self.send_json({"points": points})
 
     def render_dashboard(self, user, query):
         snap = services.portfolio_snapshot(self.con, user["id"])
@@ -3158,12 +4334,31 @@ class AppHandler(BaseHTTPRequestHandler):
             for s in signals
         ) or '<tr><td colspan="9" class="muted">暂无演练计划</td></tr>'
         ret_class = "ok" if snap["return_pct"] >= 0 else "bad"
+        learning_pending = self.con.execute(
+            """
+            SELECT COUNT(*) AS count
+            FROM practice_signals
+            WHERE user_id=? AND status='pending' AND learning_task_id IS NOT NULL
+            """,
+            (int(user["id"]),),
+        ).fetchone()
+        learning_notice = (
+            f'<div class="msg">你有 {int(learning_pending["count"])} 条来自学习任务的待执行计划。它们只是草稿保存结果,执行前请确认数量、依据和风险记录。</div>'
+            if learning_pending and int(learning_pending["count"])
+            else ""
+        )
         body = f"""
 {self.message_html(query)}
+{learning_notice}
+{self.provenance_chip()}
 <section class="cards">
-  <div class="card"><p>总资产</p><div class="metric">{money(snap['equity'])}</div></div>
-  <div class="card"><p>现金</p><div class="metric">{money(snap['cash'])}</div></div>
-  <div class="card"><p>收益率</p><div class="metric {ret_class}">{pct(snap['return_pct'])}</div></div>
+  <div class="card"><p>{metric_label('equity', '总资产')}</p><div class="metric">{money(snap['equity'])}</div></div>
+  <div class="card"><p>{metric_label('cash', '现金')}</p><div class="metric">{money(snap['cash'])}</div></div>
+  <div class="card"><p>{metric_label('return_pct', '收益率')}</p><div class="metric {ret_class}">{pct(snap['return_pct'])}</div></div>
+</section>
+<section class="card" data-equity-section hidden>
+  <div class="card-title"><span>资产曲线</span><span class="muted">模拟账户净值,阴影为最大回撤区间</span></div>
+  <div data-equity-curve></div>
 </section>
 <section class="card">
   <h2>模拟交易</h2>
@@ -3742,7 +4937,7 @@ class AppHandler(BaseHTTPRequestHandler):
 
     AI_BANNER = (
         '<section class="card" style="border-color:#f0c36d;background:#fff8e6">'
-        '<p class="muted" style="margin:0">🤖 AI 助教仅用于<strong>量化方法学习、引导与模拟盘复盘</strong>,'
+        '<p class="muted" style="margin:0">AI 教练仅用于<strong>量化方法学习、引导与模拟盘复盘</strong>,'
         '不提供针对具体标的的买卖建议或收益预测,不构成投资建议。每位用户使用自己配置的 DeepSeek API key,'
         'key 加密存储、仅调用时解密;复盘只读取你<strong>本人</strong>的模拟盘数据。</p></section>'
     )
@@ -3768,7 +4963,14 @@ class AppHandler(BaseHTTPRequestHandler):
             if ai_service.ai_disabled() else ""
         )
         cur_base = escape(row["base_url"]) if row else "https://api.deepseek.com"
-        cur_model = escape(row["model"]) if row else "deepseek-chat"
+        cur_model_raw = str(row["model"] if row else ai_service.client.DEFAULT_MODEL)
+        known_models = {value for value, _ in ai_service.client.MODEL_OPTIONS}
+        model_options = "".join(
+            f'<option value="{escape(value)}"{" selected" if value == cur_model_raw else ""}>{escape(label)}</option>'
+            for value, label in ai_service.client.MODEL_OPTIONS
+        )
+        if cur_model_raw not in known_models:
+            model_options += f'<option value="{escape(cur_model_raw)}" selected>{escape(cur_model_raw)} (当前保存)</option>'
         toggle_action = "disable" if enabled else "enable"
         toggle_label = "停用 AI" if enabled else "启用 AI"
         body = f"""
@@ -3776,7 +4978,7 @@ class AppHandler(BaseHTTPRequestHandler):
 {self.AI_BANNER}
 {disabled_note}
 <section class="card">
-  <h2>AI 助教配置</h2>
+  <h2>AI 教练配置</h2>
   {status_html}
   <form method="post" action="/account/ai">
     {csrf_input(user)}
@@ -3785,9 +4987,9 @@ class AppHandler(BaseHTTPRequestHandler):
     <input name="api_key" type="password" placeholder="sk-..." autocomplete="off">
     <div class="row">
       <div><label>Base URL</label><input name="base_url" value="{cur_base}"></div>
-      <div><label>模型</label><input name="model" value="{cur_model}"></div>
+      <div><label>模型</label><select name="model">{model_options}</select></div>
     </div>
-    <p class="muted">key 用服务端密钥加密后存储,仅调用时解密,不显示明文、不进入导出或日志。</p>
+    <p class="muted">默认建议 DeepSeek V4 Flash;复杂复盘可切换 V4 Pro。key 用服务端密钥加密后存储,仅调用时解密,不显示明文、不进入导出或日志。</p>
     <p><button type="submit">保存并校验</button></p>
   </form>
   <div class="row">
@@ -3806,7 +5008,7 @@ class AppHandler(BaseHTTPRequestHandler):
   </form>
 </section>
 """
-        self.send_html("AI 助教", body, user=user)
+        self.send_html("AI 教练", body, user=user)
 
     def handle_account_ai(self, user, form):
         action = (form.get("action") or "save").strip()
@@ -3854,14 +5056,14 @@ class AppHandler(BaseHTTPRequestHandler):
             target_type="ai",
             detail={"ok": result["ok"], "blocked": result.get("blocked", False), "error": result.get("error", "")},
         )
-        answer = escape(result["text"]).replace("\n", "<br>")
+        answer = render_markdown(result["text"])
         klass = "msg" if result["ok"] and not result.get("blocked") else "msg err"
         body = f"""
 {self.AI_BANNER}
 <section class="card">
   <h2>AI 复盘结果</h2>
-  <div class="{klass}">{answer}</div>
-  <p><a class="btn secondary" href="/account/ai">返回 AI 助教</a></p>
+  <div class="{klass}"><div class="markdown-body">{answer}</div></div>
+  <p><a class="btn secondary" href="/account/ai">返回 AI 教练</a></p>
 </section>
 """
         self.send_html("AI 复盘结果", body, user=user)
@@ -5057,9 +6259,19 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--market-csv", help="start by importing market prices from CSV")
     parser.add_argument("--market-adjust", default="none", choices=["hfq", "qfq", "none"])
     parser.add_argument("--market-limit", type=int, default=500)
+    parser.add_argument("--market-include-codes-csv", default="", help="prioritize codes from this CSV when syncing DuckDB market prices")
     parser.add_argument("--replace-market", action="store_true", help="delete existing market prices before importing synced rows")
     parser.add_argument("--doctor", action="store_true", help="print readiness checks and exit")
     parser.add_argument("--doctor-strict", action="store_true", help="fail if any readiness warning remains")
+    parser.add_argument(
+        "--generate-demo-voice",
+        nargs="?",
+        const="",
+        default=None,
+        metavar="PATH",
+        help="generate the public guide demo narration MP3 with EdgeTTS and exit",
+    )
+    parser.add_argument("--demo-voice", default="", help=f"EdgeTTS voice for --generate-demo-voice, default {DEFAULT_DEMO_TTS_VOICE}")
     parser.add_argument("--sqlite-maintenance", action="store_true", help="run PRAGMA optimize and WAL checkpoint, then exit")
     parser.add_argument("--prune-audit-log", action="store_true", help="delete audit events older than the configured retention window and exit")
     parser.add_argument("--audit-retention-days", type=int, default=None, help="override OWQ_AUDIT_RETENTION_DAYS for --prune-audit-log")
@@ -5106,6 +6318,15 @@ def main(argv: list[str] | None = None) -> int:
             pass
     if args.db is None and os.getenv("OWQ_APP_DB"):
         args.db = os.getenv("OWQ_APP_DB")
+
+    if args.generate_demo_voice is not None:
+        try:
+            path = generate_usage_demo_voice(args.generate_demo_voice or None, voice=args.demo_voice or None)
+        except Exception as exc:  # noqa: BLE001 - CLI should print optional TTS setup failures clearly
+            print(f"演示语音生成失败: {sanitize_diagnostic_message(exc)}")
+            return 1
+        print(f"演示语音已生成: {path}")
+        return 0
 
     if args.verify_app_backup:
         try:
@@ -5158,18 +6379,26 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Imported {n} market rows from {args.market_csv}")
     if args.sync_market:
         try:
+            include_codes = data_bridge.codes_from_csv(args.market_include_codes_csv) if args.market_include_codes_csv else []
             n = data_bridge.sync_market_from_quant_db(
                 con,
                 adjust=args.market_adjust,
                 limit=args.market_limit,
                 replace=args.replace_market,
+                include_codes=include_codes,
             )
             services.record_audit_event(
                 con,
                 None,
                 "cli.market_duckdb_sync",
                 target_type="market_prices",
-                detail={"rows": n, "adjust": args.market_adjust, "limit": args.market_limit, "replace": args.replace_market},
+                detail={
+                    "rows": n,
+                    "adjust": args.market_adjust,
+                    "limit": args.market_limit,
+                    "replace": args.replace_market,
+                    "priority_codes": len(include_codes),
+                },
             )
             print(f"Synced {n} market rows from src.data DuckDB")
         except data_bridge.MarketSyncError as exc:

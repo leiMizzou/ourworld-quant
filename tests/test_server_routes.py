@@ -19,6 +19,7 @@ from urllib.parse import urlencode
 from unittest.mock import patch
 
 from src.app import db, services
+from src.app import server as app_server
 from src.app.server import AppHandler, RATE_LIMIT_BUCKETS, SECRET, csrf_token, reset_http_metrics, sign_user, verify_cookie
 
 
@@ -88,6 +89,11 @@ class ServerRoutesTest(unittest.TestCase):
         self.assertIsNotNone(match)
         return match.group(1), payload
 
+    def extract_dev_code(self, payload: str) -> str:
+        match = re.search(r"<code>(\d{8})</code>", payload)
+        self.assertIsNotNone(match)
+        return match.group(1)
+
     def test_healthz_reports_readiness_without_login(self):
         status, headers, payload = self.request("GET", "/healthz")
         self.assertEqual(status, 200)
@@ -125,6 +131,61 @@ class ServerRoutesTest(unittest.TestCase):
             self.assertNotIn("checks", ready)
             self.assertTrue(any(item["name"] in {"email_login", "email_sending", "email_dev_auth_public"} for item in ready["warnings"]))
             self.assertNotIn("需要配置 Cloudflare", ready_payload)
+
+    def test_usage_guide_and_demo_are_public(self):
+        status, headers, guide = self.request("GET", "/guide")
+        self.assertEqual(status, 200)
+        self.assertNotIn("X-Robots-Tag", headers)
+        self.assertIn("网站使用流程", guide)
+        self.assertIn("当前不足", guide)
+        self.assertIn("本次优化", guide)
+        self.assertIn("/guide/demo", guide)
+        self.assertIn("邮箱注册", guide)
+        self.assertIn("组合设计", guide)
+
+        missing_voice = Path(self.tmpdir.name) / "missing-guide.mp3"
+        with patch.dict(os.environ, {"OWQ_DEMO_VOICE_PATH": str(missing_voice)}, clear=False):
+            status, headers, demo = self.request("GET", "/guide/demo")
+        self.assertEqual(status, 200)
+        self.assertNotIn("X-Robots-Tag", headers)
+        self.assertIn("自动演示", demo)
+        self.assertIn("EdgeTTS 语音解说", demo)
+        self.assertIn("--generate-demo-voice", demo)
+        self.assertIn("demo-frame", demo)
+
+        status, _, sitemap = self.request("GET", "/sitemap.xml")
+        self.assertEqual(status, 200)
+        self.assertIn("/guide", sitemap)
+        self.assertIn("/guide/demo", sitemap)
+
+    def test_usage_demo_audio_serves_generated_edge_tts_file(self):
+        voice_path = Path(self.tmpdir.name) / "guide.mp3"
+        voice_path.write_bytes(b"ID3demo")
+        with patch.dict(os.environ, {"OWQ_DEMO_VOICE_PATH": str(voice_path)}, clear=False):
+            status, headers, payload = self.request("GET", "/guide/demo/audio.mp3")
+
+        self.assertEqual(status, 200)
+        self.assertIn("audio/mpeg", headers.get("Content-Type", ""))
+        self.assertEqual(payload, "ID3demo")
+
+    def test_generate_demo_voice_uses_edge_tts_command(self):
+        out_path = Path(self.tmpdir.name) / "generated.mp3"
+        seen = {}
+
+        def fake_run(cmd, **kwargs):
+            seen["cmd"] = cmd
+            self.assertTrue(kwargs["check"])
+            media_path = Path(cmd[cmd.index("--write-media") + 1])
+            media_path.write_bytes(b"ID3generated")
+
+        with patch("src.app.server.edge_tts_command", return_value=["edge-tts"]):
+            with patch("src.app.server.subprocess.run", side_effect=fake_run):
+                result = app_server.generate_usage_demo_voice(out_path, voice="zh-CN-TestNeural")
+
+        self.assertEqual(result, out_path)
+        self.assertEqual(out_path.read_bytes(), b"ID3generated")
+        self.assertIn("zh-CN-TestNeural", seen["cmd"])
+        self.assertIn("--write-media", seen["cmd"])
 
     def test_public_healthz_detail_requires_ops_token(self):
         with patch.dict(os.environ, {"OWQ_PUBLIC_BASE_URL": "https://quant.ourworlds.app", "OWQ_HEALTH_DETAIL_TOKEN": "ops-token"}, clear=False):
@@ -303,10 +364,143 @@ class ServerRoutesTest(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertEqual(headers.get("Strict-Transport-Security"), "max-age=15552000")
         csp = headers.get("Content-Security-Policy", "")
-        self.assertIn("script-src 'none'", csp)
+        # Progressive enhancement: scripts are served from /static (same-origin) only.
+        # 'self' WITHOUT 'unsafe-inline' keeps inline scripts and inline event handlers
+        # blocked, so injected markup still cannot execute JS. Lock that in here.
+        self.assertIn("script-src 'self'", csp)
+        self.assertNotIn("'unsafe-inline'", csp.split("script-src", 1)[1].split(";", 1)[0])
         self.assertIn("object-src 'none'", csp)
         self.assertIn("upgrade-insecure-requests", csp)
         self.assertIn("frame-ancestors 'none'", csp)
+
+    def test_static_assets_serve_and_block_traversal(self):
+        status, headers, payload = self.request("GET", "/static/app.js")
+        self.assertEqual(status, 200)
+        self.assertIn("text/javascript", headers.get("Content-Type", ""))
+        self.assertIn("OurWorlds Quant", payload)
+        # Traversal / absolute / disallowed-extension are all rejected before disk access.
+        for bad in ["/static/../app/server.py", "/static/..%2fserver.py", "/static/nope.js", "/static/app.py"]:
+            with self.subTest(path=bad):
+                status, _, _ = self.request("GET", bad)
+                self.assertEqual(status, 404)
+
+    def test_glossary_api_returns_metric_definitions(self):
+        status, headers, payload = self.request("GET", "/api/glossary")
+        self.assertEqual(status, 200)
+        self.assertIn("application/json", headers.get("Content-Type", ""))
+        data = json.loads(payload)
+        self.assertIn("metrics", data)
+        for key in ("return_pct", "sharpe", "max_drawdown"):
+            self.assertIn(key, data["metrics"])
+            self.assertTrue(data["metrics"][key]["band"])  # conservative guidance present
+
+    def test_dashboard_metric_labels_have_no_js_fallback(self):
+        token = services.create_wechat_session(self.con)
+        user_id = services.confirm_wechat_session(self.con, token, "MetricLabel")
+        cookie = f"owq_session={self.sign_cookie(user_id)}"
+        status, _, payload = self.request("GET", "/app", headers={"Cookie": cookie})
+        self.assertEqual(status, 200)
+        # The metric is interactive (data-metric hook) AND carries a title fallback that
+        # works with JS disabled, and the global enhancement script is wired in.
+        self.assertIn('data-metric="return_pct"', payload)
+        self.assertIn("title=", payload)
+        self.assertIn('/static/app.js', payload)
+        # Provenance chip (server-rendered, works without JS) tells the user this is their
+        # simulated account priced off demo / real-but-non-realtime data.
+        self.assertIn("你的模拟训练账户", payload)
+        self.assertIn("行情:", payload)
+
+    def test_equity_curve_api_and_dashboard_container(self):
+        token = services.create_wechat_session(self.con)
+        user_id = services.confirm_wechat_session(self.con, token, "EquityCurve")
+        services.place_order(self.con, user_id, "000001.SZ", "buy", 100)  # extra snapshot
+        cookie = f"owq_session={self.sign_cookie(user_id)}"
+
+        status, headers, payload = self.request("GET", "/api/equity-curve", headers={"Cookie": cookie})
+        self.assertEqual(status, 200)
+        self.assertIn("application/json", headers.get("Content-Type", ""))
+        data = json.loads(payload)
+        self.assertIn("points", data)
+        self.assertGreaterEqual(len(data["points"]), 1)
+        for pt in data["points"]:
+            self.assertIn("date", pt)
+            self.assertIn("equity", pt)
+        # Dashboard ships the (hidden) container that app.js fills; no-JS users keep the cards.
+        _, _, dash = self.request("GET", "/app", headers={"Cookie": cookie})
+        self.assertIn("data-equity-curve", dash)
+        self.assertIn("data-equity-section", dash)
+
+    def test_preview_page_is_public_indexable_and_no_js_safe(self):
+        payload_json = {
+            "as_of": "2026-06-26",
+            "n_codes": 618,
+            "metrics": {"total_return": -0.4325, "cagr": -0.1561, "sharpe": -0.628, "max_drawdown": -0.5185},
+            "equity_points": [
+                {"date": "2023-01-03", "equity": 1000000.0},
+                {"date": "2024-01-03", "equity": 820000.0},
+                {"date": "2025-01-03", "equity": 700000.0},
+                {"date": "2026-06-26", "equity": 567488.89},
+            ],
+            "survivorship": {
+                "n_delisted": 49, "n_survivors": 569, "n_full": 618,
+                "full": {"total_return": -0.4325, "sharpe": -0.628},
+                "survivors_only": {"total_return": -0.1081, "sharpe": -0.028},
+                "delta_survivors_minus_full": {"total_return": 0.3244, "sharpe": 0.6},
+            },
+        }
+        preview_file = Path(self.tmpdir.name) / "preview.json"
+        preview_file.write_text(json.dumps(payload_json), encoding="utf-8")
+        with patch.dict(os.environ, {"OWQ_PREVIEW_JSON": str(preview_file)}, clear=False):
+            status, headers, payload = self.request("GET", "/preview")  # no login
+
+        self.assertEqual(status, 200)
+        # Public + indexable (it's an acquisition page; must NOT be noindexed).
+        self.assertNotIn("X-Robots-Tag", headers)
+        # Honesty badge + survivorship teaching + server-rendered SVG all present without JS.
+        self.assertIn("真实历史 A 股数据", payload)
+        self.assertIn("幸存者偏差", payload)
+        self.assertIn("<svg", payload)
+        self.assertIn('data-metric="sharpe"', payload)
+        self.assertIn("总收益被高估", payload)
+
+    def test_lessons_page_is_public_indexable_and_covers_three_pitfalls(self):
+        payload_json = {
+            "survivorship": {
+                "n_delisted": 49,
+                "full": {"total_return": -0.4325, "sharpe": -0.628},
+                "survivors_only": {"total_return": -0.1081, "sharpe": -0.028},
+                "delta_survivors_minus_full": {"total_return": 0.3244, "sharpe": 0.6},
+            }
+        }
+        preview_file = Path(self.tmpdir.name) / "preview.json"
+        preview_file.write_text(json.dumps(payload_json), encoding="utf-8")
+        with patch.dict(os.environ, {"OWQ_PREVIEW_JSON": str(preview_file)}, clear=False):
+            status, headers, payload = self.request("GET", "/lessons")  # no login
+
+        self.assertEqual(status, 200)
+        self.assertNotIn("X-Robots-Tag", headers)  # indexable public education page
+        self.assertIn("幸存者偏差", payload)
+        self.assertIn("前视偏差", payload)
+        self.assertIn("复权口径", payload)
+        self.assertIn("被高估了", payload)  # real survivorship numbers wired in
+
+    def test_lessons_page_works_without_artifact(self):
+        missing = Path(self.tmpdir.name) / "none.json"
+        with patch.dict(os.environ, {"OWQ_PREVIEW_JSON": str(missing)}, clear=False):
+            status, _, payload = self.request("GET", "/lessons")
+        self.assertEqual(status, 200)  # lessons still render without the live numbers
+        self.assertIn("幸存者偏差", payload)
+
+    def test_preview_page_falls_back_without_artifact(self):
+        missing = Path(self.tmpdir.name) / "nope.json"
+        with patch.dict(os.environ, {"OWQ_PREVIEW_JSON": str(missing)}, clear=False):
+            status, _, payload = self.request("GET", "/preview")
+        self.assertEqual(status, 200)  # graceful fallback, still public, still has CTAs
+        self.assertIn("免费注册", payload)
+
+    def test_equity_curve_api_requires_login(self):
+        status, _, _ = self.request("GET", "/api/equity-curve")
+        self.assertIn(status, {302, 303})  # redirect to login, not a JSON leak
 
     def test_private_and_machine_routes_send_noindex_headers(self):
         token = services.create_wechat_session(self.con)
@@ -637,6 +831,73 @@ class ServerRoutesTest(unittest.TestCase):
         self.assertEqual(event["action"], "security.admin_forbidden")
         self.assertEqual(event["target_id"], "/admin/support.csv")
 
+    def test_support_page_becomes_join_application_when_registration_is_closed(self):
+        with patch.dict(
+            os.environ,
+            {
+                "OWQ_EMAIL_DEV_AUTH": "1",
+                "OWQ_EMAIL_DEV_AUTH_SHOW_LINKS": "",
+                "OWQ_PUBLIC_BASE_URL": "https://quant.ourworlds.app",
+                "OWQ_EMAIL_PROVIDER": "",
+                "OWQ_EMAIL_FROM": "",
+                "CLOUDFLARE_ACCOUNT_ID": "",
+                "CLOUDFLARE_API_TOKEN": "",
+                "OWQ_SMTP_HOST": "",
+            },
+            clear=False,
+        ):
+            status, headers, page = self.request("GET", "/support", headers={"Host": "quant.ourworlds.app"})
+
+        self.assertEqual(status, 200)
+        self.assertEqual(headers.get("X-Robots-Tag"), "noindex, nofollow")
+        self.assertIn("申请加入", page)
+        self.assertIn("当前新用户注册暂未开放", page)
+        self.assertIn('value="registration" selected', page)
+        self.assertIn("申请加入模拟盘公开赛", page)
+        self.assertIn("提交申请", page)
+        self.assertNotIn('value="other" selected', page)
+
+    def test_support_join_application_posts_as_registration_when_registration_is_closed(self):
+        with patch.dict(
+            os.environ,
+            {
+                "OWQ_EMAIL_DEV_AUTH": "1",
+                "OWQ_EMAIL_DEV_AUTH_SHOW_LINKS": "",
+                "OWQ_PUBLIC_BASE_URL": "https://quant.ourworlds.app",
+                "OWQ_EMAIL_PROVIDER": "",
+                "OWQ_EMAIL_FROM": "",
+                "CLOUDFLARE_ACCOUNT_ID": "",
+                "CLOUDFLARE_API_TOKEN": "",
+                "OWQ_SMTP_HOST": "",
+            },
+            clear=False,
+        ):
+            status, headers, _ = self.request(
+                "POST",
+                "/support",
+                body=urlencode(
+                    {
+                        "email": "join-application@example.com",
+                        "category": "other",
+                        "subject": "申请加入模拟盘公开赛",
+                        "message": "我希望申请加入公开赛,请管理员联系我开通测试账号。",
+                        "accept_terms": "1",
+                    }
+                ),
+                headers={"Content-Type": "application/x-www-form-urlencoded", "Host": "quant.ourworlds.app"},
+            )
+
+        self.assertEqual(status, 303)
+        self.assertIn("msg=", headers.get("Location", ""))
+        request = self.con.execute(
+            "SELECT * FROM support_requests WHERE email='join-application@example.com'"
+        ).fetchone()
+        self.assertIsNotNone(request)
+        self.assertEqual(request["category"], "registration")
+        event = services.audit_events(self.con)[0]
+        self.assertEqual(event["action"], "support.request_create")
+        self.assertIn('"category": "registration"', event["detail"])
+
     def test_public_forms_do_not_prefill_sensitive_query_values(self):
         for path in [
             "/login?identifier=leak@example.com&email=other@example.com",
@@ -863,9 +1124,10 @@ class ServerRoutesTest(unittest.TestCase):
         cookie = f"owq_session={self.sign_cookie(uid)}"
         status, _, page = self.request("GET", "/account/ai", headers={"Cookie": cookie})
         self.assertEqual(status, 200)
-        self.assertIn("AI 助教", page)
+        self.assertIn("AI 教练", page)
         self.assertIn("不构成投资建议", page)  # mandatory education banner
         self.assertIn("尚未配置 API key", page)
+        self.assertIn("deepseek-v4-flash", page)
 
     def test_account_ai_save_key_is_encrypted_and_masked(self):
         uid = services.confirm_wechat_session(self.con, services.create_wechat_session(self.con), "AIKeyRoute")
@@ -910,6 +1172,118 @@ class ServerRoutesTest(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertIn("触发了合规过滤", page)  # blocked message shown
         self.assertNotIn("目标价 15", page)    # the tip itself is never shown
+
+    def test_learn_page_without_key_shows_course_and_config_entry(self):
+        uid = services.confirm_wechat_session(self.con, services.create_wechat_session(self.con), "LearnNoKey")
+        cookie = f"owq_session={self.sign_cookie(uid)}"
+
+        status, _, page = self.request("GET", "/learn", headers={"Cookie": cookie})
+
+        self.assertEqual(status, 200)
+        self.assertIn("新手 AI 学习工作台", page)
+        self.assertIn("量化投资是什么", page)
+        self.assertIn("不知道问什么", page)
+        self.assertIn("量化投资到底是什么?", page)
+        self.assertIn("AI 能帮我做什么?", page)
+        self.assertIn("配置 DeepSeek API key", page)
+        self.assertIn('class="preset-card"', page)
+        self.assertIn("/account/ai", page)
+
+    def test_learning_coach_creates_task_with_mock_deepseek(self):
+        uid = services.confirm_wechat_session(self.con, services.create_wechat_session(self.con), "LearnCoach")
+        cookie = f"owq_session={self.sign_cookie(uid)}"
+        from src.app.ai import service as ai_service
+        ai_service.save_key(self.con, uid, SECRET, "sk-routekey1234567890",
+                            "https://api.deepseek.com", "deepseek-v4-flash")
+        answer = {"text": "目标拆解\n1. 先理解数据。\n2. 再做模拟盘草稿。", "usage": {"total_tokens": 18}, "model": "deepseek-v4-flash"}
+
+        with patch("src.app.ai.client.chat_completion", return_value=answer):
+            status, headers, _ = self.request(
+                "POST",
+                "/learn/coach",
+                body=self.form_body(uid, {"goal": "我想学习低风险量化练习", "difficulty": "beginner", "template": "reversal"}),
+                headers={"Content-Type": "application/x-www-form-urlencoded", "Cookie": cookie},
+            )
+
+        self.assertEqual(status, 303)
+        self.assertIn("/learn/tasks/", headers.get("Location", ""))
+        task = self.con.execute("SELECT * FROM learning_tasks WHERE user_id=?", (uid,)).fetchone()
+        self.assertIsNotNone(task)
+        self.assertEqual(task["template"], "reversal")
+        self.assertIn("目标拆解", task["coach_text"])
+        usage = self.con.execute("SELECT request_kind FROM ai_usage WHERE user_id=?", (uid,)).fetchone()
+        self.assertEqual(usage["request_kind"], "learning_coach")
+
+        task_id = int(task["id"])
+        status, _, detail = self.request("GET", f"/learn/tasks/{task_id}", headers={"Cookie": cookie})
+        self.assertEqual(status, 200)
+        self.assertIn("markdown-body", detail)
+        self.assertIn("<ol>", detail)
+
+    def test_learning_coach_blocks_model_stock_tip(self):
+        uid = services.confirm_wechat_session(self.con, services.create_wechat_session(self.con), "LearnTip")
+        cookie = f"owq_session={self.sign_cookie(uid)}"
+        from src.app.ai import service as ai_service
+        ai_service.save_key(self.con, uid, SECRET, "sk-routekey1234567890",
+                            "https://api.deepseek.com", "deepseek-v4-flash")
+        tip = {"text": "建议买入 000001.SZ,目标价 15 元。", "usage": {"total_tokens": 9}, "model": "x"}
+
+        with patch("src.app.ai.client.chat_completion", return_value=tip):
+            status, headers, _ = self.request(
+                "POST",
+                "/learn/coach",
+                body=self.form_body(uid, {"goal": "我该买啥", "difficulty": "beginner", "template": "reversal"}),
+                headers={"Content-Type": "application/x-www-form-urlencoded", "Cookie": cookie},
+            )
+        self.assertEqual(status, 303)
+        task = self.con.execute("SELECT * FROM learning_tasks WHERE user_id=?", (uid,)).fetchone()
+        status, _, page = self.request("GET", f"/learn/tasks/{task['id']}", headers={"Cookie": cookie})
+
+        self.assertEqual(status, 200)
+        self.assertIn("触发了合规过滤", page)
+        self.assertNotIn("目标价 15", page)
+
+    def test_learning_task_preview_does_not_write_trading_state(self):
+        uid = services.confirm_wechat_session(self.con, services.create_wechat_session(self.con), "LearnPreview")
+        cookie = f"owq_session={self.sign_cookie(uid)}"
+        task_id = services.create_learning_task(self.con, uid, "学习反转观察", "beginner", "reversal", "教练说明")
+        before_cash = services.portfolio_snapshot(self.con, uid)["cash"]
+
+        status, _, page = self.request(
+            "POST",
+            f"/learn/tasks/{task_id}/preview",
+            body=self.form_body(uid, {"template": "reversal", "qty": "100", "limit": "2", "strategy_name": "学习反转", "rationale_note": "记录风险"}),
+            headers={"Content-Type": "application/x-www-form-urlencoded", "Cookie": cookie},
+        )
+
+        self.assertEqual(status, 200)
+        self.assertIn("草稿预览", page)
+        self.assertEqual(self.con.execute("SELECT COUNT(*) FROM practice_signals WHERE user_id=?", (uid,)).fetchone()[0], 0)
+        self.assertEqual(self.con.execute("SELECT COUNT(*) FROM orders").fetchone()[0], 0)
+        self.assertEqual(services.portfolio_snapshot(self.con, uid)["cash"], before_cash)
+
+    def test_learning_task_save_signals_creates_pending_linked_signals(self):
+        uid = services.confirm_wechat_session(self.con, services.create_wechat_session(self.con), "LearnSave")
+        cookie = f"owq_session={self.sign_cookie(uid)}"
+        task_id = services.create_learning_task(self.con, uid, "学习动量观察", "beginner", "momentum", "教练说明")
+
+        status, headers, _ = self.request(
+            "POST",
+            f"/learn/tasks/{task_id}/save-signals",
+            body=self.form_body(uid, {"template": "momentum", "qty": "100", "limit": "2", "strategy_name": "学习动量", "rationale_note": "记录假设"}),
+            headers={"Content-Type": "application/x-www-form-urlencoded", "Cookie": cookie},
+        )
+
+        self.assertEqual(status, 303)
+        self.assertIn(f"/learn/tasks/{task_id}", headers.get("Location", ""))
+        signals = services.practice_signals(self.con, uid)
+        self.assertEqual(len(signals), 2)
+        self.assertTrue(all(s["status"] == "pending" for s in signals))
+        self.assertTrue(all(int(s["learning_task_id"]) == task_id for s in signals))
+        self.assertEqual(self.con.execute("SELECT COUNT(*) FROM orders").fetchone()[0], 0)
+        status, _, app = self.request("GET", "/app", headers={"Cookie": cookie})
+        self.assertEqual(status, 200)
+        self.assertIn("来自学习任务", app)
 
     def test_public_profile_shows_current_holdings_and_recent_orders(self):
         user_id = services.get_or_create_user(self.con, "dev-profile-openid", "ProfileRoute")
@@ -986,7 +1360,7 @@ class ServerRoutesTest(unittest.TestCase):
             headers={"Content-Type": "application/x-www-form-urlencoded"},
         )
         self.assertEqual(status, 303)
-        self.assertIn("/app", headers.get("Location", ""))
+        self.assertIn("/learn", headers.get("Location", ""))
         self.assertIn("owq_session=", headers.get("Set-Cookie", ""))
 
         cookie = headers.get("Set-Cookie", "").split(";", 1)[0]
@@ -994,6 +1368,59 @@ class ServerRoutesTest(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertIn("用户同意记录", admin)
         self.assertIn("routelogin", admin)
+
+    def test_email_registration_code_sets_password_without_magic_link(self):
+        _, payload = self.start_registration(email="code-route@example.com")
+        code = self.extract_dev_code(payload)
+
+        status, headers, _ = self.request(
+            "POST",
+            "/auth/email/code",
+            body=urlencode({"email": "code-route@example.com", "code": code}),
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+        )
+        self.assertEqual(status, 303)
+        self.assertEqual(headers.get("Location"), "/auth/email/confirm")
+        confirm_cookie = headers.get("Set-Cookie", "").split(";", 1)[0]
+        self.assertIn("owq_email_confirm=", confirm_cookie)
+
+        status, _, confirm = self.request("GET", "/auth/email/confirm", headers={"Cookie": confirm_cookie})
+        self.assertEqual(status, 200)
+        self.assertIn("设置登录账号", confirm)
+        self.assertIn("邮箱已确认", confirm)
+
+        status, headers, _ = self.request(
+            "POST",
+            "/auth/email/confirm",
+            body=urlencode({"login_name": "code-route", "password": "Password1234", "password_confirm": "Password1234"}),
+            headers={"Content-Type": "application/x-www-form-urlencoded", "Cookie": confirm_cookie},
+        )
+        self.assertEqual(status, 303)
+        self.assertIn("/login", headers.get("Location", ""))
+        user = self.con.execute("SELECT id FROM users WHERE email='code-route@example.com'").fetchone()
+        self.assertIsNotNone(user)
+        self.assertEqual(services.authenticate_user(self.con, "code-route@example.com", "Password1234"), user["id"])
+
+    def test_email_code_page_rejects_wrong_code_without_leaking_email(self):
+        _, payload = self.start_registration(email="wrong-code-route@example.com")
+        code = self.extract_dev_code(payload)
+        wrong = "00000000" if code != "00000000" else "11111111"
+
+        status, headers, _ = self.request(
+            "POST",
+            "/auth/email/code",
+            body=urlencode({"email": "wrong-code-route@example.com", "code": wrong}),
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+        )
+
+        self.assertEqual(status, 303)
+        self.assertIn("/auth/email/confirm?err=", headers.get("Location", ""))
+        self.assertNotIn("wrong-code-route@example.com", headers.get("Location", ""))
+        row = self.con.execute(
+            "SELECT code_attempts, status FROM email_login_sessions WHERE email='wrong-code-route@example.com'"
+        ).fetchone()
+        self.assertEqual(row["code_attempts"], 1)
+        self.assertEqual(row["status"], "pending")
 
     def test_failed_password_login_does_not_echo_identifier_in_url(self):
         user_id = services.get_or_create_email_user(self.con, "login-leak@example.com")
@@ -1059,7 +1486,7 @@ class ServerRoutesTest(unittest.TestCase):
         )
 
         self.assertEqual(status, 303)
-        self.assertIn("/app", headers.get("Location", ""))
+        self.assertIn("/learn", headers.get("Location", ""))
         self.assertNotIn(bucket_key, RATE_LIMIT_BUCKETS)
 
     def test_logout_requires_post_csrf_and_clears_cookie(self):
@@ -1227,6 +1654,43 @@ class ServerRoutesTest(unittest.TestCase):
         self.assertIsNone(services.authenticate_user(self.con, "forgot-route", "Password1234"))
         self.assertEqual(services.authenticate_user(self.con, "forgot-route", "NewPassword1234"), user_id)
 
+    def test_forgot_password_code_resets_existing_email_user(self):
+        user_id = services.get_or_create_email_user(self.con, "forgot-code@example.com")
+        services.set_user_password(self.con, user_id, "forgot-code", "Password1234")
+
+        status, _, payload = self.request(
+            "POST",
+            "/forgot-password",
+            body=urlencode({"email": "forgot-code@example.com", "accept_terms": "1"}),
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+        )
+        self.assertEqual(status, 200)
+        code = self.extract_dev_code(payload)
+
+        status, headers, _ = self.request(
+            "POST",
+            "/auth/email/code",
+            body=urlencode({"email": "forgot-code@example.com", "code": code}),
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+        )
+        self.assertEqual(status, 303)
+        confirm_cookie = headers.get("Set-Cookie", "").split(";", 1)[0]
+
+        status, _, confirm = self.request("GET", "/auth/email/confirm", headers={"Cookie": confirm_cookie})
+        self.assertEqual(status, 200)
+        self.assertIn("重置登录密码", confirm)
+
+        status, headers, _ = self.request(
+            "POST",
+            "/auth/email/confirm",
+            body=urlencode({"login_name": "forgot-code", "password": "NewPassword1234", "password_confirm": "NewPassword1234"}),
+            headers={"Content-Type": "application/x-www-form-urlencoded", "Cookie": confirm_cookie},
+        )
+        self.assertEqual(status, 303)
+        self.assertIn("/login", headers.get("Location", ""))
+        self.assertIsNone(services.authenticate_user(self.con, "forgot-code", "Password1234"))
+        self.assertEqual(services.authenticate_user(self.con, "forgot-code@example.com", "NewPassword1234"), user_id)
+
     def test_forgot_password_does_not_create_session_for_unknown_email(self):
         status, _, payload = self.request(
             "POST",
@@ -1298,6 +1762,41 @@ class ServerRoutesTest(unittest.TestCase):
         row = self.con.execute("SELECT email, sent_at FROM email_login_sessions WHERE email='mail-reset@example.com'").fetchone()
         self.assertIsNotNone(row)
         self.assertTrue(row["sent_at"])
+
+    def test_forgot_password_sends_setup_email_for_existing_user_without_password(self):
+        user_id = services.get_or_create_email_user(self.con, "mail-setup@example.com")
+        row = self.con.execute("SELECT password_hash FROM users WHERE id=?", (user_id,)).fetchone()
+        self.assertFalse(row["password_hash"])
+        with patch.dict(
+            os.environ,
+            {
+                "OWQ_EMAIL_DEV_AUTH": "0",
+                "OWQ_EMAIL_PROVIDER": "smtp",
+                "OWQ_EMAIL_FROM": "noreply@example.com",
+                "OWQ_SMTP_HOST": "smtp.example.com",
+            },
+            clear=False,
+        ):
+            with patch.object(AppHandler, "send_password_reset_email", return_value="smtp") as sender:
+                status, _, payload = self.request(
+                    "POST",
+                    "/forgot-password",
+                    body=urlencode({"email": "mail-setup@example.com", "accept_terms": "1"}),
+                    headers={"Content-Type": "application/x-www-form-urlencoded"},
+                )
+
+        self.assertEqual(status, 200)
+        self.assertIn("重置密码邮件已处理", payload)
+        sender.assert_called_once()
+        self.assertEqual(sender.call_args.args[0], "mail-setup@example.com")
+        self.assertRegex(sender.call_args.args[2], r"^\d{8}$")
+        row = self.con.execute("SELECT email, sent_at FROM email_login_sessions WHERE email='mail-setup@example.com'").fetchone()
+        self.assertIsNotNone(row)
+        self.assertTrue(row["sent_at"])
+        event = next(item for item in services.audit_events(self.con) if item["action"] == "auth.password_reset_requested")
+        detail = json.loads(event["detail"])
+        self.assertEqual(detail["known_account"], "1")
+        self.assertEqual(detail["has_password"], "0")
 
     def test_invalid_smtp_sender_config_disables_email_login(self):
         with patch.dict(

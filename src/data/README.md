@@ -24,11 +24,16 @@ python -m src.data.cli init                              # 建表
 python -m src.data.cli sample                            # 演示:取 3 只样本股入库并体检
 python -m src.data.cli stocks --source akshare           # 同步股票列表(含退市)
 python -m src.data.cli daily --source akshare --start 20200101 --limit 50   # 同步前 50 只
+python -m src.data.cli daily --source tushare --adjust hfq --status all --universe-mode representative --limit 500
 python -m src.data.cli daily --codes 000001.SZ 600519.SH # 指定代码
 python -m src.data.cli info                              # 查看库内行数
 ```
 
 Tushare 源需先 `export TUSHARE_TOKEN=你的token`。
+
+做研究报告时不要直接使用按代码排序的前 N 只股票作为 universe。生产同步脚本会使用
+`--universe-mode representative` 做确定性分层抽样:模拟盘不复权成交价默认只取在市股
+(`--status L`),研究用 `hfq` 默认取全部状态(`--status all`)以纳入退市股。
 
 ## 在代码里读数据
 

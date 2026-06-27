@@ -3,7 +3,12 @@ from __future__ import annotations
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
+import pandas as pd
+
+from src.data import config as data_config
+from src.data import storage
 from src.app import data_bridge, db
 
 
@@ -89,6 +94,130 @@ class DataBridgeTest(unittest.TestCase):
     def test_sync_market_from_csv_rejects_missing_file(self):
         with self.assertRaisesRegex(data_bridge.MarketSyncError, "CSV 不存在"):
             data_bridge.sync_market_from_csv(self.con, Path(self.tmpdir.name) / "missing.csv")
+
+    def test_sync_market_from_quant_db_limit_uses_stable_hash_order_not_code_prefix(self):
+        market_db = Path(self.tmpdir.name) / "market.duckdb"
+        codes = ["000001.SZ", "000002.SZ", "300001.SZ", "600000.SH"]
+        stock_basic = pd.DataFrame(
+            [(code, code, "", "", "L", "test") for code in codes],
+            columns=["code", "name", "list_date", "delist_date", "status", "source"],
+        )
+        bars = pd.DataFrame(
+            [
+                {
+                    "code": code,
+                    "date": date,
+                    "open": price,
+                    "high": price,
+                    "low": price,
+                    "close": price,
+                    "volume": 1000,
+                    "amount": 10000,
+                    "adjust": "none",
+                    "source": "test",
+                }
+                for code_index, code in enumerate(codes)
+                for date, price in [
+                    ("2026-01-02", 10 + code_index),
+                    ("2026-01-03", 11 + code_index),
+                ]
+            ]
+        )
+
+        with patch.object(data_config, "DB_PATH", market_db):
+            storage.init_db()
+            storage.upsert_stock_basic(stock_basic)
+            storage.upsert_bars(bars)
+            with storage.connect(read_only=True) as duck:
+                expected = {
+                    row[0]
+                    for row in duck.execute(
+                        """
+                        SELECT code
+                        FROM daily_bars
+                        WHERE adjust='none' AND date='2026-01-03'
+                        ORDER BY hash(code), code
+                        LIMIT 2
+                        """
+                    ).fetchall()
+                }
+            count = data_bridge.sync_market_from_quant_db(self.con, adjust="none", limit=2, replace=True)
+
+        rows = self.con.execute("SELECT code FROM market_prices").fetchall()
+        self.assertEqual(count, 2)
+        self.assertEqual({row["code"] for row in rows}, expected)
+
+    def test_sync_market_from_quant_db_prioritizes_included_codes_within_limit(self):
+        market_db = Path(self.tmpdir.name) / "market.duckdb"
+        codes = ["000001.SZ", "000002.SZ", "300001.SZ", "600000.SH"]
+        stock_basic = pd.DataFrame(
+            [(code, code, "", "", "L", "test") for code in codes],
+            columns=["code", "name", "list_date", "delist_date", "status", "source"],
+        )
+        bars = pd.DataFrame(
+            [
+                {
+                    "code": code,
+                    "date": date,
+                    "open": price,
+                    "high": price,
+                    "low": price,
+                    "close": price,
+                    "volume": 1000,
+                    "amount": 10000,
+                    "adjust": "none",
+                    "source": "test",
+                }
+                for code_index, code in enumerate(codes)
+                for date, price in [
+                    ("2026-01-02", 10 + code_index),
+                    ("2026-01-03", 11 + code_index),
+                ]
+            ]
+        )
+
+        with patch.object(data_config, "DB_PATH", market_db):
+            storage.init_db()
+            storage.upsert_stock_basic(stock_basic)
+            storage.upsert_bars(bars)
+            with storage.connect(read_only=True) as duck:
+                stable_order = [
+                    row[0]
+                    for row in duck.execute(
+                        """
+                        SELECT code
+                        FROM daily_bars
+                        WHERE adjust='none' AND date='2026-01-03'
+                        ORDER BY hash(code), code
+                        """
+                    ).fetchall()
+                ]
+            priority_code = stable_order[-1]
+            count = data_bridge.sync_market_from_quant_db(
+                self.con,
+                adjust="none",
+                limit=2,
+                replace=True,
+                include_codes=[priority_code],
+            )
+
+        rows = self.con.execute("SELECT code FROM market_prices").fetchall()
+        self.assertEqual(count, 2)
+        self.assertIn(priority_code, {row["code"] for row in rows})
+
+    def test_codes_from_csv_normalizes_and_deduplicates_codes(self):
+        csv_path = Path(self.tmpdir.name) / "predictions.csv"
+        csv_path.write_text(
+            "date,code,score\n"
+            "2026-01-03,000001.sz,0.2\n"
+            "2026-01-03,000001.SZ,0.1\n"
+            "2026-01-03,600000.SH,0.3\n",
+            encoding="utf-8",
+        )
+
+        codes = data_bridge.codes_from_csv(csv_path)
+
+        self.assertEqual(codes, ["000001.SZ", "600000.SH"])
 
 
 if __name__ == "__main__":

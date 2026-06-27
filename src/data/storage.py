@@ -68,9 +68,16 @@ def latest_date(code: str, adjust: str = "hfq"):
         return None
     with connect(read_only=True) as con:
         row = con.execute(
-            "SELECT max(date) FROM daily_bars WHERE code=? AND adjust=?", [code, adjust]
+            """
+            SELECT date
+            FROM daily_bars
+            WHERE code=? AND adjust=?
+            ORDER BY date DESC
+            LIMIT 1
+            """,
+            [code, adjust],
         ).fetchone()
-    return row[0] if row and row[0] is not None else None
+    return row[0] if row else None
 
 
 def load_bars(codes=None, start=None, end=None, adjust: str = "hfq") -> pd.DataFrame:

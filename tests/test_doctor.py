@@ -456,6 +456,31 @@ class DoctorTest(unittest.TestCase):
         self.assertEqual(names["email_login_session_retention"]["required"], "false")
         self.assertIn("1 条可清理", names["email_login_session_retention"]["detail"])
 
+    def test_email_login_session_retention_allows_recent_expired_pending_challenges(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            con = db.bootstrap(Path(tmp) / "app.sqlite")
+            try:
+                services.create_email_login_session(
+                    con,
+                    "expired-pending@example.com",
+                    "2026-06-24",
+                    "2026-06-24",
+                    "2026-06-24",
+                    enforce_rate_limit=False,
+                )
+                con.execute(
+                    "UPDATE email_login_sessions SET expires_at=datetime('now', '-1 minute') WHERE email=?",
+                    ("expired-pending@example.com",),
+                )
+                con.commit()
+                checks = doctor.check(con)
+            finally:
+                con.close()
+
+        names = {row["name"]: row for row in checks}
+        self.assertEqual(names["email_login_session_retention"]["status"], "ok")
+        self.assertIn("1 条待过期标记", names["email_login_session_retention"]["detail"])
+
     def test_email_login_session_retention_warns_on_invalid_configuration(self):
         with tempfile.TemporaryDirectory() as tmp:
             con = db.bootstrap(Path(tmp) / "app.sqlite")

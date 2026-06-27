@@ -124,8 +124,14 @@ class DeployArtifactsTest(unittest.TestCase):
             "OWQ_MARKET_MIN_REAL_CODES=300",
             "OWQ_PREDICTIONS_MIN_CODES=10",
             "OWQ_MARKET_SYNC_MAX_AGE_HOURS=36",
+            "OWQ_MARKET_UNIVERSE_MODE=representative",
+            "OWQ_MARKET_DATA_UNIVERSE_STATUS=L",
+            "OWQ_REPORT_UNIVERSE_STATUS=all",
+            "OWQ_REPORT_SOURCE=akshare",
             "OWQ_SYNC_PRUNE_AUDIT=1",
             "OWQ_SYNC_PRUNE_EMAIL_LOGIN=1",
+            "OWQ_REPORT_MIN_REPRESENTATIVE_CODES=300",
+            "OWQ_REPORT_MARKET_LIMIT=400",
         ]:
             self.assertIn(name, text)
 

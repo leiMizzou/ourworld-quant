@@ -2,7 +2,7 @@
 
 这是一个不依赖 Web 框架的本地 MVP,用于把当前量化研究系统变成可交互产品:
 
-- 邮箱验证注册:用户先明确同意服务条款、隐私说明和风险提示,系统再发送一次性邮箱验证链接;链接 GET 只设置短期确认 Cookie 并进入无 token 的设置页,不会直接登录。
+- 邮箱验证注册:用户先明确同意服务条款、隐私说明和风险提示,系统再发送一次性邮箱注册码和备用确认链接;确认后进入设置页,不会直接登录。
 - 账号密码登录:邮箱确认后设置用户名和密码,之后通过 `/login` 用用户名/邮箱 + 密码进入模拟盘。密码使用 PBKDF2 哈希存储,不会保存明文。
 - 模拟账户:注册后自动创建 100 万模拟资金账户;账户页可维护公开昵称/头像,也可输入 `RESET` 确认后重置模拟账户,清空持仓/成交/资产快照并保留论坛内容。
 - 基础行情:首次空库会写入一组演示行情;生产可从 `src.data` DuckDB、CSV 文件或粘贴 CSV 同步真实价格并替换演示标的。
@@ -25,6 +25,20 @@ python3 -m src.app.server --host 127.0.0.1 --port 8081
 ```
 
 访问 http://127.0.0.1:8081 。
+
+公开使用流程页:
+
+- `/guide`:梳理访客、注册用户、参赛用户和管理员的完整使用路径,并列出当前不足和优化点。
+- `/guide/demo`:无需登录的自动演示页,用纯 HTML/CSS 轮播注册、登录、模拟交易、组合设计、公开榜单和论坛复盘流程。
+
+生成 EdgeTTS 演示解说音频:
+
+```bash
+python3 -m src.app.server --env-file deploy/public.env --generate-demo-voice
+python3 -m src.app.server --env-file deploy/public.env --generate-demo-voice data/demo/guide.mp3 --demo-voice zh-CN-XiaoxiaoNeural
+```
+
+默认输出到 `data/demo/ourworld-quant-guide.mp3`。生成后 `/guide/demo` 会显示 MP3 播放器;未生成时页面会显示生成命令。可用 `OWQ_EDGE_TTS_BIN` 指定 `edge-tts` 可执行文件,用 `OWQ_DEMO_TTS_VOICE` / `OWQ_DEMO_TTS_RATE` 调整声音和语速。
 
 自检:
 
@@ -94,7 +108,7 @@ python3 -m src.research.real_data_report --start 20230101 --adjust hfq --top 20
 
 `OWQ_EMAIL_FROM` 必须是单个发信邮箱地址,不要填展示名或 `Name <mail@example.com>` 格式;展示名单独放在 `OWQ_EMAIL_FROM_NAME`。如果显式设置 `OWQ_EMAIL_PROVIDER=cloudflare` 或 `smtp`,系统只会校验并使用该 provider,不会在配置不完整时静默降级到另一条发信路径。`/readyz` 会报告缺失项、发信地址格式、SMTP 端口和 TLS/SSL 取值问题。
 
-当前版本已经实现 `/auth/email/confirm` 的一次性邮箱验证流程。邮件链接的 GET 请求只校验 token,写入 15 分钟短期 HttpOnly 确认 Cookie,再跳转到不带 token 的设置页;页面 HTML 不包含原始 token,也不会设置登录 Cookie。用户提交用户名和密码后才会创建或复用邮箱用户、自动加入公开赛、记录法律同意版本并跳转 `/login`;之后必须用用户名/邮箱和密码登录。`/forgot-password` 复用同一套确认页和短期 Cookie,但只会对已存在且已有密码的邮箱账号发送重置链接;未知邮箱只显示泛化结果页,不会创建临时会话或隐式注册。公网/生产默认要求登录用户具备当前 `LEGAL_VERSION` 的条款、隐私和风险同意记录;缺失或旧版本会跳转 `/account/consent` 补签,`OWQ_LEGAL_CONSENT_REQUIRED=0` 只应用于明确的本地调试。链接 token 只保存哈希;发信密钥只从环境变量读取,不会写入仓库。正式发布前还应确保 `demo-*`、`dev-wechat-*` 或“模拟用户”账号没有留在公开赛榜单中。
+当前版本已经实现 `/auth/email/confirm` 的一次性邮箱验证流程。用户可以输入邮箱和 8 位注册码确认,也可以打开邮件里的备用链接;备用链接的 GET 请求只校验 token,写入 15 分钟短期 HttpOnly 确认 Cookie,再跳转到不带 token 的设置页。页面 HTML 不包含原始 token,也不会设置登录 Cookie。用户提交用户名和密码后才会创建或复用邮箱用户、自动加入公开赛、记录法律同意版本并跳转 `/login`;之后必须用用户名/邮箱和密码登录。`/forgot-password` 复用同一套确认页和短期 Cookie,但只会对已存在且已有密码的邮箱账号发送重置码和备用链接;未知邮箱只显示泛化结果页,不会创建临时会话或隐式注册。公网/生产默认要求登录用户具备当前 `LEGAL_VERSION` 的条款、隐私和风险同意记录;缺失或旧版本会跳转 `/account/consent` 补签,`OWQ_LEGAL_CONSENT_REQUIRED=0` 只应用于明确的本地调试。链接 token 和注册码都只保存哈希;发信密钥只从环境变量读取,不会写入仓库。正式发布前还应确保 `demo-*`、`dev-wechat-*` 或“模拟用户”账号没有留在公开赛榜单中。
 
 已登录用户可以在账户页更新用户名和密码;更新后旧会话会失效并要求重新登录。未登录用户可以从 `/forgot-password` 请求一次性重置邮件;提交新密码后同样会让旧会话失效。运维也可以用一次性环境变量给指定用户设置临时密码,命令只记录变量名和用户名,不会把明文密码写入审计日志:
 

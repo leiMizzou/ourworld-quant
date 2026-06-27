@@ -57,12 +57,19 @@ def run_backtest(
     weights = weights.reindex(columns=codes).fillna(0.0)
     rebal = set(pd.to_datetime(weights.index))
 
+    # 退市/停牌盯市:用前向填充的收盘价给无行情的持仓估值(而不是静默归零),并记录每个
+    # code 最后一次有效收盘的日期,用于在行情永久结束(退市)后按最后收盘价强制平仓。
+    closes_ffill = closes.ffill()
+    last_valid_idx = {c: closes[c].last_valid_index() for c in codes}
+
     cash = float(init_cash)
     holdings = pd.Series(0.0, index=codes)
     equity_curve: dict[pd.Timestamp, float] = {}
     trades: list[dict] = []
     pending: pd.Series | None = None
     traded_notional = 0.0
+    delisted_closed = 0
+    delist_proceeds = 0.0
 
     for i, d in enumerate(dates):
         op, cl, pc = opens.loc[d], closes.loc[d], prev_close.loc[d]
@@ -118,7 +125,22 @@ def run_backtest(
             pending = None
 
         # ---- 2) 收盘盯市 ----
-        equity_curve[d] = cash + float((holdings * cl).fillna(0).sum())
+        # 2a) 退市强制平仓:行情已永久结束(此后再无有效收盘)的持仓,按最后有效收盘价
+        #     折现进现金。否则下面的盯市 fillna(0) 会把消失的持仓静默当成 0、凭空抹掉其
+        #     价值 —— 这正是幸存者偏差的表现之一。(本数据集仅含极少量退市股,真实偏差更大。)
+        for c in codes:
+            if holdings[c] != 0 and pd.isna(cl[c]):
+                lvi = last_valid_idx[c]
+                if lvi is not None and d > lvi:
+                    px = float(closes.loc[lvi, c])
+                    amt = float(holdings[c]) * px
+                    cash += amt
+                    delist_proceeds += amt
+                    delisted_closed += 1
+                    trades.append({"date": d, "code": c, "side": "delist", "qty": float(holdings[c]), "price": px})
+                    holdings[c] = 0.0
+        # 2b) 盯市:停牌持仓按最后已知收盘价(前向填充)估值,不归零。
+        equity_curve[d] = cash + float((holdings * closes_ffill.loc[d]).fillna(0).sum())
 
         # ---- 3) 调仓日:用截至今日收盘的信息定目标,挂到次日执行 ----
         if d in rebal and i < len(dates) - 1:
@@ -135,4 +157,12 @@ def run_backtest(
         "positions_end": holdings[holdings != 0],
         "metrics": compute_metrics(equity, turnover=annual_turnover),
         "final_cash": cash,
+        "survivorship": {
+            "delisted_positions_closed": delisted_closed,
+            "delist_proceeds": round(delist_proceeds, 2),
+            "note": (
+                "退市持仓按最后有效收盘价强制平仓;数据集仅含少量退市股、未含无行情的退市名单,"
+                "真实幸存者偏差被低估。"
+            ),
+        },
     }

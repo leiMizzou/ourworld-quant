@@ -74,11 +74,35 @@ def sync_market_from_csv_text(con: sqlite3.Connection, text: str, source: str = 
         raise MarketSyncError("CSV 字段需要包含 code,name,price,prev_close,as_of") from exc
 
 
+def normalize_codes(codes: Iterable[str]) -> list[str]:
+    seen = set()
+    normalized = []
+    for raw in codes:
+        code = str(raw or "").strip().upper()
+        if not code or code in seen:
+            continue
+        seen.add(code)
+        normalized.append(code)
+    return normalized
+
+
+def codes_from_csv(path: str | Path, column: str = "code") -> list[str]:
+    csv_path = Path(path)
+    if not csv_path.exists():
+        raise MarketSyncError(f"候选代码 CSV 不存在: {csv_path}")
+    with csv_path.open("r", encoding="utf-8-sig", newline="") as f:
+        reader = csv.DictReader(f)
+        if not reader.fieldnames or column not in reader.fieldnames:
+            raise MarketSyncError(f"候选代码 CSV 需要包含 {column} 字段")
+        return normalize_codes(row.get(column, "") for row in reader)
+
+
 def sync_market_from_quant_db(
     con: sqlite3.Connection,
     adjust: str = "none",
     limit: int = 500,
     replace: bool = False,
+    include_codes: Iterable[str] | None = None,
 ) -> int:
     """Sync latest close/previous close from src.data DuckDB daily_bars.
 
@@ -93,8 +117,15 @@ def sync_market_from_quant_db(
     if not config.DB_PATH.exists():
         raise MarketSyncError(f"行情库不存在: {config.DB_PATH}")
 
-    query = """
-    WITH latest AS (
+    priority_codes = normalize_codes(include_codes or [])
+    include_cte = "include_codes(code) AS (SELECT NULL::VARCHAR WHERE FALSE)"
+    params: list[object] = []
+    if priority_codes:
+        include_cte = "include_codes(code) AS (VALUES " + ",".join(["(?)"] * len(priority_codes)) + ")"
+        params.extend(priority_codes)
+    query = f"""
+    WITH {include_cte},
+    latest AS (
         SELECT code, max(date) AS date
         FROM daily_bars
         WHERE adjust = ?
@@ -120,16 +151,18 @@ def sync_market_from_quant_db(
            COALESCE(pb.close, lb.price) AS prev_close,
            COALESCE(lb.upstream_source, 'unknown') AS upstream_source
     FROM latest_bars lb
-    LEFT JOIN prev_bars pbd ON pbd.code = lb.code
-    LEFT JOIN daily_bars pb ON pb.code = pbd.code AND pb.date = pbd.prev_date AND pb.adjust = ?
-    LEFT JOIN stock_basic sb ON sb.code = lb.code
-    WHERE lb.price > 0
-    ORDER BY lb.code
-    LIMIT ?
+	    LEFT JOIN prev_bars pbd ON pbd.code = lb.code
+	    LEFT JOIN daily_bars pb ON pb.code = pbd.code AND pb.date = pbd.prev_date AND pb.adjust = ?
+	    LEFT JOIN stock_basic sb ON sb.code = lb.code
+	    LEFT JOIN include_codes ic ON ic.code = lb.code
+	    WHERE lb.price > 0
+	    ORDER BY CASE WHEN ic.code IS NULL THEN 1 ELSE 0 END, hash(lb.code), lb.code
+	    LIMIT ?
     """
     try:
         with storage.connect(read_only=True) as duck:
-            df = duck.execute(query, [adjust, adjust, adjust, adjust, int(limit)]).df()
+            params.extend([adjust, adjust, adjust, adjust, int(limit)])
+            df = duck.execute(query, params).df()
     except Exception as exc:  # noqa: BLE001
         raise MarketSyncError(f"读取行情库失败: {exc}") from exc
     if df.empty:

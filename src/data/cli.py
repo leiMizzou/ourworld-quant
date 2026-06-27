@@ -5,7 +5,9 @@
     python -m src.data.cli stocks --source akshare      # 同步股票列表(含退市)
     python -m src.data.cli sample                       # 演示:取几只样本股并体检
     python -m src.data.cli daily --source akshare --start 20200101 --limit 50
+    python -m src.data.cli daily --source tushare --adjust hfq --status all --universe-mode representative --limit 500
     python -m src.data.cli daily --codes 000001.SZ 600519.SH --adjust hfq
+    python -m src.data.cli daily --codes-csv reports/predictions.csv --adjust none
     python -m src.data.cli info                         # 查看库内行数
 
 Tushare 需先 export TUSHARE_TOKEN=xxxx。
@@ -32,7 +34,15 @@ def main(argv: list[str] | None = None) -> int:
     dp.add_argument("--start", default=config.DEFAULT_START)
     dp.add_argument("--adjust", default=config.DEFAULT_ADJUST, choices=["hfq", "qfq", "none"])
     dp.add_argument("--codes", nargs="*", help="指定代码(如 000001.SZ);不填则用库内股票列表")
+    dp.add_argument("--codes-csv", help="从含 code 字段的 CSV 读取代码,可与 --codes 合并")
     dp.add_argument("--limit", type=int, default=None, help="最多同步多少只(调试)")
+    dp.add_argument("--status", default="L", help="股票状态过滤:L/D/P/all;未指定代码时生效")
+    dp.add_argument(
+        "--universe-mode",
+        default="ordered",
+        choices=["ordered", "representative"],
+        help="未指定代码时的股票池选择方式;representative 会避免按代码前缀截断。",
+    )
     dp.add_argument("--full", action="store_true", help="非增量,从 start 全量重取")
 
     smp = sub.add_parser("sample", help="演示:取 3 只样本股入库并打印体检")
@@ -49,11 +59,26 @@ def main(argv: list[str] | None = None) -> int:
         pipeline.sync_stock_list(args.source)
 
     elif args.cmd == "daily":
-        codes = args.codes or pipeline.codes_from_db(limit=args.limit)
+        codes = []
+        if args.codes:
+            codes.extend(args.codes)
+        if args.codes_csv:
+            try:
+                codes.extend(pipeline.codes_from_csv(args.codes_csv))
+            except (OSError, ValueError) as exc:
+                log.error("读取代码 CSV 失败:%s", exc)
+                return 1
+        codes = pipeline.normalize_codes(codes)
+        if not codes:
+            codes = pipeline.codes_from_db(
+                limit=args.limit,
+                status=args.status,
+                universe_mode=args.universe_mode,
+            )
         if not codes:
             log.error("没有代码可同步。请先 `stocks` 同步列表,或用 --codes 指定。")
             return 1
-        if args.limit and args.codes:
+        if args.limit and (args.codes or args.codes_csv):
             codes = codes[: args.limit]
         pipeline.sync_daily(codes, source_name=args.source, start=args.start,
                             adjust=args.adjust, incremental=not args.full)

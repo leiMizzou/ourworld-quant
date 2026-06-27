@@ -783,7 +783,6 @@ def check(con: sqlite3.Connection) -> list[dict[str, str]]:
         email_session_summary = services.email_login_session_retention_summary(con)
         email_session_ok = (
             bool(email_session_summary["ok"])
-            and int(email_session_summary["expired_pending"]) == 0
             and int(email_session_summary["deletable"]) == 0
         )
         if email_session_summary["ok"]:

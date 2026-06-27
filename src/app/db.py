@@ -18,6 +18,7 @@ CORE_BACKUP_TABLES = (
     "accounts",
     "holdings",
     "orders",
+    "learning_tasks",
     "practice_signals",
     "equity_snapshots",
     "market_prices",
@@ -81,6 +82,18 @@ CREATE TABLE IF NOT EXISTS orders (
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS learning_tasks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    goal TEXT NOT NULL,
+    difficulty TEXT NOT NULL DEFAULT 'beginner',
+    template TEXT NOT NULL DEFAULT 'reversal',
+    coach_text TEXT NOT NULL DEFAULT '',
+    status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'signals_saved', 'archived')),
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS practice_signals (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -91,9 +104,11 @@ CREATE TABLE IF NOT EXISTS practice_signals (
     rationale TEXT NOT NULL DEFAULT '',
     status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'executed', 'cancelled')),
     order_id INTEGER REFERENCES orders(id) ON DELETE SET NULL,
+    learning_task_id INTEGER REFERENCES learning_tasks(id) ON DELETE SET NULL,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+CREATE INDEX IF NOT EXISTS idx_learning_tasks_user_time ON learning_tasks(user_id, created_at);
 
 CREATE TABLE IF NOT EXISTS equity_snapshots (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -168,6 +183,8 @@ CREATE TABLE IF NOT EXISTS wechat_sessions (
 CREATE TABLE IF NOT EXISTS email_login_sessions (
     token_hash TEXT PRIMARY KEY,
     email TEXT NOT NULL,
+    code_hash TEXT NOT NULL DEFAULT '',
+    code_attempts INTEGER NOT NULL DEFAULT 0,
     status TEXT NOT NULL CHECK (status IN ('pending', 'confirmed', 'expired')),
     user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -336,6 +353,25 @@ def migrate(con: sqlite3.Connection) -> None:
     if "available_qty" not in holding_cols:
         con.execute("ALTER TABLE holdings ADD COLUMN available_qty INTEGER NOT NULL DEFAULT 0")
         con.execute("UPDATE holdings SET available_qty=qty")
+    con.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS learning_tasks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            goal TEXT NOT NULL,
+            difficulty TEXT NOT NULL DEFAULT 'beginner',
+            template TEXT NOT NULL DEFAULT 'reversal',
+            coach_text TEXT NOT NULL DEFAULT '',
+            status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'signals_saved', 'archived')),
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE INDEX IF NOT EXISTS idx_learning_tasks_user_time ON learning_tasks(user_id, created_at);
+        """
+    )
+    signal_cols = {row["name"] for row in con.execute("PRAGMA table_info(practice_signals)").fetchall()}
+    if "learning_task_id" not in signal_cols:
+        con.execute("ALTER TABLE practice_signals ADD COLUMN learning_task_id INTEGER REFERENCES learning_tasks(id) ON DELETE SET NULL")
     session_cols = {row["name"] for row in con.execute("PRAGMA table_info(wechat_sessions)").fetchall()}
     session_additions = {
         "accepted_terms_version": "ALTER TABLE wechat_sessions ADD COLUMN accepted_terms_version TEXT NOT NULL DEFAULT ''",
@@ -345,6 +381,15 @@ def migrate(con: sqlite3.Connection) -> None:
     }
     for name, sql in session_additions.items():
         if name not in session_cols:
+            con.execute(sql)
+
+    email_session_cols = {row["name"] for row in con.execute("PRAGMA table_info(email_login_sessions)").fetchall()}
+    email_session_additions = {
+        "code_hash": "ALTER TABLE email_login_sessions ADD COLUMN code_hash TEXT NOT NULL DEFAULT ''",
+        "code_attempts": "ALTER TABLE email_login_sessions ADD COLUMN code_attempts INTEGER NOT NULL DEFAULT 0",
+    }
+    for name, sql in email_session_additions.items():
+        if name not in email_session_cols:
             con.execute(sql)
 
     # AI co-pilot tables (additive; safe on existing prod DBs). The user's API key is

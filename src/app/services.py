@@ -29,6 +29,17 @@ MAX_EMAIL_LOGIN_SESSION_RETENTION_DAYS = 365
 SUPPORT_REQUEST_COOLDOWN_SECONDS = 300
 SUPPORT_REQUEST_HOURLY_LIMIT = 3
 SUPPORT_REQUEST_OPEN_LIMIT = 5
+LEARNING_DIFFICULTIES = {
+    "beginner": "零基础",
+    "balanced": "有一点基础",
+    "advanced": "想进阶",
+}
+LEARNING_TEMPLATES = {
+    "reversal": "反转观察",
+    "momentum": "动量观察",
+    "prediction": "预测候选观察",
+    "risk_review": "风险控制复盘",
+}
 
 
 class RateLimitExceeded(ValueError):
@@ -352,6 +363,9 @@ def row_dicts(rows) -> list[dict]:
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 EMAIL_LOGIN_COOLDOWN_SECONDS = 60
 EMAIL_LOGIN_HOURLY_LIMIT = 5
+EMAIL_LOGIN_CODE_DIGITS = 8
+EMAIL_LOGIN_CODE_MAX_ATTEMPTS = 5
+EMAIL_LOGIN_SESSION_HASH_RE = re.compile(r"^[0-9a-f]{64}$")
 
 
 def normalize_email(email: str) -> str:
@@ -363,6 +377,33 @@ def normalize_email(email: str) -> str:
 
 def email_token_hash(token: str) -> str:
     return hashlib.sha256((token or "").encode("utf-8")).hexdigest()
+
+
+def normalize_email_login_code(code: str) -> str:
+    value = re.sub(r"\D", "", str(code or ""))
+    if len(value) != EMAIL_LOGIN_CODE_DIGITS:
+        raise ValueError("注册码格式不正确。")
+    return value
+
+
+def generate_email_login_code() -> str:
+    upper_bound = 10**EMAIL_LOGIN_CODE_DIGITS
+    return f"{secrets.randbelow(upper_bound):0{EMAIL_LOGIN_CODE_DIGITS}d}"
+
+
+def email_login_code_hash(email: str, code: str) -> str:
+    normalized_email = normalize_email(email)
+    normalized_code = normalize_email_login_code(code)
+    secret = os.getenv("OWQ_SECRET", "").strip() or "local-dev-secret-change-me"
+    msg = f"email-login-code:v1:{normalized_email}:{normalized_code}".encode("utf-8")
+    return hmac.new(secret.encode("utf-8"), msg, hashlib.sha256).hexdigest()
+
+
+def normalize_email_login_session_hash(token_hash: str) -> str:
+    value = str(token_hash or "").strip().lower()
+    if not EMAIL_LOGIN_SESSION_HASH_RE.match(value):
+        raise ValueError("验证会话无效。")
+    return value
 
 
 def email_login_session_retention_config(days: int | str | None = None) -> tuple[int, bool, str]:
@@ -454,7 +495,7 @@ def cleanup_email_login_sessions(
     days: int | str | None = None,
     now: datetime | None = None,
 ) -> dict:
-    """Expire pending magic links and prune short-lived authentication records."""
+    """Expire pending email challenges and prune short-lived authentication records."""
     expired = _expired_pending_email_login_hashes(con, now=now)
     if expired:
         con.executemany(
@@ -537,7 +578,8 @@ def create_email_login_session(
     risk_version: str,
     ttl_minutes: int = 15,
     enforce_rate_limit: bool = True,
-) -> str:
+    return_code: bool = False,
+) -> str | tuple[str, str]:
     normalized = normalize_email(email)
     versions = [terms_version, privacy_version, risk_version]
     if any(not str(item or "").strip() for item in versions):
@@ -546,19 +588,21 @@ def create_email_login_session(
     if enforce_rate_limit:
         enforce_email_login_request_limit(con, normalized)
     token = secrets.token_urlsafe(32)
+    code = generate_email_login_code()
     now = utc_now()
     expires = iso(now + timedelta(minutes=ttl_minutes))
     con.execute(
         """
         INSERT INTO email_login_sessions(
-            token_hash, email, status, expires_at,
+            token_hash, email, code_hash, code_attempts, status, expires_at,
             accepted_terms_version, accepted_privacy_version, accepted_risk_version, accepted_at
         )
-        VALUES (?, ?, 'pending', ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, 0, 'pending', ?, ?, ?, ?, ?)
         """,
         (
             email_token_hash(token),
             normalized,
+            email_login_code_hash(normalized, code),
             expires,
             str(terms_version).strip()[:40],
             str(privacy_version).strip()[:40],
@@ -567,6 +611,8 @@ def create_email_login_session(
         ),
     )
     con.commit()
+    if return_code:
+        return token, code
     return token
 
 
@@ -583,29 +629,45 @@ def mark_email_login_sent(con: sqlite3.Connection, token: str) -> None:
     con.commit()
 
 
-def email_login_session_status(con: sqlite3.Connection, token: str) -> dict:
+def _email_login_session_status_by_hash(con: sqlite3.Connection, token_hash: str) -> dict:
+    try:
+        normalized_hash = normalize_email_login_session_hash(token_hash)
+    except ValueError:
+        return {"status": "missing", "user_id": None, "email": "", "token_hash": ""}
     row = con.execute(
         "SELECT * FROM email_login_sessions WHERE token_hash=?",
-        (email_token_hash(token),),
+        (normalized_hash,),
     ).fetchone()
     if row is None:
-        return {"status": "missing", "user_id": None, "email": ""}
+        return {"status": "missing", "user_id": None, "email": "", "token_hash": normalized_hash}
     status = row["status"]
     if status == "pending" and _email_login_expires_at_expired(row["expires_at"]):
         con.execute("UPDATE email_login_sessions SET status='expired' WHERE token_hash=?", (row["token_hash"],))
         con.commit()
         status = "expired"
-    return {"status": status, "user_id": row["user_id"], "email": row["email"]}
+    return {"status": status, "user_id": row["user_id"], "email": row["email"], "token_hash": row["token_hash"]}
 
 
-def email_login_legal_acceptance(con: sqlite3.Connection, token: str) -> dict | None:
+def email_login_session_status_by_hash(con: sqlite3.Connection, token_hash: str) -> dict:
+    return _email_login_session_status_by_hash(con, token_hash)
+
+
+def email_login_session_status(con: sqlite3.Connection, token: str) -> dict:
+    return _email_login_session_status_by_hash(con, email_token_hash(token))
+
+
+def email_login_legal_acceptance_by_hash(con: sqlite3.Connection, token_hash: str) -> dict | None:
+    try:
+        normalized_hash = normalize_email_login_session_hash(token_hash)
+    except ValueError:
+        return None
     row = con.execute(
         """
         SELECT accepted_terms_version, accepted_privacy_version, accepted_risk_version, accepted_at
         FROM email_login_sessions
         WHERE token_hash=?
         """,
-        (email_token_hash(token),),
+        (normalized_hash,),
     ).fetchone()
     if row is None:
         return None
@@ -614,17 +676,22 @@ def email_login_legal_acceptance(con: sqlite3.Connection, token: str) -> dict | 
     return dict(row)
 
 
-def confirm_email_login_session(con: sqlite3.Connection, token: str) -> int:
+def email_login_legal_acceptance(con: sqlite3.Connection, token: str) -> dict | None:
+    return email_login_legal_acceptance_by_hash(con, email_token_hash(token))
+
+
+def confirm_email_login_session_by_hash(con: sqlite3.Connection, token_hash: str) -> int:
+    normalized_hash = normalize_email_login_session_hash(token_hash)
     row = con.execute(
         "SELECT * FROM email_login_sessions WHERE token_hash=? AND status='pending'",
-        (email_token_hash(token),),
+        (normalized_hash,),
     ).fetchone()
     if row is None:
-        raise ValueError("登录链接不存在或已使用")
+        raise ValueError("登录验证码不存在或已使用")
     if _email_login_expires_at_expired(row["expires_at"]):
         con.execute("UPDATE email_login_sessions SET status='expired' WHERE token_hash=?", (row["token_hash"],))
         con.commit()
-        raise ValueError("登录链接已过期,请重新获取")
+        raise ValueError("登录验证码已过期,请重新获取")
     user_id = get_or_create_email_user(con, row["email"])
     con.execute(
         "UPDATE email_login_sessions SET status='confirmed', user_id=? WHERE token_hash=?",
@@ -634,6 +701,54 @@ def confirm_email_login_session(con: sqlite3.Connection, token: str) -> int:
     record_equity_snapshot(con, user_id, source="email")
     con.commit()
     return user_id
+
+
+def confirm_email_login_session(con: sqlite3.Connection, token: str) -> int:
+    return confirm_email_login_session_by_hash(con, email_token_hash(token))
+
+
+def verify_email_login_code(
+    con: sqlite3.Connection,
+    email: str,
+    code: str,
+    max_attempts: int = EMAIL_LOGIN_CODE_MAX_ATTEMPTS,
+) -> dict:
+    normalized_email = normalize_email(email)
+    normalized_code = normalize_email_login_code(code)
+    max_attempts = max(1, int(max_attempts))
+    row = con.execute(
+        """
+        SELECT *
+        FROM email_login_sessions
+        WHERE email=? AND status='pending'
+        ORDER BY created_at DESC
+        LIMIT 1
+        """,
+        (normalized_email,),
+    ).fetchone()
+    generic_error = "注册码不正确或已过期,请重新获取邮件。"
+    if row is None:
+        raise ValueError(generic_error)
+    if _email_login_expires_at_expired(row["expires_at"]):
+        con.execute("UPDATE email_login_sessions SET status='expired' WHERE token_hash=?", (row["token_hash"],))
+        con.commit()
+        raise ValueError(generic_error)
+    attempts = max(0, int(row["code_attempts"] or 0))
+    if attempts >= max_attempts or not str(row["code_hash"] or "").strip():
+        con.execute("UPDATE email_login_sessions SET status='expired' WHERE token_hash=?", (row["token_hash"],))
+        con.commit()
+        raise ValueError(generic_error)
+    expected_hash = email_login_code_hash(normalized_email, normalized_code)
+    if hmac.compare_digest(str(row["code_hash"] or ""), expected_hash):
+        return {"token_hash": row["token_hash"], "email": row["email"], "status": row["status"]}
+    attempts += 1
+    status = "expired" if attempts >= max_attempts else row["status"]
+    con.execute(
+        "UPDATE email_login_sessions SET code_attempts=?, status=? WHERE token_hash=?",
+        (attempts, status, row["token_hash"]),
+    )
+    con.commit()
+    raise ValueError(generic_error)
 
 
 def create_wechat_session(
@@ -1589,6 +1704,10 @@ def create_practice_signals_from_market(
     return len(payloads)
 
 
+# 预测信号是手动、非实时桥接产出的;超过这个天数就在依据里加"已过期"软提示(不拦截)。
+PREDICTION_STALE_DAYS = int(os.getenv("OWQ_PREDICTION_STALE_DAYS", "14"))
+
+
 def prediction_basket_rows(
     con: sqlite3.Connection,
     path: str | Path | None = None,
@@ -1627,6 +1746,17 @@ def prediction_basket_rows(
         price = get_price(con, code)
         if price is None:
             continue
+        # 透传预测生成日期(predictions.csv 的 date 列),让用户知道这是哪天的、非实时的信号。
+        pred_date = (row.get("date") or "").strip()[:10]
+        stale_note = ""
+        if pred_date:
+            try:
+                age = (datetime.now(timezone.utc).date() - datetime.strptime(pred_date, "%Y-%m-%d").date()).days
+                if age > PREDICTION_STALE_DAYS:
+                    stale_note = f",已过期 {age} 天,仅供方法练习"
+            except ValueError:
+                pred_date = ""
+        gen_note = f"信号生成于 {pred_date}(非实时{stale_note}) · " if pred_date else ""
         parsed.append(
             {
                 "code": code,
@@ -1635,10 +1765,14 @@ def prediction_basket_rows(
                 "qty": qty,
                 "prediction": pred,
                 "last_close": float(price["price"]),
+                "as_of": pred_date,
                 "rationale": (
-                    f"预测候选: 模型下一期预测 {_pct(pred * 100)}, "
+                    f"{gen_note}预测候选: 模型下一期预测 {_pct(pred * 100)}, "
                     f"当前价 {_money(price['price'])}, 来源 {price['source']}"
                     f"{(' / ' + price['as_of']) if price['as_of'] else ''}"
+                    # 入场价取自 app 的不复权(none)行情,与研究侧后复权(hfq)口径不同:
+                    # 近期分红/拆股会让同一只票"看起来"跳空,这不是真实涨跌。
+                    " · 入场价为不复权价,可能与后复权(hfq)研究口径背离(分红/拆股会造成表观跳空)"
                 ),
             }
         )
@@ -1687,6 +1821,154 @@ def create_practice_signals_from_predictions(
                 payload["rationale"],
             ),
         )
+    con.commit()
+    return len(payloads)
+
+
+def normalize_learning_difficulty(value: str) -> str:
+    raw = (value or "beginner").strip().lower()
+    return raw if raw in LEARNING_DIFFICULTIES else "beginner"
+
+
+def normalize_learning_template(value: str) -> str:
+    raw = (value or "reversal").strip().lower()
+    return raw if raw in LEARNING_TEMPLATES else "reversal"
+
+
+def create_learning_task(
+    con: sqlite3.Connection,
+    user_id: int,
+    goal: str,
+    difficulty: str,
+    template: str,
+    coach_text: str,
+) -> int:
+    ensure_user_active(get_user(con, user_id))
+    goal = " ".join((goal or "").split())
+    if not goal:
+        raise ValueError("学习目标不能为空")
+    difficulty = normalize_learning_difficulty(difficulty)
+    template = normalize_learning_template(template)
+    cur = con.execute(
+        """
+        INSERT INTO learning_tasks(user_id, goal, difficulty, template, coach_text)
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        (int(user_id), goal[:500], difficulty, template, (coach_text or "").strip()[:6000]),
+    )
+    con.commit()
+    return int(cur.lastrowid)
+
+
+def learning_task(con: sqlite3.Connection, user_id: int, task_id: int):
+    return con.execute(
+        "SELECT * FROM learning_tasks WHERE id=? AND user_id=?",
+        (int(task_id), int(user_id)),
+    ).fetchone()
+
+
+def learning_tasks(con: sqlite3.Connection, user_id: int, limit: int = 10):
+    return con.execute(
+        """
+        SELECT *
+        FROM learning_tasks
+        WHERE user_id=?
+        ORDER BY id DESC
+        LIMIT ?
+        """,
+        (int(user_id), int(limit)),
+    ).fetchall()
+
+
+def learning_task_signal_count(con: sqlite3.Connection, user_id: int, task_id: int) -> int:
+    row = con.execute(
+        """
+        SELECT COUNT(*) AS count
+        FROM practice_signals
+        WHERE user_id=? AND learning_task_id=?
+        """,
+        (int(user_id), int(task_id)),
+    ).fetchone()
+    return int(row["count"] if row else 0)
+
+
+def learning_template_rows(
+    con: sqlite3.Connection,
+    user_id: int,
+    template: str,
+    qty=100,
+    limit: int = 3,
+) -> list[dict]:
+    if account_for_user(con, user_id) is None:
+        raise ValueError("账户不存在")
+    template = normalize_learning_template(template)
+    qty = _parse_qty(qty)
+    limit = int(limit)
+    if limit <= 0:
+        raise ValueError("候选数量必须大于 0")
+    if limit > 10:
+        raise ValueError("新手练习一次最多生成 10 条候选")
+    if template == "risk_review":
+        raise ValueError("风险控制复盘模板只用于复盘和提问,不生成新的待执行计划")
+    if template == "prediction":
+        return prediction_basket_rows(con, qty=qty, limit=limit)
+    mode = "momentum" if template == "momentum" else "reversal"
+    return market_signal_basket_rows(con, mode=mode, side="buy", qty=qty, limit=limit, real_only=False)
+
+
+def create_practice_signals_from_learning_task(
+    con: sqlite3.Connection,
+    user_id: int,
+    task_id: int,
+    strategy_name: str,
+    template: str,
+    qty=100,
+    limit: int = 3,
+    rationale_note: str = "",
+) -> int:
+    task = learning_task(con, user_id, task_id)
+    if task is None:
+        raise ValueError("学习任务不存在")
+    template = normalize_learning_template(template or task["template"])
+    strategy_name = (strategy_name or f"学习任务 {int(task_id)} · {LEARNING_TEMPLATES[template]}").strip()
+    note = " ".join((rationale_note or "").split())
+    rows = learning_template_rows(con, user_id, template, qty=qty, limit=limit)
+    payloads = []
+    for row in rows:
+        rationale = row["rationale"]
+        if note:
+            rationale = f"{note} | {rationale}"
+        payloads.append(
+            _validated_practice_signal(
+                con,
+                user_id,
+                strategy_name,
+                row["code"],
+                row["side"],
+                row["qty"],
+                rationale,
+            )
+        )
+    for payload in payloads:
+        con.execute(
+            """
+            INSERT INTO practice_signals(user_id, code, side, qty, strategy_name, rationale, learning_task_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                int(user_id),
+                payload["code"],
+                payload["side"],
+                payload["qty"],
+                payload["strategy_name"],
+                payload["rationale"],
+                int(task_id),
+            ),
+        )
+    con.execute(
+        "UPDATE learning_tasks SET status='signals_saved', updated_at=CURRENT_TIMESTAMP WHERE id=? AND user_id=?",
+        (int(task_id), int(user_id)),
+    )
     con.commit()
     return len(payloads)
 
@@ -2083,6 +2365,29 @@ def recent_orders(con: sqlite3.Connection, user_id: int, limit: int = 10):
     ).fetchall()
 
 
+def post_auth_landing(con: sqlite3.Connection, user_id: int) -> str:
+    """Where a just-authenticated user should land.
+
+    Returning users who have actually DONE something (traded or saved a practice plan) land on
+    the dashboard `/app`; brand-new users get the guided `/learn` home. Derived from activity,
+    NOT a stored tier column — so every pre-existing active user is auto-grandfathered onto the
+    dashboard with no schema migration and no risk of silently demoting them. Always a SOFT
+    default: `/learn` links straight to the dashboard, so a beginner is never hard-blocked.
+    """
+    account = account_for_user(con, user_id)
+    if account is None:
+        return "/learn"
+    traded = con.execute(
+        "SELECT 1 FROM orders WHERE account_id=? LIMIT 1", (account["id"],)
+    ).fetchone()
+    if traded:
+        return "/app"
+    planned = con.execute(
+        "SELECT 1 FROM practice_signals WHERE user_id=? LIMIT 1", (user_id,)
+    ).fetchone()
+    return "/app" if planned else "/learn"
+
+
 def order_history(con: sqlite3.Connection, user_id: int):
     account = account_for_user(con, user_id)
     if account is None:
@@ -2193,6 +2498,7 @@ def account_data_export(con: sqlite3.Connection, user_id: int) -> dict:
         },
         "orders": row_dicts(order_history(con, user_id)),
         "equity_snapshots": row_dicts(equity_snapshots(con, user_id)),
+        "learning_tasks": row_dicts(learning_tasks(con, user_id, limit=5000)),
         "practice_signals": row_dicts(signals),
         "consents": row_dicts(consents),
         "contests": row_dicts(contests),
@@ -2235,6 +2541,10 @@ def delete_user_account(con: sqlite3.Connection, user_id: int) -> dict:
         ).fetchone()[0],
         "practice_signals": con.execute(
             "SELECT COUNT(*) FROM practice_signals WHERE user_id=?",
+            (int(user_id),),
+        ).fetchone()[0],
+        "learning_tasks": con.execute(
+            "SELECT COUNT(*) FROM learning_tasks WHERE user_id=?",
             (int(user_id),),
         ).fetchone()[0],
         "forum_posts": len(post_ids),

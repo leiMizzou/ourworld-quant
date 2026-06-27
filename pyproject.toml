@@ -21,6 +21,7 @@ data = [
 app = [
   "qrcode[pil]>=7.4",
   "cryptography>=42",
+  "edge-tts>=6.1",
 ]
 test = [
   "pytest>=8.0",
@@ -34,6 +35,7 @@ dev = [
   "tqdm>=4.66",
   "qrcode[pil]>=7.4",
   "cryptography>=42",
+  "edge-tts>=6.1",
   "pytest>=8.0",
 ]
 

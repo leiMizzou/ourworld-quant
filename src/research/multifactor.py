@@ -23,6 +23,10 @@ from ..data import storage
 from ..factors import factors as F
 from ..factors.evaluate import evaluate_factor
 from ..factors.preprocess import standardize
+from ..metrics_glossary import glossary_markdown
+
+# Metrics the CLI explains; the drift test asserts every key exists in the glossary.
+CLI_GLOSSARY_KEYS = ("cagr", "sharpe", "max_drawdown", "turnover")
 
 # (因子名, 窗口, 方向)。方向 +1=值越大越买;-1=值越小越买(合成时统一成"越大越买")
 DEFAULT_SPECS = [
@@ -134,10 +138,15 @@ def main(argv: list[str] | None = None) -> int:
     print("组合绩效:")
     for k, v in res["metrics"].items():
         print(f"  {k:>16}: {v}")
+    surv = res.get("survivorship") or {}
+    if surv:
+        print(f"  {'退市强制平仓':>16}: {surv.get('delisted_positions_closed', 0)} 笔")
     if a.save:
         res["equity"].rename("equity").to_csv(a.save, header=True)
         print("净值已保存:", a.save)
-    print("\n判读:对比单因子与组合的夏普/回撤;再切样本内外。别只看年化。")
+    print("\n指标说明(与 App / 报告同源 src/metrics_glossary.py):")
+    print(glossary_markdown(CLI_GLOSSARY_KEYS))
+    print("\n判读:对比单因子与组合的夏普/回撤;再切样本内外。别只看年化;好看的数字先怀疑数据(幸存者/前视)。")
     return 0
 
 

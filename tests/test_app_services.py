@@ -59,6 +59,53 @@ class AppServicesTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "不存在或已使用"):
             services.confirm_email_login_session(self.con, token)
 
+    def test_email_login_code_verifies_session_without_storing_plaintext(self):
+        token, code = services.create_email_login_session(
+            self.con,
+            "Code@Example.COM",
+            "2026-06-24",
+            "2026-06-24",
+            "2026-06-24",
+            return_code=True,
+        )
+        row = self.con.execute(
+            "SELECT code_hash, code_attempts FROM email_login_sessions WHERE email='code@example.com'"
+        ).fetchone()
+
+        self.assertRegex(code, r"^\d{8}$")
+        self.assertNotEqual(row["code_hash"], code)
+        self.assertEqual(row["code_attempts"], 0)
+
+        result = services.verify_email_login_code(self.con, "CODE@example.com", code)
+
+        self.assertEqual(result["token_hash"], services.email_token_hash(token))
+        user_id = services.confirm_email_login_session_by_hash(self.con, result["token_hash"])
+        self.assertEqual(services.get_user(self.con, user_id)["email"], "code@example.com")
+        with self.assertRaisesRegex(ValueError, "不正确或已过期"):
+            services.verify_email_login_code(self.con, "code@example.com", code)
+
+    def test_email_login_code_attempts_expire_session(self):
+        token, code = services.create_email_login_session(
+            self.con,
+            "WrongCode@Example.COM",
+            "2026-06-24",
+            "2026-06-24",
+            "2026-06-24",
+            return_code=True,
+        )
+        wrong_code = "00000000" if code != "00000000" else "11111111"
+
+        for _ in range(services.EMAIL_LOGIN_CODE_MAX_ATTEMPTS):
+            with self.assertRaisesRegex(ValueError, "不正确或已过期"):
+                services.verify_email_login_code(self.con, "wrongcode@example.com", wrong_code)
+
+        row = self.con.execute(
+            "SELECT status, code_attempts FROM email_login_sessions WHERE token_hash=?",
+            (services.email_token_hash(token),),
+        ).fetchone()
+        self.assertEqual(row["status"], "expired")
+        self.assertEqual(row["code_attempts"], services.EMAIL_LOGIN_CODE_MAX_ATTEMPTS)
+
     def test_bump_user_session_version_increments_login_generation(self):
         user_id = self.register_user()
 
@@ -608,6 +655,80 @@ class AppServicesTest(unittest.TestCase):
         self.assertEqual(signals[0]["code"], "600519.SH")
         self.assertIn("预测候选", signals[0]["rationale"])
 
+    def test_post_auth_landing_grandfathers_active_users(self):
+        user_id = self.register_user()
+        # Brand-new user (no orders, no plans) → guided learn home.
+        self.assertEqual(services.post_auth_landing(self.con, user_id), "/learn")
+        # After trading, the returning user is grandfathered straight to the dashboard.
+        services.place_order(self.con, user_id, "000001.SZ", "buy", 100)
+        self.assertEqual(services.post_auth_landing(self.con, user_id), "/app")
+
+    def test_post_auth_landing_routes_planner_to_dashboard(self):
+        user_id = self.register_user()
+        # A user who saved a practice plan (engaged, even without trading) lands on the dashboard.
+        services.create_practice_signal(self.con, user_id, "反转观察", "000001.SZ", "buy", 100, "测试")
+        self.assertEqual(services.post_auth_landing(self.con, user_id), "/app")
+
+    def test_prediction_rationale_carries_date_and_basis_caveat(self):
+        pred_path = Path(self.tmpdir.name) / "predictions.csv"
+        pred_path.write_text(
+            "code,prediction,date,last_close\n"
+            "600519.SH,0.031,2020-01-01,1222.45\n",
+            encoding="utf-8",
+        )
+        rows = services.prediction_basket_rows(self.con, path=pred_path, qty=100, limit=1)
+        rationale = rows[0]["rationale"]
+        # Prediction generation date is carried through (no longer silently dropped)...
+        self.assertEqual(rows[0]["as_of"], "2020-01-01")
+        self.assertIn("信号生成于 2020-01-01", rationale)
+        self.assertIn("非实时", rationale)
+        # ...an old date triggers the soft staleness warning (warn, not block)...
+        self.assertIn("已过期", rationale)
+        # ...and the hfq/none basis mismatch is disclosed.
+        self.assertIn("不复权", rationale)
+
+    def test_prediction_rationale_without_date_column_still_works(self):
+        pred_path = Path(self.tmpdir.name) / "predictions.csv"
+        pred_path.write_text("code,prediction,last_close\n600519.SH,0.031,1222.45\n", encoding="utf-8")
+        rows = services.prediction_basket_rows(self.con, path=pred_path, qty=100, limit=1)
+        self.assertEqual(rows[0]["as_of"], "")
+        self.assertNotIn("信号生成于", rows[0]["rationale"])
+        self.assertIn("不复权", rows[0]["rationale"])  # basis caveat is unconditional
+
+    def test_learning_task_preview_and_save_links_pending_signals(self):
+        user_id = self.register_user()
+        task_id = services.create_learning_task(
+            self.con,
+            user_id,
+            "学习如何做动量观察",
+            "beginner",
+            "momentum",
+            "先理解数据和风险。",
+        )
+        rows = services.learning_template_rows(self.con, user_id, "momentum", qty=100, limit=2)
+
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(self.con.execute("SELECT COUNT(*) FROM practice_signals WHERE user_id=?", (user_id,)).fetchone()[0], 0)
+
+        count = services.create_practice_signals_from_learning_task(
+            self.con,
+            user_id,
+            task_id,
+            "学习动量观察",
+            "momentum",
+            qty=100,
+            limit=2,
+            rationale_note="记录假设和风险",
+        )
+        task = services.learning_task(self.con, user_id, task_id)
+        signals = services.practice_signals(self.con, user_id)
+
+        self.assertEqual(count, 2)
+        self.assertEqual(task["status"], "signals_saved")
+        self.assertTrue(all(int(signal["learning_task_id"]) == task_id for signal in signals))
+        self.assertTrue(all(signal["status"] == "pending" for signal in signals))
+        self.assertIn("记录假设和风险", signals[0]["rationale"])
+
     def test_reset_paper_account_clears_trading_state_only(self):
         user_id = self.register_user()
         services.place_order(self.con, user_id, "000001.SZ", "buy", 100)
@@ -644,6 +765,7 @@ class AppServicesTest(unittest.TestCase):
         user_id = services.confirm_email_login_session(self.con, token)
         other_id = services.get_or_create_user(self.con, "dev-delete-other", "保留用户")
         account_id = services.account_for_user(self.con, user_id)["id"]
+        services.create_learning_task(self.con, user_id, "注销前学习任务", "beginner", "reversal", "教练说明")
         services.place_order(self.con, user_id, "000001.SZ", "buy", 100)
         services.create_practice_signal(self.con, user_id, "删除前计划", "000001.SZ", "buy", 100, "")
         services.record_user_consent(self.con, user_id, "2026-06-24", "2026-06-24", "2026-06-24", source="test")
@@ -663,6 +785,7 @@ class AppServicesTest(unittest.TestCase):
         self.assertIsNone(services.account_for_user(self.con, user_id))
         self.assertEqual(self.con.execute("SELECT COUNT(*) FROM accounts WHERE id=?", (account_id,)).fetchone()[0], 0)
         self.assertEqual(self.con.execute("SELECT COUNT(*) FROM orders WHERE account_id=?", (account_id,)).fetchone()[0], 0)
+        self.assertEqual(self.con.execute("SELECT COUNT(*) FROM learning_tasks WHERE user_id=?", (user_id,)).fetchone()[0], 0)
         self.assertEqual(self.con.execute("SELECT COUNT(*) FROM practice_signals WHERE user_id=?", (user_id,)).fetchone()[0], 0)
         self.assertEqual(self.con.execute("SELECT COUNT(*) FROM user_consents WHERE user_id=?", (user_id,)).fetchone()[0], 0)
         self.assertEqual(self.con.execute("SELECT COUNT(*) FROM email_login_sessions WHERE email='delete-me@example.com'").fetchone()[0], 0)

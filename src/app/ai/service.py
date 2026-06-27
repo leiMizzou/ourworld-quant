@@ -13,6 +13,7 @@ import os
 import sqlite3
 import time
 
+from .. import services
 from . import client, context, crypto, guardrail
 
 DEFAULT_DAILY_TOKEN_CAP = 200_000
@@ -129,7 +130,7 @@ def ai_complete(
     resolved = resolve_key(con, user_id, secret)
     if resolved is None:
         return {"ok": False, "error": "no_key",
-                "text": "请先在 账户 → AI 配置 里填入你自己的 DeepSeek API key 并启用。", "blocked": False, "reasons": []}
+                "text": "请先在 账户 → AI 教练配置 里填入你自己的 DeepSeek API key 并启用。", "blocked": False, "reasons": []}
     api_key, base_url, model, cap = resolved
 
     if daily_tokens(con, user_id) >= cap:
@@ -181,3 +182,45 @@ def explain_my_result(con, user_id, *, secret, leak_check_secrets, question: str
                 "text": "你还没有模拟盘记录。先去下单或记录一个策略演练计划,我再帮你复盘。", "blocked": False, "reasons": []}
     return ai_complete(con, user_id, kind="review", user_message=question, secret=secret,
                        leak_check_secrets=leak_check_secrets, context_text=ctx["text"])
+
+
+def coach_learning_goal(
+    con,
+    user_id,
+    *,
+    secret,
+    leak_check_secrets,
+    goal: str,
+    difficulty: str = "beginner",
+    template: str = "reversal",
+) -> dict:
+    """Create an education-only coaching answer for a beginner learning task."""
+    goal = " ".join((goal or "").split())[:500]
+    if not goal:
+        return {"ok": False, "error": "empty_goal", "text": "请先写下你想学习或练习的目标。", "blocked": False, "reasons": []}
+    difficulty = services.normalize_learning_difficulty(difficulty)
+    template = services.normalize_learning_template(template)
+    difficulty_label = services.LEARNING_DIFFICULTIES[difficulty]
+    template_label = services.LEARNING_TEMPLATES[template]
+    prompt = (
+        "请以一对一量化学习教练的方式,帮新手把目标拆成可学习、可演练、可复盘的步骤。\n"
+        f"用户目标:{goal}\n"
+        f"用户水平:{difficulty_label}\n"
+        f"偏好的练习模板:{template_label}\n\n"
+        "请严格按以下结构输出,不要给任何具体股票/标的的买卖建议,不要预测价格或收益:\n"
+        "1. 先用三句话解释这个目标对应的量化投资问题。\n"
+        "2. 拆成 3-5 个学习步骤,每步说明要理解的概念和为什么重要。\n"
+        "3. 给出一个模拟盘演练方案:只描述模板、观察指标、仓位约束、记录内容和复盘问题。"
+        "具体候选标的由系统稍后根据行情确定,你不要列代码或名称。\n"
+        "4. 给出可调整范围:候选数、每个候选的股数、观察周期、停止继续练习的条件。\n"
+        "5. 给出下一步行动,引导用户先预览草稿,确认后保存为待执行演练计划。"
+    )
+    return ai_complete(
+        con,
+        user_id,
+        kind="learning_coach",
+        user_message=prompt,
+        secret=secret,
+        leak_check_secrets=leak_check_secrets,
+        context_text="这是一个新手学习任务。AI 只能做方法教学和草稿说明,不能选择具体标的或替用户下单。",
+    )
