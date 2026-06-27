@@ -1910,6 +1910,14 @@ class AppHandler(BaseHTTPRequestHandler):
         head: bool = False,
         extra_headers: dict[str, str] | None = None,
     ):
+        if user is None:
+            # Public/marketing pages don't pass a user; detect the session here so the nav (and
+            # anything keyed off `user`) reflects login state CONSISTENTLY on every page, not
+            # just on auth-gated ones. Callers that pass a real user skip this.
+            try:
+                user = self.current_user()
+            except Exception:  # noqa: BLE001 - nav detection must never break a response
+                user = None
         nav = ""
         if user:
             admin_link = '<a href="/admin">管理</a>' if self.is_admin_user(user) else ""
@@ -1976,7 +1984,7 @@ class AppHandler(BaseHTTPRequestHandler):
             self.redirect("/register")
             return
         html = path.read_text(encoding="utf-8")
-        html = self.inject_landing_runtime(html, services.landing_summary(self.con))
+        html = self.inject_landing_runtime(html, services.landing_summary(self.con), self.current_user())
         payload = html.encode("utf-8")
         self.send_response(200)
         self.send_security_headers("html")
@@ -1986,16 +1994,16 @@ class AppHandler(BaseHTTPRequestHandler):
         if not head:
             self.wfile.write(payload)
 
-    def inject_landing_runtime(self, html: str, summary: dict) -> str:
+    def inject_landing_runtime(self, html: str, summary: dict, user=None) -> str:
         replacements = {
-            "PUBLIC_NAV_CTA": self.landing_nav_cta(),
-            "HERO_ACTIONS": self.landing_hero_actions(),
+            "PUBLIC_NAV_CTA": self.landing_nav_cta(user),
+            "HERO_ACTIONS": self.landing_hero_actions(user),
             "HERO_SCORES": self.landing_hero_scores(summary),
             "HERO_FEED": self.landing_hero_feed(summary),
             "LIVE_STRIP": self.landing_metric_strip(summary),
             "LIVE_SECTION": self.landing_live_section(summary),
             "FLOW_STEP_1": self.landing_flow_step_one(),
-            "LINK_TILES": self.landing_link_tiles(),
+            "LINK_TILES": self.landing_link_tiles(user),
         }
         for name, content in replacements.items():
             html = self.replace_landing_block(html, name, content)
@@ -2142,11 +2150,24 @@ class AppHandler(BaseHTTPRequestHandler):
     def landing_display_name(self, row) -> str:
         return display_nickname(row)
 
-    def landing_nav_cta(self) -> str:
+    def landing_nav_cta(self, user=None) -> str:
+        if user:
+            return '<a class="primary" href="/app">进入模拟盘</a>'
         label = self.public_join_label(primary=False if self.public_registration_available() else True)
         return f'<a class="primary" href="{self.public_join_href()}">{escape(label)}</a>'
 
-    def landing_hero_actions(self) -> str:
+    def landing_hero_actions(self, user=None) -> str:
+        if user:
+            # Already logged in: the marketing CTAs become "enter the product", not "sign up".
+            return "\n".join(
+                [
+                    '<a class="btn blue" href="/app">进入模拟盘</a>',
+                    '<a class="btn" href="/learn">继续学习</a>',
+                    '<a class="btn" href="/research">研究引擎</a>',
+                    '<a class="btn" href="/showcase/public">查看公开榜单</a>',
+                    '<a class="btn" href="/forum">进入策略论坛</a>',
+                ]
+            )
         join = self.public_join_button("btn blue", primary=True)
         return "\n".join(
             [
@@ -2168,12 +2189,13 @@ class AppHandler(BaseHTTPRequestHandler):
             detail = "当前新用户注册暂未开放，请先提交支持请求，等待管理员联系开通。"
         return f'<div class="step"><span>STEP 1</span><h3>{title}</h3><p>{detail}</p></div>'
 
-    def landing_link_tiles(self) -> str:
-        first = (
-            '<a class="link-tile" href="/register"><strong>邮箱注册</strong><p>验证邮箱、设置账号密码并加入公开赛。</p></a>'
-            if self.public_registration_available()
-            else '<a class="link-tile" href="/support"><strong>申请加入</strong><p>提交注册或登录支持请求，等待管理员联系开通。</p></a>'
-        )
+    def landing_link_tiles(self, user=None) -> str:
+        if user:
+            first = '<a class="link-tile" href="/app"><strong>进入模拟盘</strong><p>查看你的账户、持仓、净值曲线和本周复盘。</p></a>'
+        elif self.public_registration_available():
+            first = '<a class="link-tile" href="/register"><strong>邮箱注册</strong><p>验证邮箱、设置账号密码并加入公开赛。</p></a>'
+        else:
+            first = '<a class="link-tile" href="/support"><strong>申请加入</strong><p>提交注册或登录支持请求，等待管理员联系开通。</p></a>'
         return "\n".join(
             [
                 first,
@@ -3093,6 +3115,10 @@ class AppHandler(BaseHTTPRequestHandler):
         )
 
     def render_login(self, query):
+        existing = self.current_user()
+        if existing:  # already logged in — don't ask them to log in again
+            self.redirect(services.post_auth_landing(self.con, existing["id"]))
+            return
         body = f"""
 {self.message_html(query)}
 <section class="card">
@@ -3260,6 +3286,10 @@ class AppHandler(BaseHTTPRequestHandler):
         self.redirect(f"{landing}?msg=" + quote(msg), user_id=user_id)
 
     def render_register(self, query):
+        existing = self.current_user()
+        if existing:  # already logged in — send them into the product, not a signup form
+            self.redirect(services.post_auth_landing(self.con, existing["id"]))
+            return
         mode = self.auth_mode()
         if mode == "disabled":
             body = f"""
@@ -4293,6 +4323,15 @@ class AppHandler(BaseHTTPRequestHandler):
         )
 
     def _preview_ctas(self) -> str:
+        if self.current_user():
+            # Already logged in: don't show a "sign up" CTA — point into the product.
+            return (
+                '<section class="card"><div class="card-title"><span>继续</span></div>'
+                '<p><a class="btn blue" href="/app">进入模拟盘</a> '
+                '<a class="btn secondary" href="/learn">继续学习</a> '
+                '<a class="btn secondary" href="/research">研究引擎</a> '
+                '<a class="btn secondary" href="/showcase/public">公开排行榜</a></p></section>'
+            )
         return (
             '<section class="card"><div class="card-title"><span>想自己上手?</span></div>'
             '<p><a class="btn blue" href="/register">免费注册,拿 10 万模拟本金</a> '

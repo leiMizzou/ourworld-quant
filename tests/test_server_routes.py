@@ -487,6 +487,30 @@ class ServerRoutesTest(unittest.TestCase):
         self.assertIn("复权口径", payload)
         self.assertIn("被高估了", payload)  # real survivorship numbers wired in
 
+    def test_public_pages_reflect_login_session(self):
+        token = services.create_wechat_session(self.con)
+        user_id = services.confirm_wechat_session(self.con, token, "LoggedIn")
+        cookie = f"owq_session={self.sign_cookie(user_id)}"
+        # Logged-in user on a PUBLIC page: logged-in nav + enter-product CTA, not a signup pitch.
+        _, _, prev = self.request("GET", "/preview", headers={"Cookie": cookie})
+        self.assertIn("退出", prev)            # logged-in nav (logout button) present
+        self.assertIn("进入模拟盘", prev)       # in-body CTA points into the product
+        self.assertNotIn("免费注册,拿 10 万模拟本金", prev)
+        # Landing page (bypasses send_html) also reflects login state.
+        _, _, home = self.request("GET", "/", headers={"Cookie": cookie})
+        self.assertIn("进入模拟盘", home)
+        # A logged-in user hitting /login or /register is redirected into the app, not asked
+        # to authenticate again (the "点击之后还要重新登录" complaint).
+        for p in ("/login", "/register"):
+            st, _, _ = self.request("GET", p, headers={"Cookie": cookie})
+            self.assertIn(st, {302, 303}, f"{p} should redirect a logged-in user")
+        # Logged-out regression: public nav still offers login, and /login renders the form.
+        _, _, anon = self.request("GET", "/preview")
+        self.assertIn("登录", anon)
+        self.assertNotIn("退出", anon)
+        st_login, _, _ = self.request("GET", "/login")
+        self.assertEqual(st_login, 200)  # anonymous still gets the login form
+
     def test_research_page_is_public_indexable_builder_tier(self):
         status, headers, payload = self.request("GET", "/research")  # no login
         self.assertEqual(status, 200)
@@ -531,9 +555,17 @@ class ServerRoutesTest(unittest.TestCase):
         services.place_order(self.con, user_id, "000001.SZ", "buy", 100)
         cookie = f"owq_session={self.sign_cookie(user_id)}"
 
-        for path in ["/register", "/login", "/app", "/account", "/market", "/portfolio-lab"]:
+        for path in ["/app", "/account", "/market", "/portfolio-lab"]:
             with self.subTest(path=path):
                 status, headers, _ = self.request("GET", path, headers={"Cookie": cookie})
+                self.assertEqual(status, 200)
+                self.assertEqual(headers.get("X-Robots-Tag"), "noindex, nofollow")
+
+        # /login and /register are noindex too, but render the form only when ANONYMOUS
+        # (a logged-in user is redirected into the app — see test_public_pages_reflect_login_session).
+        for path in ["/register", "/login"]:
+            with self.subTest(path=path):
+                status, headers, _ = self.request("GET", path)
                 self.assertEqual(status, 200)
                 self.assertEqual(headers.get("X-Robots-Tag"), "noindex, nofollow")
 
