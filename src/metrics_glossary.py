@@ -100,12 +100,102 @@ METRIC_GLOSSARY: dict[str, dict[str, str]] = {
 GLOSSARY_FIELDS = ("term", "short", "formula", "unit", "band")
 
 
+# key -> {term, short, band}
+#   Concept/jargon terms a beginner meets in the UI that are NOT numbers with a formula.
+#   Kept SEPARATE from METRIC_GLOSSARY so the metric drift-test and the report/CLI consumers
+#   stay untouched. Surfaced the same way: ``/api/glossary`` merges both, app.js renders the
+#   ``band`` line if present, and ``term_label()`` wraps a label into a tappable tooltip.
+TERM_GLOSSARY: dict[str, dict[str, str]] = {
+    "instrument": {
+        "term": "标的",
+        "short": "可以买卖的对象——一只股票或一只 ETF 基金。",
+        "band": "代码后缀 .SH=上交所、.SZ=深交所;ETF 是一篮子股票打包成的基金,适合新手分散风险。",
+    },
+    "available_qty": {
+        "term": "可卖",
+        "short": "当前真正能卖出的数量。",
+        "band": "A 股 T+1:当天买入的部分要到下一交易日才计入可卖,所以买入当天这里常是 0,不是出错。",
+    },
+    "avg_cost": {
+        "term": "成本",
+        "short": "你持有这只标的的平均买入价(均价)。",
+        "band": "现价高于成本是浮盈,低于是浮亏;加仓会重新摊薄或抬高这个均价。",
+    },
+    "fee": {
+        "term": "费用",
+        "short": "一笔交易的交易成本。",
+        "band": "买入含佣金+过户费;卖出再多一道印花税。交易越频繁,费用越会慢慢磨掉收益。",
+    },
+    "pnl": {
+        "term": "盈亏",
+        "short": "这只持仓当前的浮动盈亏(还没卖出兑现)。",
+        "band": "≈(现价 − 成本)× 数量;没卖出前都只是账面数字,会随行情上下波动。",
+    },
+    "market_value": {
+        "term": "市值",
+        "short": "持仓按现价折算的价值。",
+        "band": "= 现价 × 持有数量,随行情波动;总资产 = 现金 + 所有持仓市值。",
+    },
+    "adjust": {
+        "term": "复权",
+        "short": "对历史价格做分红/拆股调整的口径,让价格在分红除权时不出现假跳空。",
+        "band": "不复权(none)最接近真实可成交价,模拟成交用它;后复权(hfq)保持收益连续,研究回测用它。不确定就用 none。",
+    },
+    "backtest": {
+        "term": "回测",
+        "short": "用历史行情模拟『如果当时按这个策略交易,结果会怎样』。",
+        "band": "回测好≠未来赚钱:最容易被幸存者偏差、前视、过拟合骗到。看到漂亮数字,先怀疑数据,再相信策略。",
+    },
+    "factor": {
+        "term": "因子",
+        "short": "一个能给股票打分、用来选股的可量化特征(如反转、动量、波动率)。",
+        "band": "单个因子预测力很弱(月频 IC 能稳定在 0.03~0.05 已算不错);因子会失效,需要持续验证。",
+    },
+    "survivorship": {
+        "term": "幸存者偏差",
+        "short": "只用『活到今天』的股票做回测,漏掉了已退市的失败者,从而高估收益。",
+        "band": "正确做法是把当时在市的退市股也纳入票池。不含退市股的回测数字通常虚高、不可信。",
+    },
+    "lookahead": {
+        "term": "前视(未来函数)",
+        "short": "回测里不小心用到了『当时还不知道』的未来信息,导致成绩虚高。",
+        "band": "例如用全样本统计量、或用收盘后才有的数据在收盘前下单。一旦有前视,回测就不可信。",
+    },
+    "price_limit": {
+        "term": "涨跌停",
+        "short": "A 股单日涨跌幅有上限(主板 ±10%、创业板/科创板 ±20%、ST ±5%)。",
+        "band": "涨停常买不进、跌停常卖不出;回测若忽略涨跌停会高估可成交性。",
+    },
+    "t_plus_1": {
+        "term": "T+1",
+        "short": "A 股的交易规则:当天买入的股票,要到下一个交易日才能卖出。",
+        "band": "所以买入当天『可卖』是 0;在模拟盘点『进入下一交易日』即可解锁。",
+    },
+    "tokens": {
+        "term": "tokens(令牌)",
+        "short": "大模型计量用量的单位,大致 1 个汉字≈1~2 tokens。",
+        "band": "AI 调用按 tokens 计费、也按 tokens 限额;本站每位用户每天有用量上限,超出后次日恢复。",
+    },
+}
+
+
+def _lookup(key: str) -> dict | None:
+    """Resolve a key against either glossary (metrics first, then concept terms)."""
+    return METRIC_GLOSSARY.get(key) or TERM_GLOSSARY.get(key)
+
+
+def glossary_payload() -> dict:
+    """Merged view served by ``GET /api/glossary`` so tooltips cover metrics AND concept terms."""
+    return {**METRIC_GLOSSARY, **TERM_GLOSSARY}
+
+
 def tooltip_text(key: str) -> str:
-    """Plain-language fallback string for a metric (used as the no-JS ``title`` attribute)."""
-    info = METRIC_GLOSSARY.get(key)
+    """Plain-language fallback string for a term (used as the no-JS ``title`` attribute)."""
+    info = _lookup(key)
     if not info:
         return ""
-    return f"{info['short']} {info['band']}"
+    band = info.get("band", "")
+    return f"{info['short']} {band}".strip()
 
 
 def glossary_markdown(keys=None) -> str:

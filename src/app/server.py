@@ -35,7 +35,7 @@ from urllib.parse import parse_qs, quote, urlencode, urlparse
 
 from . import data_bridge, db, doctor, email_config, services
 from .ai import service as ai_service
-from ..metrics_glossary import METRIC_GLOSSARY, tooltip_text
+from ..metrics_glossary import METRIC_GLOSSARY, TERM_GLOSSARY, glossary_payload, tooltip_text
 
 
 SESSION_COOKIE = "owq_session"
@@ -94,7 +94,7 @@ USAGE_FLOW_STEPS = (
         "title": "邮箱注册",
         "path": "/register",
         "summary": "填写邮箱并同意条款,收到注册码后到确认页设置用户名和密码。",
-        "detail": "注册码和备用链接 15 分钟内有效。完成后仍需回到登录页使用账号密码登录。",
+        "detail": "注册码和备用链接 15 分钟内有效。设置好用户名和密码后会自动登录,直接进入模拟盘。",
     },
     {
         "title": "登录进入模拟盘",
@@ -141,8 +141,8 @@ USAGE_IMPROVEMENTS = (
 )
 DEMO_NARRATION_TEXT = (
     "欢迎使用 OurWorlds Quant 模拟盘。第一步,先通过首页、公开榜单、数据透明页和论坛了解赛场。"
-    "第二步,使用邮箱注册。系统会发送一次性注册码,确认邮箱后设置用户名和密码。"
-    "第三步,回到登录页,使用用户名或邮箱和密码进入模拟盘。"
+    "第二步,使用邮箱注册。系统会发送一次性注册码,确认邮箱后设置用户名和密码,完成后会自动登录。"
+    "第三步,进入模拟盘,先熟悉账户、行情和下单。"
     "第四步,在模拟盘里先保存策略演练计划,再把计划执行成模拟成交。"
     "第五步,到组合设计页使用真实行情和研究预测候选,把研究结果转成待执行计划。"
     "第六步,加入公开赛,查看排名、个人战绩页和战绩卡。"
@@ -768,7 +768,7 @@ def metric_label(key: str, text: str) -> str:
     node into a tap/focus rich tooltip sourced from ``/api/glossary``. Falls back to the bare
     escaped label if the key is unknown, so a typo can never blank out a heading.
     """
-    info = METRIC_GLOSSARY.get(key)
+    info = METRIC_GLOSSARY.get(key) or TERM_GLOSSARY.get(key)
     if not info:
         return escape(text)
     return (
@@ -985,7 +985,9 @@ class AppHandler(BaseHTTPRequestHandler):
         elif path == "/lessons":
             self.render_lessons()
         elif path == "/research":
-            self.render_research()
+            self.render_research(query=query)
+        elif path == "/glossary":
+            self.render_glossary()
         elif path == "/data-status":
             self.render_data_status()
         elif path == "/guide":
@@ -997,7 +999,7 @@ class AppHandler(BaseHTTPRequestHandler):
         elif path.startswith("/static/"):
             self.render_static_asset(path)
         elif path == "/api/glossary":
-            self.send_json({"metrics": METRIC_GLOSSARY})
+            self.send_json({"metrics": glossary_payload()})
         elif path == "/api/equity-curve":
             self.require_user(self.api_equity_curve, enforce_consent=False)
         elif path == "/support":
@@ -1131,6 +1133,8 @@ class AppHandler(BaseHTTPRequestHandler):
             self.render_lessons(head=True)
         elif path == "/research":
             self.render_research(head=True)
+        elif path == "/glossary":
+            self.render_glossary(head=True)
         elif path == "/data-status":
             self.render_data_status(head=True)
         elif path == "/guide":
@@ -1258,7 +1262,7 @@ class AppHandler(BaseHTTPRequestHandler):
         elif path == "/account/reset":
             self.require_user(lambda user: self.handle_account_reset(user, form), form=form, csrf_redirect="/account")
         elif path == "/account/settle":
-            self.require_user(lambda user: self.handle_account_settle(user), form=form, csrf_redirect="/account")
+            self.require_user(lambda user: self.handle_account_settle(user, form), form=form, csrf_redirect="/account")
         elif path == "/account/profile":
             self.require_user(lambda user: self.handle_account_profile(user, form), form=form, csrf_redirect="/account")
         elif path == "/account/ai":
@@ -1284,6 +1288,8 @@ class AppHandler(BaseHTTPRequestHandler):
             )
         elif path == "/market/sync":
             self.require_user(lambda user: self.handle_market_sync(user, form), form=form, csrf_redirect="/market")
+        elif path == "/research/backtest":
+            self.require_active_user(lambda user: self.handle_research_backtest(user, form), form=form, csrf_redirect="/research")
         elif path == "/admin/contest":
             self.require_admin(lambda user: self.handle_admin_contest(user, form), form=form)
         elif path == "/admin/backup":
@@ -1924,7 +1930,7 @@ class AppHandler(BaseHTTPRequestHandler):
             nav = (
                 '<div class="nav">'
                 '<a href="/learn">学习</a><a href="/app">高级模拟盘</a><a href="/market">基础数据</a><a href="/portfolio-lab">组合设计</a><a href="/research">研究引擎</a><a href="/showcase">比赛展示</a>'
-                f'<a href="/forum">论坛</a><a href="/guide">指南</a><a href="/account/ai">AI教练</a><a href="/support">支持</a><a href="/account">账户</a>{admin_link}'
+                f'<a href="/forum">论坛</a><a href="/guide">指南</a><a href="/glossary">术语</a><a href="/account/ai">AI教练</a><a href="/support">支持</a><a href="/account">账户</a>{admin_link}'
                 f'<span>{escape(user["nickname"])}</span>'
                 f'<form method="post" action="/logout">{csrf_input(user)}<button type="submit">退出</button></form>'
                 "</div>"
@@ -1933,7 +1939,7 @@ class AppHandler(BaseHTTPRequestHandler):
             nav_join = self.public_join_button("primary", primary=False if self.public_registration_available() else True)
             nav = (
                 '<div class="nav">'
-                '<a href="/">首页</a><a href="/preview">试一试</a><a href="/lessons">三大坑</a><a href="/showcase/public">排行榜</a><a href="/forum">论坛</a>'
+                '<a href="/">首页</a><a href="/preview">试一试</a><a href="/lessons">三大坑</a><a href="/glossary">术语</a><a href="/showcase/public">排行榜</a><a href="/forum">论坛</a>'
                 f'<a href="/data-status">数据状态</a><a href="/guide">指南</a><a href="/support">支持</a><a href="/login">登录</a>{nav_join}'
                 "</div>"
             )
@@ -2171,14 +2177,15 @@ class AppHandler(BaseHTTPRequestHandler):
                 ]
             )
         join = self.public_join_button("btn blue", primary=True)
+        # Two clear lanes: the blue primary is the "参赛/进阶" path (register or, when closed,
+        # 申请加入); the second button is the no-login "新手" path. The rest (榜单/论坛/支持) stay
+        # reachable via the nav and the link tiles below, so the hero isn't a wall of equal CTAs.
         return "\n".join(
             [
                 join,
+                '<a class="btn" href="/lessons">我是新手 · 先免费学(免登录)</a>',
                 '<a class="btn" href="/login">账号密码登录</a>',
                 '<a class="btn" href="/guide">使用指南</a>',
-                '<a class="btn" href="/showcase/public">查看公开榜单</a>',
-                '<a class="btn" href="/forum">进入策略论坛</a>',
-                '<a class="btn" href="/support">联系支持</a>',
             ]
         )
 
@@ -2955,6 +2962,7 @@ class AppHandler(BaseHTTPRequestHandler):
             {"path": "/preview", "changefreq": "daily", "priority": "0.9"},
             {"path": "/lessons", "changefreq": "monthly", "priority": "0.8"},
             {"path": "/research", "changefreq": "weekly", "priority": "0.7"},
+            {"path": "/glossary", "changefreq": "monthly", "priority": "0.6"},
             {"path": "/data-status", "changefreq": "hourly", "priority": "0.8"},
             {"path": "/guide", "changefreq": "monthly", "priority": "0.7"},
             {"path": "/guide/demo", "changefreq": "monthly", "priority": "0.6"},
@@ -3300,7 +3308,9 @@ class AppHandler(BaseHTTPRequestHandler):
   <h2>邮箱注册暂未开放</h2>
   <p>当前环境没有配置可用的出站邮件服务,系统不会发送确认邮件,也不会用注册申请创建登录态。正式开放报名需要配置 Cloudflare Email Sending 或 SMTP。</p>
   <p>已有账号可以继续使用用户名/邮箱和密码登录;早期测试账号如果还没有设置密码,请先联系管理员补登录方式。</p>
-  <p><a class="btn" href="/login">去登录</a> <a class="btn secondary" href="/support">联系支持</a> <a class="btn secondary" href="/">返回首页</a> <a class="btn secondary" href="/legal">查看服务说明</a></p>
+  <p class="muted">不用注册也能先逛:看公开榜单、读「量化三大坑」、查术语表、逛策略论坛。</p>
+  <p><a class="btn" href="/login">去登录</a> <a class="btn secondary" href="/lessons">量化三大坑</a> <a class="btn secondary" href="/glossary">术语表</a> <a class="btn secondary" href="/showcase/public">公开榜单</a> <a class="btn secondary" href="/forum">策略论坛</a> <a class="btn secondary" href="/support">联系支持</a></p>
+  <p class="muted" style="font-size:12px">自托管本站:在服务端配置 SMTP 或 Cloudflare Email Sending(本地调试可设 OWQ_EMAIL_DEV_AUTH=1 让注册码直接显示在页面上)即可开放注册。</p>
 </section>
 """
             self.send_html("注册", body)
@@ -3587,11 +3597,11 @@ class AppHandler(BaseHTTPRequestHandler):
         is_reset = bool(existing_user and existing_user["password_hash"])
         title = "重置登录密码" if is_reset else "设置登录账号"
         description = (
-            "邮箱已确认。请确认用户名并设置新密码;完成后需要回到登录页使用新密码进入模拟盘。"
+            "邮箱已确认。请确认用户名并设置新密码;完成后会自动登录进入模拟盘。"
             if is_reset
-            else "邮箱已确认。请设置用户名和密码;完成后需要回到登录页使用账号密码进入模拟盘。"
+            else "邮箱已确认。请设置用户名和密码;完成后会自动登录,直接进入。"
         )
-        button = "重置密码并去登录" if is_reset else "设置密码并去登录"
+        button = "重置密码并进入" if is_reset else "设置密码并进入"
         retry_path = "/forgot-password" if is_reset else "/register"
         body = f"""
 {self.message_html(query)}
@@ -3603,9 +3613,10 @@ class AppHandler(BaseHTTPRequestHandler):
     <label>用户名</label>
     <input name="login_name" autocomplete="username" required pattern="[a-z0-9][a-z0-9_-]{{2,31}}" value="{escape(suggested)}" placeholder="3-32 位小写字母、数字、_ 或 -">
     <label>密码</label>
-    <input name="password" type="password" autocomplete="new-password" required minlength="10">
+    <input name="password" type="password" autocomplete="new-password" required minlength="10" maxlength="128" pattern="(?=.*[A-Za-z])(?=.*[0-9]).{{10,128}}" title="10–128 位，且必须同时包含字母和数字" placeholder="10–128 位，字母 + 数字">
+    <p class="muted" style="margin:4px 0 10px">密码要求：10–128 位，<strong>同时包含字母和数字</strong>。</p>
     <label>确认密码</label>
-    <input name="password_confirm" type="password" autocomplete="new-password" required minlength="10">
+    <input name="password_confirm" type="password" autocomplete="new-password" required minlength="10" maxlength="128" title="需与上面的密码完全一致" placeholder="再输入一次">
     <p><button type="submit">{button}</button> <a class="btn secondary" href="{retry_path}">重新获取邮件</a></p>
   </form>
 </section>
@@ -3733,8 +3744,13 @@ class AppHandler(BaseHTTPRequestHandler):
         self.audit("auth.email_confirm", user=user, target_type="user", target_id=user_id)
         self.audit("auth.password_set", user=user, target_type="user", target_id=user_id)
         self.audit("legal.consent", user=user, target_type="user_consent", target_id=consent_id, detail={"version": LEGAL_VERSION, "source": "email_login"})
+        # Auto-login: the user just proved email ownership AND set a password, so establish a
+        # session straight away (issued with the post-set-password session_version, so any old
+        # sessions stay invalidated) instead of bouncing them back to the login form.
+        landing = services.post_auth_landing(self.con, user_id)
         self.redirect(
-            "/login?msg=" + quote("邮箱已验证,请用用户名/邮箱和密码登录。"),
+            f"{landing}?msg=" + quote("邮箱已验证,账号已就绪,已为你自动登录。"),
+            user_id=user_id,
             extra_cookies=[self.email_confirm_cookie_header(clear=True)],
         )
 
@@ -3934,8 +3950,10 @@ class AppHandler(BaseHTTPRequestHandler):
 """
             if ai_ready
             else """
-<div class="msg err">
-  还没有配置 DeepSeek API key。课程可以先看,AI 教练需要先到“账户 → AI 教练配置”填入你自己的 key。
+<div class="msg">
+  AI 教练是<strong>可选</strong>功能,需要你自己的 DeepSeek API key(用的是你自己账户的余额,调用会产生少量费用)。
+  没有也不影响:左边的「量化三大坑」课程免登录、免 key 就能看,模拟盘下单和复盘也都不需要 key。
+  想让 AI 帮你拆解学习目标,到 <a href="/account/ai">账户 → AI 教练配置</a> 填入并启用 key 即可。
 </div>
 """
         )
@@ -4244,10 +4262,29 @@ class AppHandler(BaseHTTPRequestHandler):
             meta={"description": "幸存者偏差、前视偏差、复权口径——三个最常见的量化回测陷阱,用真实A股数据讲清楚,免登录免API key。"},
         )
 
-    def render_research(self, head: bool = False):
+    def render_research(self, head: bool = False, query=None):
         """Builder tier (public, educational): surface the research engine so engaged users can
         graduate from the paper-trading sim to building their own strategies. Reuses the offline
-        preview artifact for a real backtest snapshot; explains the pipeline and how to run it."""
+        preview artifact for a real backtest snapshot; explains the pipeline and how to run it.
+        Logged-in users also get an in-browser one-shot backtest (POST /research/backtest)."""
+        user = self.current_user()
+        msg_html = self.message_html(query) if query else ""
+        if user:
+            backtest_section = f"""
+<section class="card">
+  <h2>在网页直接跑一次回测</h2>
+  <p class="muted">不用进终端:选个因子和参数,用本机已同步的真实行情(后复权、含退市股、含成本)跑一次,几秒出结果,看看真实口径下的表现。</p>
+  {self._research_backtest_form(user)}
+</section>
+"""
+        else:
+            backtest_section = """
+<section class="card">
+  <h2>在网页直接跑一次回测</h2>
+  <p class="muted">登录后可以不进终端、直接在网页选因子和参数跑一次真实口径回测(后复权、含退市股、含成本)。</p>
+  <p><a class="btn blue" href="/login">登录后试一下</a> <a class="btn secondary" href="/register">没有账号?注册</a></p>
+</section>
+"""
         data = self._load_preview_data() or {}
         m = data.get("metrics") or {}
         sv = data.get("survivorship") or {}
@@ -4290,8 +4327,10 @@ class AppHandler(BaseHTTPRequestHandler):
             "python -m src.research.real_data_report\n"
         )
         body = f"""
+{msg_html}
+<div class="msg">⚠️ 这里的回测已用<strong>后复权(hfq)、多板块代表性股票池,并纳入了退市股</strong>(下方快照是含退市的真实口径,回测对退市持仓强制平仓)。<strong>但仍是约 3.5 年的短窗口演示,请勿把绝对收益当真实业绩对外引用</strong>。旁边的「幸存者偏差实测」是对照——只测存活股会把总收益高估约 32 个百分点。名词见 <a href="/glossary">术语表</a>。</div>
 <section class="card">
-  <p><span class="pill">Builder 层</span> <span class="pill ok">真实数据 · 含退市股</span></p>
+  <p><span class="pill">Builder 层</span> <span class="pill ok">开源可复现</span></p>
   <h2>从模拟盘毕业:用研究引擎自己造策略</h2>
   <p class="muted">模拟盘帮你建立手感和纪律;研究引擎让你像工程师一样,从数据出发自己设计、回测、迭代策略。这套引擎全部开源、可在本机跑通,下面是它的全貌。</p>
 </section>
@@ -4307,6 +4346,7 @@ class AppHandler(BaseHTTPRequestHandler):
   <p class="muted">每一步都对应 <code>src/</code> 下一个可独立运行的模块,结果可复现、可复盘。</p>
 </section>
 {snapshot}
+{backtest_section}
 <section class="card">
   <div class="card-title"><span>在本机跑起来</span></div>
   <pre style="background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:14px;overflow:auto;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:12px;line-height:1.6;white-space:pre">{escape(cli)}</pre>
@@ -4322,6 +4362,189 @@ class AppHandler(BaseHTTPRequestHandler):
             body,
             head=head,
             meta={"description": "OurWorlds Quant 研究引擎:数据→因子→回测→多因子→预测的开源闭环,含退市股、可复现,帮你从模拟盘毕业到自己造策略。"},
+        )
+
+    def _research_backtest_form(self, user) -> str:
+        return (
+            '<form method="post" action="/research/backtest" class="formline">'
+            f'{csrf_input(user)}'
+            '<div><label>策略因子</label><select name="signal">'
+            '<option value="reversal">反转 reversal(买近期跌得多的)</option>'
+            '<option value="momentum">动量 momentum(买近期涨得多的)</option></select></div>'
+            '<div><label>回看天数 lookback</label><input name="lookback" type="number" min="5" max="60" step="1" value="20"></div>'
+            '<div><label>持有只数 top</label><input name="top" type="number" min="5" max="50" step="1" value="20"></div>'
+            '<button type="submit">在网页跑一次回测</button>'
+            '</form>'
+            '<p class="muted">范围:lookback 5–60 日、top 5–50 只。用本机真实行情(后复权、含退市股、含费用),几秒出结果。'
+            '名词不懂见 <a href="/glossary">术语表</a>。</p>'
+        )
+
+    def _equity_sparkline_svg(self, equity) -> str:
+        """Server-rendered (no-JS) equity sparkline for the in-browser backtest result."""
+        try:
+            vals = [float(v) for v in list(equity.values)]
+        except Exception:  # noqa: BLE001
+            return ""
+        if len(vals) < 2:
+            return ""
+        step = max(1, len(vals) // 120)
+        pts = vals[::step]
+        if pts[-1] != vals[-1]:
+            pts.append(vals[-1])
+        m = len(pts)
+        lo, hi = min(pts), max(pts)
+        if hi == lo:
+            hi = lo + 1
+        W, H, pad = 640, 160, 12
+        def X(i):
+            return pad + i * (W - 2 * pad) / (m - 1)
+        def Y(v):
+            return H - pad - (v - lo) / (hi - lo) * (H - 2 * pad)
+        poly = " ".join(f"{X(i):.1f},{Y(v):.1f}" for i, v in enumerate(pts))
+        base_y = Y(pts[0])
+        color = "var(--green)" if pts[-1] >= pts[0] else "var(--red)"
+        return (
+            f'<svg viewBox="0 0 {W} {H}" role="img" aria-label="回测净值曲线" '
+            'style="width:100%;height:auto;border:1px solid var(--line);border-radius:8px;margin:8px 0">'
+            f'<line x1="{pad}" y1="{base_y:.1f}" x2="{W - pad}" y2="{base_y:.1f}" stroke="var(--muted)" '
+            'stroke-dasharray="4 4" stroke-width="1" opacity="0.5"></line>'
+            f'<polyline fill="none" stroke="{color}" stroke-width="2" stroke-linejoin="round" points="{poly}"></polyline>'
+            '</svg>'
+        )
+
+    def handle_research_backtest(self, user, form):
+        if not self.require_user_write_limit(user, "research.backtest", 10, 300, "/research"):
+            return
+        signal = form.get("signal", "reversal")
+        if signal not in ("reversal", "momentum"):
+            signal = "reversal"
+        def clamp_int(raw, lo, hi, default):
+            try:
+                n = int(raw)
+            except (TypeError, ValueError):
+                return default
+            return max(lo, min(hi, n))
+        lookback = clamp_int(form.get("lookback"), 5, 60, 20)
+        top = clamp_int(form.get("top"), 5, 50, 20)
+
+        def fail(msg: str):
+            body = f"""
+<div class="msg err">{escape(msg)}</div>
+<section class="card"><h2>换个参数再跑</h2>{self._research_backtest_form(user)}</section>
+<section class="card"><p><a class="btn secondary" href="/research">← 返回研究引擎</a></p></section>
+"""
+            self.send_html("网页回测", body, user=user)
+
+        try:
+            from ..data import storage
+            from ..backtest.strategies.cross_sectional import cross_sectional_weights
+            from ..backtest.engine import run_backtest
+            from ..backtest.costs import CostModel
+        except Exception:  # noqa: BLE001 - data/backtest extras not installed
+            fail("数据/回测依赖未安装,网页回测暂不可用;可在本机用 python -m src.backtest.run 跑。")
+            return
+        try:
+            panel = storage.load_bars(start="20230101", adjust="hfq")
+        except Exception:  # noqa: BLE001
+            fail("行情库不可用,请先同步 hfq 日线(见本页「在本机跑起来」的命令)。")
+            return
+        if panel is None or len(panel) == 0:
+            fail("行情库里没有 hfq 日线,先同步再跑回测。")
+            return
+        panel = panel[["date", "code", "open", "close"]]
+        n_codes = int(panel["code"].nunique())
+        d0, d1 = str(panel["date"].min())[:10], str(panel["date"].max())[:10]
+        try:
+            weights = cross_sectional_weights(panel, signal=signal, lookback=lookback, top_n=top)
+            if weights is None or getattr(weights, "empty", len(weights) == 0):
+                fail("信号为空:参数太极端或样本太短,换个 lookback / top 再试。")
+                return
+            res = run_backtest(panel, weights, cost_model=CostModel(), init_cash=1_000_000.0)
+        except Exception as exc:  # noqa: BLE001
+            fail("回测出错:" + str(exc)[:120])
+            return
+        self.audit("research.backtest", user=user, target_type="backtest",
+                   detail={"signal": signal, "lookback": lookback, "top": top, "codes": n_codes})
+        m = res.get("metrics", {}) or {}
+        spark = self._equity_sparkline_svg(res.get("equity"))
+
+        def mc(key, label, gkey=None):
+            val = m.get(key)
+            if val is None:
+                shown = "—"
+            elif key == "annual_turnover":
+                shown = f"{float(val):.1f}"
+            else:
+                shown = pct(float(val) * 100)
+            cls = ""
+            if key in ("total_return", "cagr", "sharpe") and isinstance(val, (int, float)):
+                cls = "ok" if val >= 0 else "bad"
+            return f'<div class="card"><p>{metric_label(gkey or key, label)}</p><div class="metric {cls}">{shown}</div></div>'
+
+        signal_cn = "反转(买近期跌得多的)" if signal == "reversal" else "动量(买近期涨得多的)"
+        body = f"""
+<div class="msg">⚠️ 这是<strong>历史模拟回测</strong>,不是预测、更不是稳赚。已用后复权 hfq、含退市股(强制平仓)、含交易成本,但仍是约 3.5 年短窗口,<strong>别据此下单或对外引用</strong>。看不懂指标点带虚线的词,或见 <a href="/glossary">术语表</a>。</div>
+<section class="card">
+  <h2>网页回测结果</h2>
+  <p class="muted">策略 = {signal_cn} · lookback={lookback} 日 · 每期 top {top} 只 · 股票池 {n_codes} 只 · {escape(d0)}~{escape(d1)} · 月度调仓 {len(weights)} 次 · 含费用与滑点</p>
+  <div class="cards">
+    {mc('total_return', '总收益率')}
+    {mc('cagr', '年化收益率')}
+    {mc('sharpe', '夏普比率')}
+    {mc('max_drawdown', '最大回撤')}
+    {mc('annual_turnover', '年化换手率', 'turnover')}
+  </div>
+  {spark}
+  <p class="muted">解读:这个简单的横截面单因子策略在这段真实样本里多半是亏的——这很正常,也正是要点:<strong>含退市、含成本的真实口径下,单因子很难稳定赚钱</strong>。把它当成"建立手感、看清偏差"的练习,而不是赚钱配方。</p>
+</section>
+<section class="card">
+  <h2>换个参数再跑</h2>
+  {self._research_backtest_form(user)}
+</section>
+<section class="card"><p><a class="btn secondary" href="/research">← 返回研究引擎</a> <a class="btn secondary" href="/app">进模拟盘把想法做出来</a></p></section>
+"""
+        self.send_html("网页回测结果", body, user=user)
+
+    def render_glossary(self, head: bool = False):
+        """Public, no-login glossary: one browsable place that defines both the account numbers
+        (METRIC_GLOSSARY) and the quant/finance jargon a beginner meets (TERM_GLOSSARY). The same
+        definitions power the in-page [data-metric] tooltips via /api/glossary."""
+        def metric_card(info: dict) -> str:
+            unit = f"（单位 {escape(info['unit'])}）" if info.get("unit") else ""
+            return (
+                f'<div class="card"><p><strong>{escape(info["term"])}</strong>{unit}</p>'
+                f'<p>{escape(info["short"])}</p>'
+                f'<p class="muted">计算：<code>{escape(info["formula"])}</code></p>'
+                f'<p class="muted">判读：{escape(info["band"])}</p></div>'
+            )
+        def term_card(info: dict) -> str:
+            band = f'<p class="muted">{escape(info["band"])}</p>' if info.get("band") else ""
+            return (
+                f'<div class="card"><p><strong>{escape(info["term"])}</strong></p>'
+                f'<p>{escape(info["short"])}</p>{band}</div>'
+            )
+        metric_cards = "".join(metric_card(i) for i in METRIC_GLOSSARY.values())
+        term_cards = "".join(term_card(i) for i in TERM_GLOSSARY.values())
+        body = f"""
+<section class="card">
+  <h2>术语表 · 把每个名词和数字都讲清楚</h2>
+  <p class="muted">这一页解释你在模拟盘、基础数据、研究引擎里会遇到的名词与指标。判读口吻偏保守:好看的数字往往是数据缺陷,不是真本事。产品里任何带下划虚线的词也可以直接点开看同样的解释。</p>
+  <p><a class="btn secondary" href="/app">进入模拟盘</a> <a class="btn secondary" href="/lessons">量化三大坑</a> <a class="btn secondary" href="/research">研究引擎</a></p>
+</section>
+<section class="card">
+  <h2>账户里的数字</h2>
+  <div class="cards">{metric_cards}</div>
+</section>
+<section class="card">
+  <h2>常见名词</h2>
+  <div class="cards">{term_cards}</div>
+</section>
+"""
+        self.send_html(
+            "术语表 · 名词与指标",
+            body,
+            head=head,
+            meta={"description": "OurWorlds Quant 术语表:用大白话解释 A 股量化里的标的、复权、回测、因子、幸存者偏差、夏普、最大回撤、T+1 等名词与指标。"},
         )
 
     def _preview_ctas(self) -> str:
@@ -4439,7 +4662,7 @@ class AppHandler(BaseHTTPRequestHandler):
             for r in holdings
         ) or '<tr><td colspan="8" class="muted">暂无持仓</td></tr>'
         market_options = "".join(
-            f"<option value=\"{escape(r['code'])}\">{escape(r['code'])} · {escape(r['name'])} · {money(r['price'])}</option>"
+            f"<option value=\"{escape(r['code'])}\">{escape(r['name'])} · {escape(r['code'])} · {money(r['price'])}</option>"
             for r in market
         )
         market_rows = "".join(
@@ -4495,6 +4718,39 @@ class AppHandler(BaseHTTPRequestHandler):
             if learning_pending and int(learning_pending["count"])
             else ""
         )
+        practice_open = "open" if signals else ""
+        holdings_locked = any(int(r['available_qty']) < int(r['qty']) for r in holdings)
+        is_new_user = not orders and not holdings and not signals
+        firstrun_html = (
+            """
+<section class="card" style="border-color:#9bd0ff;background:#f2f9ff">
+  <div class="card-title"><span>新手上路 · 4 步走通模拟盘</span><span class="muted">下完第一笔交易后这张卡会自动消失</span></div>
+  <ol class="guide-list" style="margin:0">
+    <li><strong>看懂上面的数字</strong>:总资产 / 现金 / 收益率,点带虚线的词看解释;更多名词见 <a href="/glossary">术语表</a>。</li>
+    <li><strong>下第一笔模拟单</strong>:在下面「模拟交易」里选一只标的、买入 100 股、点提交(现在是 6 只演示标的)。</li>
+    <li><strong>解锁 T+1</strong>:买入当天「可卖」是 0,点持仓下方的「进入下一交易日」就能卖出。</li>
+    <li><strong>(可选)上真数据或用 AI</strong>:到 <a href="/market">基础数据</a> 换成真实行情,或到 <a href="/account/ai">AI 教练</a> 配 key 让 AI 帮你复盘。</li>
+  </ol>
+</section>
+"""
+            if is_new_user
+            else ""
+        )
+        if holdings:
+            lock_line = (
+                '<p class="msg" style="margin-top:8px">「可卖」为 0 是因为 A 股 <strong>T+1</strong>：买入当天不能卖，'
+                '<strong>进入下一交易日</strong>后才变为可卖。</p>'
+                if holdings_locked else
+                '<p class="muted" style="margin-top:8px">「可卖」=当前可卖出的数量；当天买入的部分要进入下一交易日才解锁（T+1）。</p>'
+            )
+            t1_hint = (
+                f'{lock_line}'
+                f'<form method="post" action="/account/settle" style="display:inline">'
+                f'{csrf_input(user)}<input type="hidden" name="next" value="/app">'
+                f'<button type="submit" class="secondary">进入下一交易日</button></form>'
+            )
+        else:
+            t1_hint = ""
         body = f"""
 {self.message_html(query)}
 {learning_notice}
@@ -4504,23 +4760,27 @@ class AppHandler(BaseHTTPRequestHandler):
   <div class="card"><p>{metric_label('cash', '现金')}</p><div class="metric">{money(snap['cash'])}</div></div>
   <div class="card"><p>{metric_label('return_pct', '收益率')}</p><div class="metric {ret_class}">{pct(snap['return_pct'])}</div></div>
 </section>
+{firstrun_html}
 <section class="card" data-equity-section hidden>
   <div class="card-title"><span>资产曲线</span><span class="muted">模拟账户净值,阴影为最大回撤区间</span></div>
   <div data-equity-curve></div>
 </section>
 {weekly_html}
 <section class="card">
-  <h2>模拟交易</h2>
+  <h2>模拟交易 <span class="muted" style="font-weight:400;font-size:.8em">真·下单 · 点提交后立即按当前行情成交</span></h2>
+  <p class="muted">想先存草稿、之后再执行的，用下面的「策略演练计划」；这里点「提交」=立刻买/卖。</p>
   <form class="formline" method="post" action="/orders">
     {csrf_input(user)}
-    <div><label>标的</label><select name="code">{market_options}</select></div>
+    <div><label>标的<span class="muted">（可买的股票/基金）</span></label><select name="code">{market_options}</select></div>
     <div><label>方向</label><select name="side"><option value="buy">买入</option><option value="sell">卖出</option></select></div>
-    <div><label>数量</label><input name="qty" type="number" min="1" step="1" value="100"></div>
+    <div><label>数量<span class="muted">（每手 100 股）</span></label><input name="qty" type="number" min="100" step="100" value="100"></div>
     <button type="submit">提交</button>
   </form>
+  <p class="muted">A 股规则：买入须为 100 股整数倍；当天买入要先「进入下一交易日」才能卖出（T+1）；每笔含佣金、过户费，卖出另含印花税。</p>
 </section>
-<section class="card">
-  <h2>策略演练计划</h2>
+<details class="card" {practice_open}>
+  <summary style="cursor:pointer"><strong>进阶 · 策略演练计划</strong> <span class="muted">先存草稿、确认后再执行；可批量导入或从行情自动生成候选</span></summary>
+  <p class="muted">演练计划只是「待执行草稿」，<strong>不会立即成交</strong>；要等你点每行的「执行」才会真正下单。</p>
   <form method="post" action="/practice-signals">
     {csrf_input(user)}
     <div class="formline">
@@ -4560,11 +4820,12 @@ class AppHandler(BaseHTTPRequestHandler):
     <p><button type="submit">执行全部待执行计划</button></p>
   </form>
   <table><thead><tr><th>时间</th><th>策略</th><th>代码</th><th>方向</th><th>数量</th><th>现价</th><th>依据</th><th>状态</th><th>操作</th></tr></thead><tbody>{signal_rows}</tbody></table>
-</section>
+</details>
 <div class="grid">
   <section class="card">
     <h2>持仓</h2>
-    <table><thead><tr><th>代码</th><th>名称</th><th>数量</th><th>可卖</th><th>成本</th><th>现价</th><th>市值</th><th>盈亏</th></tr></thead><tbody>{hold_rows}</tbody></table>
+    <table><thead><tr><th>代码</th><th>名称</th><th>数量</th><th>{metric_label('available_qty','可卖')}</th><th>{metric_label('avg_cost','成本')}</th><th>现价</th><th>{metric_label('market_value','市值')}</th><th>{metric_label('pnl','盈亏')}</th></tr></thead><tbody>{hold_rows}</tbody></table>
+    {t1_hint}
   </section>
   <section class="card">
     <h2>基础行情</h2>
@@ -4573,7 +4834,7 @@ class AppHandler(BaseHTTPRequestHandler):
 </div>
 <section class="card">
   <h2>最近成交</h2>
-  <table><thead><tr><th>时间</th><th>代码</th><th>方向</th><th>数量</th><th>价格</th><th>费用</th></tr></thead><tbody>{order_rows}</tbody></table>
+  <table><thead><tr><th>时间</th><th>代码</th><th>方向</th><th>数量</th><th>价格</th><th>{metric_label('fee','费用')}</th></tr></thead><tbody>{order_rows}</tbody></table>
 </section>
 """
         self.send_html("模拟盘", body, user=user)
@@ -4604,11 +4865,19 @@ class AppHandler(BaseHTTPRequestHandler):
             f"<td>{escape(r['source'])}</td><td>{escape(r['as_of'] or '-')}</td><td>{escape(r['updated_at'])}</td></tr>"
             for r in market
         )
+        is_demo_only = all((r["source"] == "demo") for r in summary) if summary else True
+        demo_banner = (
+            '<div class="msg">📊 当前是<strong>演示数据</strong>：只有 6 只示例标的（平安银行、贵州茅台、宁德时代 和 3 只 ETF），'
+            '价格是<strong>写死的、不会变动</strong>，仅用来熟悉下单流程。要换成真实的全市场行情，需要先用下面的数据管线同步进来。</div>'
+            if is_demo_only else ""
+        )
         body = f"""
 {self.message_html(query)}
+{demo_banner}
 <section class="card">
   <h2>基础行情数据</h2>
-  <p>系统会把真实日线库同步为模拟盘可用行情。模拟成交应优先使用不复权 none 价格;后复权 hfq 主要用于研究回测。</p>
+  <p>这里把<strong>真实日线行情导入</strong>为模拟盘可用价格。注意：这是「导入」不是「一键联网下载」——你需要先有一份本地数据（用 <code>python -m src.data.cli</code> 同步生成的 DuckDB 行情库，或一份 CSV 文件），再在这里选来源导入。</p>
+  <p class="muted">名词：「复权」是对历史价格做分红/拆股调整的口径。模拟成交用<strong>不复权(none)</strong>价格更接近真实可成交价；<strong>后复权(hfq)</strong>主要给研究回测用以保持收益连续。不确定就用默认 none。<a href="/glossary">查看术语表 →</a></p>
   <form method="post" action="/market/sync">
     {csrf_input(user)}
     <div class="formline">
@@ -4882,6 +5151,27 @@ class AppHandler(BaseHTTPRequestHandler):
                     limit=int(form.get("limit", "500") or "500"),
                     replace=replace,
                 )
+        except data_bridge.MarketSyncError as exc:
+            # Give actionable guidance per source, but NEVER echo str(exc): MarketSyncError
+            # messages can embed the CSV/DuckDB file path (see test_market_sync_failure_does_not_leak_csv_path).
+            src = form.get("source", "duckdb")
+            if src in ("csv", "csv_text"):
+                message = ("行情同步失败：请检查 CSV——需要表头 code,name,price,prev_close,as_of"
+                           "(后两列可省略),每行一只标的,且至少要有一行数据。")
+            else:
+                message = ("行情同步失败：默认来源「src.data DuckDB」是导入本机已有的行情库,不是联网下载。"
+                           "若还没有,先在终端运行 python -m src.data.cli stock-list 再 python -m src.data.cli daily "
+                           "生成行情库(或先安装 data 依赖),然后回来同步;不想装数据管线就改选「粘贴 CSV」。")
+            self.redirect_operation_failed(
+                "/market",
+                message,
+                "market.sync_failed",
+                exc,
+                user=user,
+                target_type="market_prices",
+                detail={"source": src, "replace": replace},
+            )
+            return
         except Exception as exc:  # noqa: BLE001
             self.redirect_operation_failed(
                 "/market",
@@ -5094,6 +5384,12 @@ class AppHandler(BaseHTTPRequestHandler):
     def render_account_ai(self, user, query):
         row = ai_service.get_key_row(self.con, user["id"])
         used = ai_service.daily_tokens(self.con, user["id"])
+        cap = ai_service.DEFAULT_DAILY_TOKEN_CAP
+        if row is not None:
+            try:
+                cap = int(row["daily_token_cap"] or ai_service.DEFAULT_DAILY_TOKEN_CAP)
+            except (KeyError, IndexError, TypeError):
+                cap = ai_service.DEFAULT_DAILY_TOKEN_CAP
         if row is None:
             status_html = '<p class="muted">尚未配置 API key。</p>'
             enabled = False
@@ -5104,7 +5400,7 @@ class AppHandler(BaseHTTPRequestHandler):
                 f'<tr><th>Key</th><td>{escape(row["masked_hint"])}</td></tr>'
                 f'<tr><th>Base URL</th><td>{escape(row["base_url"])}</td></tr>'
                 f'<tr><th>模型</th><td>{escape(row["model"])}</td></tr>'
-                f'<tr><th>今日用量</th><td>{used} tokens</td></tr>'
+                f'<tr><th>今日用量</th><td>{used} / {cap} tokens（每日上限,超出后次日恢复）</td></tr>'
                 f'<tr><th>上次校验</th><td>{escape(row["status"] or "未校验")}</td></tr></table>'
             )
         disabled_note = (
@@ -5128,6 +5424,16 @@ class AppHandler(BaseHTTPRequestHandler):
 {disabled_note}
 <section class="card">
   <h2>AI 教练配置</h2>
+  <details class="msg" style="margin-bottom:12px">
+    <summary style="cursor:pointer"><strong>第一次配置？先看这里：什么是 DeepSeek API key</strong></summary>
+    <ul class="guide-list" style="margin:8px 0 0">
+      <li><strong>它是什么</strong>：DeepSeek 是一个大模型服务，API key 是一串 <code>sk-</code> 开头的密钥，让本站用<strong>你自己的</strong>账户去调用它（和网页版 DeepSeek 聊天是两回事）。</li>
+      <li><strong>去哪申请</strong>：到 DeepSeek 开放平台 <a href="https://platform.deepseek.com" target="_blank" rel="noopener noreferrer">platform.deepseek.com</a> 注册 → 充值 → 在 API Keys 页创建一个 key，复制过来。</li>
+      <li><strong>要花钱吗</strong>：会。调用花的是<strong>你自己 DeepSeek 余额里的钱</strong>（按用量计费，本站不代付），一次复盘通常几分到几毛钱。</li>
+      <li><strong>用量上限</strong>：本站每天最多用 {cap} tokens，超出后次日恢复。</li>
+      <li><strong>不想花钱</strong>：AI 是可选的——免费的「量化三大坑」课程、模拟盘下单和复盘都不需要 key。</li>
+    </ul>
+  </details>
   {status_html}
   <form method="post" action="/account/ai">
     {csrf_input(user)}
@@ -5138,7 +5444,7 @@ class AppHandler(BaseHTTPRequestHandler):
       <div><label>Base URL</label><input name="base_url" value="{cur_base}"></div>
       <div><label>模型</label><select name="model">{model_options}</select></div>
     </div>
-    <p class="muted">默认建议 DeepSeek V4 Flash;复杂复盘可切换 V4 Pro。key 用服务端密钥加密后存储,仅调用时解密,不显示明文、不进入导出或日志。</p>
+    <p class="muted">Base URL 和模型<strong>不懂就保持默认</strong>(默认 DeepSeek V4 Flash,便宜够用;复杂复盘可切 V4 Pro)。key 用服务端密钥加密后存储,仅调用时解密,不显示明文、不进入导出或日志。</p>
     <p><button type="submit">保存并校验</button></p>
   </form>
   <div class="row">
@@ -5229,14 +5535,17 @@ class AppHandler(BaseHTTPRequestHandler):
         self.audit("account.reset", user=user, target_type="account", target_id=user["id"])
         self.redirect("/account?msg=" + quote("模拟账户已重置,可以重新开始演练。"))
 
-    def handle_account_settle(self, user):
+    def handle_account_settle(self, user, form=None):
+        dest = (form.get("next") if form else "") or "/account"
+        if dest not in ("/app", "/account"):
+            dest = "/account"
         try:
             count = services.settle_account(self.con, user["id"])
         except ValueError as exc:
-            self.redirect("/account?err=" + quote(str(exc)))
+            self.redirect(dest + "?err=" + quote(str(exc)))
             return
         self.audit("account.settle", user=user, target_type="account", target_id=user["id"], detail={"released_holdings": count})
-        self.redirect("/account?msg=" + quote(f"已进入下一交易日,{count} 个持仓标的变为可卖。"))
+        self.redirect(dest + "?msg=" + quote(f"已进入下一交易日,{count} 个持仓标的变为可卖。"))
 
     def handle_account_profile(self, user, form):
         try:
@@ -5878,7 +6187,7 @@ class AppHandler(BaseHTTPRequestHandler):
             f"<tr><td>{r['rank']}</td><td><a href=\"/u/{r['row']['user_id']}\">{escape(display_nickname(r['row']))}</a></td><td>{money(r['row']['equity'])}</td>"
             f"<td>{pct(r['return_pct'])}</td></tr>"
             for r in board
-        ) or '<tr><td colspan="4" class="muted">暂无参赛用户</td></tr>'
+        ) or '<tr><td colspan="4" class="muted">榜单还空着——到 <a href="/app">模拟盘</a> 下第一笔交易,你就会出现在这里。</td></tr>'
         share_url = f"{self.base_url()}/showcase/public"
         profile_url = f"{self.base_url()}/u/{user['id']}"
         body = f"""
@@ -5914,7 +6223,7 @@ class AppHandler(BaseHTTPRequestHandler):
             f"<tr><td>{r['rank']}</td><td><a href=\"/u/{r['row']['user_id']}\">{escape(display_nickname(r['row']))}</a></td>"
             f"<td>{money(r['row']['equity'])}</td><td>{pct(r['return_pct'])}</td></tr>"
             for r in board
-        ) or '<tr><td colspan="4" class="muted">暂无参赛用户</td></tr>'
+        ) or '<tr><td colspan="4" class="muted">还没有人上榜——完成注册和第一笔模拟交易,你就是第一个参赛者。</td></tr>'
         contest_title = contest['title'] if contest else '模拟盘公开赛'
         description = contest['description'] if contest else '展示参赛者的模拟盘收益表现。'
         participant_count = int(summary.get("participant_count") or 0)
@@ -6045,7 +6354,7 @@ class AppHandler(BaseHTTPRequestHandler):
 </section>
 <section class="card">
   <h2>最近成交</h2>
-  <table><thead><tr><th>时间</th><th>代码</th><th>方向</th><th>数量</th><th>价格</th><th>费用</th></tr></thead><tbody>{order_rows}</tbody></table>
+  <table><thead><tr><th>时间</th><th>代码</th><th>方向</th><th>数量</th><th>价格</th><th>{metric_label('fee','费用')}</th></tr></thead><tbody>{order_rows}</tbody></table>
 </section>
 <section class="card">
   <h2>最近资产曲线</h2>

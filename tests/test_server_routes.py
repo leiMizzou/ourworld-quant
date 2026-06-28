@@ -1393,10 +1393,10 @@ class ServerRoutesTest(unittest.TestCase):
         self.assertEqual(status, 303)
         self.assertEqual(headers.get("X-Content-Type-Options"), "nosniff")
         self.assertEqual(headers.get("Cache-Control"), "no-store")
-        self.assertNotIn("owq_session=", headers.get("Set-Cookie", ""))
-        self.assertIn("owq_email_confirm=", headers.get("Set-Cookie", ""))
-        self.assertIn("Max-Age=0", headers.get("Set-Cookie", ""))
-        self.assertIn("/login", headers.get("Location", ""))
+        # Auto-login: the set-password response now establishes a session (the session cookie is
+        # the last Set-Cookie header, shadowing the email_confirm-clear cookie in this dict helper).
+        self.assertIn("owq_session=", headers.get("Set-Cookie", ""))
+        self.assertNotIn("/login", headers.get("Location", ""))
         self.assertNotIn("routelogin", headers.get("Location", ""))
         self.assertNotIn("email=", headers.get("Location", ""))
         user = self.con.execute("SELECT id, login_name, password_hash FROM users WHERE email='routelogin@example.com'").fetchone()
@@ -1451,10 +1451,18 @@ class ServerRoutesTest(unittest.TestCase):
             headers={"Content-Type": "application/x-www-form-urlencoded", "Cookie": confirm_cookie},
         )
         self.assertEqual(status, 303)
-        self.assertIn("/login", headers.get("Location", ""))
+        # New behavior: set-password auto-logs the user in (no bounce back to /login).
+        loc = headers.get("Location", "")
+        self.assertNotIn("/login", loc)
+        new_cookie = headers.get("Set-Cookie", "")
+        self.assertIn("owq_session=", new_cookie)
         user = self.con.execute("SELECT id FROM users WHERE email='code-route@example.com'").fetchone()
         self.assertIsNotNone(user)
         self.assertEqual(services.authenticate_user(self.con, "code-route@example.com", "Password1234"), user["id"])
+        # The freshly issued session cookie actually works.
+        session_cookie = new_cookie.split(";", 1)[0]
+        st2, _, _ = self.request("GET", "/account", headers={"Cookie": session_cookie})
+        self.assertEqual(st2, 200)
 
     def test_email_code_page_rejects_wrong_code_without_leaking_email(self):
         _, payload = self.start_registration(email="wrong-code-route@example.com")
@@ -1620,7 +1628,8 @@ class ServerRoutesTest(unittest.TestCase):
             headers={"Content-Type": "application/x-www-form-urlencoded", "Cookie": confirm_cookie},
         )
         self.assertEqual(status, 303)
-        self.assertIn("/login", headers.get("Location", ""))
+        self.assertNotIn("/login", headers.get("Location", ""))  # auto-login
+        self.assertIn("owq_session=", headers.get("Set-Cookie", ""))
 
         status, headers, _ = self.request(
             "POST",
@@ -1655,7 +1664,9 @@ class ServerRoutesTest(unittest.TestCase):
             headers={"Content-Type": "application/x-www-form-urlencoded", "Cookie": confirm_cookie},
         )
         self.assertEqual(status, 303)
-        self.assertIn("/login", headers.get("Location", ""))
+        # Auto-login after reset too: lands in-app with a fresh session, not on /login.
+        self.assertNotIn("/login", headers.get("Location", ""))
+        self.assertIn("owq_session=", headers.get("Set-Cookie", ""))
         user = services.get_user(self.con, user_id)
         self.assertEqual(user["login_name"], "reset-route")
         self.assertEqual(user["nickname"], "Route Public Name")
@@ -1705,7 +1716,8 @@ class ServerRoutesTest(unittest.TestCase):
             headers={"Content-Type": "application/x-www-form-urlencoded", "Cookie": confirm_cookie},
         )
         self.assertEqual(status, 303)
-        self.assertIn("/login", headers.get("Location", ""))
+        self.assertNotIn("/login", headers.get("Location", ""))  # auto-login after reset
+        self.assertIn("owq_session=", headers.get("Set-Cookie", ""))
         self.assertIsNone(services.authenticate_user(self.con, "forgot-route", "Password1234"))
         self.assertEqual(services.authenticate_user(self.con, "forgot-route", "NewPassword1234"), user_id)
 
@@ -1742,7 +1754,8 @@ class ServerRoutesTest(unittest.TestCase):
             headers={"Content-Type": "application/x-www-form-urlencoded", "Cookie": confirm_cookie},
         )
         self.assertEqual(status, 303)
-        self.assertIn("/login", headers.get("Location", ""))
+        self.assertNotIn("/login", headers.get("Location", ""))  # auto-login after reset
+        self.assertIn("owq_session=", headers.get("Set-Cookie", ""))
         self.assertIsNone(services.authenticate_user(self.con, "forgot-code", "Password1234"))
         self.assertEqual(services.authenticate_user(self.con, "forgot-code@example.com", "NewPassword1234"), user_id)
 
@@ -2104,7 +2117,9 @@ class ServerRoutesTest(unittest.TestCase):
                 headers={"Content-Type": "application/x-www-form-urlencoded", "Host": "quant.ourworlds.app", "Cookie": confirm_cookie},
             )
             self.assertEqual(status, 303)
-            self.assertNotIn("owq_session=", headers.get("Set-Cookie", ""))
+            # Auto-login on set-password also issues a Secure session cookie on public requests.
+            self.assertIn("owq_session=", headers.get("Set-Cookie", ""))
+            self.assertIn("Secure", headers.get("Set-Cookie", ""))
 
             status, headers, _ = self.request(
                 "POST",
