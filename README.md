@@ -88,10 +88,10 @@ python3 -m src.app.server --sqlite-maintenance
 - `/data-status`:公开数据透明页,展示行情来源、预测候选和赛场活跃度。
 - `/robots.txt`、`/sitemap.xml`:公开传播和搜索引擎发现文件。
 
-运行测试:
+运行测试(必须用装好依赖的 venv;系统 python3 缺 numpy/duckdb 等会让整批测试模块静默加载失败):
 
 ```bash
-python3 -m unittest discover -s tests
+.venv/bin/python -m unittest discover -s tests
 ```
 
 公网运行脚本、launchd 守护进程模板、行情同步定时任务、发布检查和日志路径见 `deploy/run-public-app.sh`、`deploy/check-public.sh`、`deploy/launchd/` 与 `deploy/README.md`。

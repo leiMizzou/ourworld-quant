@@ -48,7 +48,7 @@ class ServerRoutesTest(unittest.TestCase):
         AppHandler.db_path = None
         self.httpd = ThreadingHTTPServer(("127.0.0.1", 0), AppHandler)
         self.port = self.httpd.server_address[1]
-        self.thread = threading.Thread(target=self.httpd.serve_forever, daemon=True)
+        self.thread = threading.Thread(target=lambda: self.httpd.serve_forever(poll_interval=0.01), daemon=True)
         self.thread.start()
 
     def tearDown(self):
