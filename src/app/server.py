@@ -87,67 +87,67 @@ USAGE_FLOW_STEPS = (
     {
         "title": "公开了解",
         "path": "/",
-        "summary": "先看首页、公开榜单、数据透明页和论坛,确认这是模拟盘训练系统。",
-        "detail": "未登录用户可以查看赛场状态、行情覆盖、公开战绩和策略复盘,但不能提交交易或发帖。",
+        "summary": "先看首页和 3 分钟学习体验,确认这是 AI 量化学习和模拟训练系统。",
+        "detail": "未登录用户也可以先看演示、课程、公开榜单和论坛,不用马上注册或配置 API key。",
     },
     {
         "title": "邮箱注册",
         "path": "/register",
         "summary": "填写邮箱并同意条款,收到注册码后到确认页设置用户名和密码。",
-        "detail": "注册码和备用链接 15 分钟内有效。设置好用户名和密码后会自动登录,直接进入模拟盘。",
+        "detail": "注册码和备用链接 15 分钟内有效。设置好用户名和密码后会自动登录,先进入学习工作台。",
     },
     {
-        "title": "登录进入模拟盘",
-        "path": "/login",
-        "summary": "使用用户名或邮箱加密码进入模拟盘,系统自动创建 100 万模拟资金账户。",
-        "detail": "登录后可以查看总资产、现金、收益率、持仓、行情和最近成交。",
+        "title": "选择预设学习目标",
+        "path": "/learn",
+        "summary": "不知道问什么也没关系,先点蓝色推荐按钮创建示例教练任务。",
+        "detail": "第一圈不用 DeepSeek key。系统会用内置示例教练带你完成目标、拆解、练习和复盘。",
     },
     {
-        "title": "制定演练计划",
+        "title": "生成今日练习",
+        "path": "/learn#continue-learning-task",
+        "summary": "把教练拆解变成 1 条今日练习,先不要调参数。",
+        "detail": "保存后只是待观察计划,不会自动成交;你仍然需要回学习工作台确认后再生成观察记录。",
+    },
+    {
+        "title": "生成观察记录",
+        "path": "/learn#today-practice",
+        "summary": "只看观察材料、练习规模和依据,确认后生成观察记录。",
+        "detail": "系统只会生成一条模拟观察记录,不产生真实交易;生成后会出现观察复盘卡片。",
+    },
+    {
+        "title": "保存三问复盘",
+        "path": "/learn#learning-review",
+        "summary": "第一次不用写专业分析,先保存想练什么、有没有按规则做、下次改哪一点。",
+        "detail": "可以一键保存示例复盘,之后再改成自己的话;保存后第一次学习闭环就完成。",
+    },
+    {
+        "title": "进入进阶模拟盘",
         "path": "/app",
-        "summary": "先保存策略演练计划,再逐条或批量执行为模拟成交。",
-        "detail": "可以手动选择标的,也可以从行情反转/动量候选或研究篮子导入待执行计划。",
-    },
-    {
-        "title": "组合与数据",
-        "path": "/portfolio-lab",
-        "summary": "组合设计页读取真实行情和预测候选,把研究结果转成可执行演练。",
-        "detail": "基础数据页负责同步行情,数据透明页公开展示当前行情覆盖、最新交易日和预测匹配状态。",
-    },
-    {
-        "title": "公开展示和讨论",
-        "path": "/showcase",
-        "summary": "加入公开赛后,榜单、个人战绩页和战绩卡会展示模拟盘结果。",
-        "detail": "可以从比赛页生成战绩复盘帖,再到论坛围绕策略、回撤和执行偏差讨论。",
-    },
-    {
-        "title": "账户和运维",
-        "path": "/account",
-        "summary": "账户页负责资料、导出、重置模拟账户和关闭账户;管理员在后台处理系统运维。",
-        "detail": "管理员可备份数据库、查看体检、处理举报和支持请求,正式发布前必须完成真实发信和严格体检。",
+        "summary": "完成第一圈后,再查看账户、持仓、成交、组合设计和公开榜单。",
+        "detail": "高级模拟盘适合继续练习、跟踪收益和公开复盘;新手第一步仍然从学习工作台开始。",
     },
 )
 USAGE_GAPS = (
-    "新用户以前需要在多个页面之间猜路径,注册、确认、登录、模拟盘和公开赛关系不够集中。",
-    "数据状态、组合设计和模拟交易虽然已经打通,但缺少一页把“先看数据、再生成计划、再执行复盘”的闭环讲清楚。",
-    "演示主要依赖管理员生成 demo 数据,普通访客无法在不登录的情况下快速理解完整操作。",
+    "新用户以前需要在多个页面之间猜路径,注册、确认、登录、学习工作台和高级模拟盘关系不够集中。",
+    "数据状态、组合设计和模拟交易虽然已经打通,但第一圈更需要讲清“选目标、看拆解、生成练习、保存复盘”的闭环。",
+    "演示如果先讲下单和组合设计,普通访客会误以为必须先懂交易界面才能开始。",
     "没有语音解说入口,对录屏、路演和非技术用户讲解不够友好。",
 )
 USAGE_IMPROVEMENTS = (
-    "新增公开使用指南,把访客、注册用户、参赛用户和管理员的路径合并到一页。",
-    "新增自动演示页,用纯 HTML/CSS 自动轮播核心步骤,在当前安全 CSP 下不启用脚本。",
-    "新增 EdgeTTS 语音生成命令,可把固定演示文案生成 MP3 并由演示页播放。",
-    "导航、首页入口和 sitemap 增加指南/演示入口,降低新用户第一次使用的路径成本。",
+    "使用指南改成学习工作台优先,把第一次闭环放在高级模拟盘之前。",
+    "自动演示页用纯 HTML/CSS 轮播新手学习闭环,在当前安全 CSP 下不启用脚本。",
+    "EdgeTTS 语音生成命令使用同一段学习闭环文案,可生成 MP3 用于演示或录屏。",
+    "导航、首页入口和 sitemap 保留指南/演示入口,降低新用户第一次使用的路径成本。",
 )
 DEMO_NARRATION_TEXT = (
-    "欢迎使用 OurWorlds Quant 模拟盘。第一步,先通过首页、公开榜单、数据透明页和论坛了解赛场。"
-    "第二步,使用邮箱注册。系统会发送一次性注册码,确认邮箱后设置用户名和密码,完成后会自动登录。"
-    "第三步,进入模拟盘,先熟悉账户、行情和下单。"
-    "第四步,在模拟盘里先保存策略演练计划,再把计划执行成模拟成交。"
-    "第五步,到组合设计页使用真实行情和研究预测候选,把研究结果转成待执行计划。"
-    "第六步,加入公开赛,查看排名、个人战绩页和战绩卡。"
-    "第七步,把战绩复盘发布到论坛,围绕策略逻辑、执行偏差和风险控制继续讨论。"
-    "所有交易都是模拟训练,不构成投资建议,也不产生真实证券委托。"
+    "欢迎使用 OurWorlds Quant AI 量化学习工作台。第一步,先看 3 分钟学习体验,知道这里不是让 AI 告诉你买什么。"
+    "第二步,使用邮箱注册。确认注册码并设置密码后,系统会自动进入学习工作台。"
+    "第三步,如果你不知道该问什么,直接点击预设学习目标。没有 DeepSeek key 也可以用示例教练开始,不会产生 AI 费用。"
+    "第四步,先看教练拆解,然后点击生成一条今日练习。保存后只是待观察计划,不会自动成交。"
+    "第五步,回到今日练习,只确认观察材料、练习规模和依据,再生成观察记录。"
+    "第六步,观察后先保存三问复盘:想练什么,有没有按小数量规则做,下次先改哪一点。"
+    "第七步,完成第一圈后,再进入高级模拟盘查看账户、持仓、组合设计、公开榜单和论坛复盘。"
+    "所有内容都只用于学习和模拟训练,不构成投资建议,也不产生真实证券委托。"
 )
 LEARNING_PRESETS = (
     {
@@ -179,8 +179,8 @@ LEARNING_PRESETS = (
         "difficulty": "balanced",
         "template": "reversal",
         "title": "做一次反转观察",
-        "summary": "观察短期跌幅靠前的候选,学习假设、仓位和复盘记录。",
-        "goal": "我想通过一次反转观察练习,学习什么是策略假设、候选筛选、仓位控制和复盘记录,不要追求收益,重点学习如何验证想法。",
+        "summary": "观察短期跌幅靠前的候选,学习观察想法、数量边界和复盘记录。",
+        "goal": "我想通过一次反转观察练习,学习什么是观察想法、候选筛选、数量边界和复盘记录,不要追求收益,重点学习如何验证一个想法。",
     },
     {
         "level": "入门练习",
@@ -223,11 +223,48 @@ LEARNING_PRESETS = (
         "goal": "我想学习量化研究里常见的过拟合和回测陷阱,包括未来函数、幸存者偏差、样本内外和成本低估,并设计一个模拟盘层面的检查练习。",
     },
 )
+LEARNING_DEMO_COACH_MARKDOWN = """
+### 目标拆解
+1. 先把“量化投资”理解成一套可记录、可复盘的学习流程,不是让 AI 替你判断涨跌。
+2. 第一次练习只观察少量示例对象,重点看数据、规则、依据和风险边界。
+3. 练习完成后不要先问赚没赚钱,先问自己是否说清楚了为什么观察、观察什么、什么时候停止。
+
+### 你需要掌握的 3 个概念
+- **数据**: 你看到的价格、涨跌和来源日期,只是练习材料。
+- **规则**: 系统把一个想法变成固定步骤,这样以后才可以复盘。
+- **复盘**: 记录想练什么、有没有按规则做、下次先改哪一点。
+
+### 第一次练习的边界
+- 只做模拟训练,不产生真实委托。
+- 每个对象只用最小练习数量。
+- 这不是买卖建议,只是告诉你系统会怎样把学习目标变成可观察的练习。
+
+### 下一步
+先看下面的练习草稿,确认你能看懂每一列在说什么;真正登录后,系统才会把类似草稿保存到你的模拟盘里。
+"""
+LEARNING_DEMO_ROWS = (
+    {
+        "name": "示例指数基金 A",
+        "action": "观察 100 份模拟数量",
+        "why": "价格波动相对容易理解,适合练习看“目标-记录-复盘”。",
+    },
+    {
+        "name": "示例行业基金 B",
+        "action": "观察 100 份模拟数量",
+        "why": "用来比较不同对象的涨跌和风险差异,不追求短期结果。",
+    },
+    {
+        "name": "示例股票 C",
+        "action": "观察 100 股模拟数量",
+        "why": "学习单只股票波动更大时,为什么要先写清楚风险边界。",
+    },
+)
 
 
 CSS = """
 :root{color-scheme:light;--ink:#101217;--muted:#59616f;--soft:#eef1f5;--paper:#f7f8fa;--panel:#ffffff;--line:#d8dee8;--blue:#1d4ed8;--green:#087f5b;--amber:#b45309;--red:#b91c1c}
 *{box-sizing:border-box}
+img,svg,video,canvas{max-width:100%;height:auto}
 body{margin:0;background:var(--paper);color:var(--ink);font-family:'Space Grotesk','Noto Sans SC',-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
 a{color:inherit;text-decoration:none}a:hover{text-decoration:underline}
 h1,h2,h3,p{letter-spacing:0}p{margin:0;color:var(--muted)}
@@ -252,19 +289,34 @@ h1,h2,h3,p{letter-spacing:0}p{margin:0;color:var(--muted)}
 .owq-tip{position:absolute;z-index:60;max-width:320px;background:var(--ink);color:#fff;padding:13px 15px;border-radius:9px;font-size:13px;line-height:1.55;box-shadow:0 10px 30px rgba(0,0,0,.28)}.owq-tip h4{margin:0 0 4px;font-size:13px;color:#fff}.owq-tip .owq-tip-f{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:#cbd5e1;margin-top:7px;word-break:break-word}.owq-tip .owq-tip-b{margin-top:9px;color:#fde68a}
 .badge,.pill{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:999px;padding:3px 8px;font-size:12px;font-weight:700;background:#fff;color:var(--muted);white-space:nowrap}
 .card-title{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:14px;font-size:13px;color:var(--muted)}
+.beginner-focus{border-color:#9bd0ff;background:#fbfdff}.beginner-focus-head{display:grid;grid-template-columns:1fr auto;gap:16px;align-items:center}.beginner-focus strong{display:block;font-size:22px;line-height:1.2;margin:6px 0}.beginner-focus p{margin:0}.beginner-focus-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}.beginner-focus-steps div{background:#fff;border:1px solid #d7e6ff;border-radius:8px;padding:12px}.beginner-focus-steps b{display:block;color:var(--blue);margin-bottom:4px}.beginner-focus-steps span{display:block;color:var(--ink);font-size:13px;line-height:1.35}.achievement-badge{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:center;background:#fff;border:1px solid #86efac;border-radius:8px;padding:14px;margin-top:14px}.achievement-badge-mark{display:flex;align-items:center;justify-content:center;width:64px;height:64px;border-radius:8px;background:#f0fdf4;border:1px solid #bbf7d0;color:var(--green);font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;font-size:26px;font-weight:800}.achievement-badge b{display:block;color:var(--green);margin-bottom:4px}.achievement-badge span{display:block;color:var(--ink)}
+.loop-promise{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;background:#fff;border:1px solid #d7e6ff;border-radius:8px;padding:10px;margin-top:12px}.loop-promise div{background:#f8fbff;border:1px solid #e5efff;border-radius:8px;padding:10px}.loop-promise b{display:block;color:var(--blue);font-size:13px;margin-bottom:3px}.loop-promise span{display:block;color:var(--ink);font-size:12px;line-height:1.35}
 .flow-map{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin:16px 0}.flow-step{background:#fff;border:1px solid var(--line);border-radius:8px;padding:18px}.flow-step span{display:inline-block;color:var(--blue);font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px}.flow-step strong{display:block;font-size:18px;line-height:1.2;margin-bottom:8px}.flow-step p{margin:0 0 10px}.flow-step a{font-weight:700;color:var(--blue)}
-.preset-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:16px 0}.preset-form{margin:0}.preset-card{display:block;width:100%;min-height:178px;text-align:left;background:#fff;color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:18px;white-space:normal}.preset-card:hover{border-color:var(--ink);background:#fbfcfe}.preset-card strong{display:block;font-size:18px;line-height:1.2;margin:8px 0}.preset-card span{display:inline-flex;margin-right:6px}.preset-card p{margin:8px 0 0;color:var(--muted);font-weight:400}
-.markdown-body{background:#fff;border:1px solid var(--line);border-radius:8px;padding:18px;overflow:auto}.markdown-body h3,.markdown-body h4{margin:18px 0 8px;font-weight:800;line-height:1.2}.markdown-body h3:first-child,.markdown-body h4:first-child{margin-top:0}.markdown-body p{margin:10px 0;color:var(--ink)}.markdown-body ul,.markdown-body ol{margin:10px 0 10px 22px;padding:0;color:var(--ink)}.markdown-body li{margin:6px 0}.markdown-body code{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;background:var(--soft);border:1px solid var(--line);border-radius:5px;padding:1px 5px}.markdown-body strong{font-weight:800}
+.loop-progress{border-color:#c7d2fe;background:#f8fbff}.loop-progress-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:14px}.loop-progress-head h2{margin-bottom:6px}.loop-progress-score{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;font-size:26px;font-weight:800;color:var(--blue);white-space:nowrap}.loop-progress-score span{display:block;margin-top:5px;font-family:'Space Grotesk','Noto Sans SC',-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;font-size:12px;font-weight:800;color:var(--muted);white-space:normal}.loop-steps{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin:16px 0}.loop-step{background:#fff;border:1px solid var(--line);border-radius:8px;padding:12px;min-height:112px}.loop-step span{display:inline-flex;margin-bottom:8px;font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:var(--muted);letter-spacing:1px}.loop-step strong{display:block;line-height:1.25}.loop-step p{font-size:13px;margin-top:7px}.loop-step.done{border-color:#86efac;background:#f0fdf4}.loop-step.done span{color:var(--green)}.loop-step.current{border-color:#93c5fd;background:#eff6ff}.loop-step.current span{color:var(--blue);font-weight:800}.loop-next{display:flex;align-items:center;justify-content:space-between;gap:14px;background:#fff;border:1px solid var(--line);border-radius:8px;padding:14px}.loop-next p{margin:0}
+.loop-complete{background:#fff;border:1px solid #86efac;border-radius:8px;padding:16px}.loop-complete-head{display:grid;grid-template-columns:1.4fr .9fr;gap:16px;align-items:stretch}.loop-complete-head strong{display:block;font-size:22px;line-height:1.2;margin:6px 0}.achievement-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.achievement-metrics div{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:12px}.achievement-metrics b{display:block;font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;font-size:24px;line-height:1;color:var(--green)}.achievement-metrics span{display:block;margin-top:6px;color:var(--muted);font-size:12px}.first-win{background:#f7fef9;border:1px solid #bbf7d0;border-radius:8px;padding:14px;margin-top:14px}.first-win strong{display:block;font-size:20px;line-height:1.2;margin-bottom:6px}.first-win-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}.first-win-grid div{background:#fff;border:1px solid var(--line);border-radius:8px;padding:12px}.first-win-grid b{display:block;color:var(--green);margin-bottom:4px}.first-win-grid p{margin:0;color:var(--ink)}.next-focus{background:#f2f9ff;border:1px solid #9bd0ff;border-radius:8px;padding:16px;margin-top:14px}.next-focus-head{display:grid;grid-template-columns:1fr auto;gap:16px;align-items:center}.next-focus-head strong{display:block;font-size:22px;line-height:1.2;margin:6px 0}.next-focus-head form{margin:0}.next-focus-points{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}.next-focus-points div{background:#fff;border:1px solid var(--line);border-radius:8px;padding:12px}.next-focus-points b{display:block;color:var(--ink);margin-bottom:4px}.next-focus-points p{margin:0;color:var(--muted);font-size:13px}.next-quests{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}.quest-form{margin:0}.quest-card{display:block;width:100%;min-height:146px;text-align:left;background:#fff;color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:16px;white-space:normal}.quest-card:hover{border-color:var(--blue);background:#f8fbff}.quest-card strong{display:block;font-size:17px;line-height:1.25;margin:8px 0}.quest-card p{margin:0;color:var(--muted);font-weight:400}.quest-card small{display:block;margin-top:10px;color:var(--blue);font-weight:800}
+.task-bridge{border-color:#bbf7d0;background:#f7fef9}.task-bridge-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}.task-bridge-head strong{display:block;font-size:22px;line-height:1.2;margin:6px 0}.task-bridge-score{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;font-size:22px;font-weight:800;color:var(--green);white-space:nowrap}.bridge-points{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}.bridge-point{background:#fff;border:1px solid var(--line);border-radius:8px;padding:14px}.bridge-point span{display:block;margin-bottom:7px;font-size:12px;font-weight:800;color:var(--blue)}.bridge-point p{margin:0;color:var(--ink)}.bridge-compare{background:#fff;border:1px solid #9bd0ff;border-radius:8px;padding:14px;margin-top:14px}.bridge-compare h3{margin:0 0 8px}.bridge-compare-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.bridge-compare-grid div{background:#fbfdff;border:1px solid var(--line);border-radius:8px;padding:12px}.bridge-compare-grid b{display:block;color:var(--ink);margin-bottom:4px}.bridge-compare-grid p{margin:0;color:var(--muted)}
+.risk-boundary-card{border-color:#bbf7d0;background:#f7fef9}.risk-boundary-head h2{margin:6px 0}.risk-boundary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}.risk-boundary-grid div{background:#fff;border:1px solid var(--line);border-radius:8px;padding:12px}.risk-boundary-grid b{display:block;color:var(--ink);margin-bottom:4px}.risk-boundary-grid p{margin:0;color:var(--muted)}.risk-boundary-check{background:#fff;border:1px solid #9bd0ff;border-radius:8px;padding:12px;margin-top:12px}.risk-boundary-check strong{display:block;color:var(--blue);margin-bottom:4px}.risk-boundary-check p{margin:0;color:var(--ink)}
+.journey-card{border-color:#d7e6ff;background:#fbfdff}.journey-summary{background:#fff;border:1px solid var(--line);border-radius:8px;padding:16px;margin:16px 0}.journey-summary-head{display:grid;grid-template-columns:1fr .95fr;gap:14px;align-items:stretch}.journey-summary-head strong{display:block;font-size:22px;line-height:1.2;margin:6px 0}.journey-summary-head p{margin:0;color:var(--muted)}.journey-summary-next{background:#f2f9ff;border:1px solid #9bd0ff;border-radius:8px;padding:12px}.journey-summary-next b{display:block;color:var(--blue);margin-bottom:5px}.journey-summary-next span{display:block;color:var(--ink);margin-bottom:10px}.journey-summary-next .btn{width:100%}.journey-summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}.journey-summary-grid div{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:12px}.journey-summary-grid b{display:block;font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;font-size:24px;line-height:1;color:var(--ink)}.journey-summary-grid span{display:block;margin-top:6px;color:var(--muted);font-size:12px}.journey-summary-takeaway{background:#f8fbff;border:1px solid #d7e6ff;border-radius:8px;padding:12px;margin-top:12px}.journey-summary-takeaway b{display:block;color:var(--blue);margin-bottom:5px}.journey-summary-takeaway p{margin:0;color:var(--ink)}.journey-summary-takeaway p span{display:inline-flex;margin-right:8px;color:var(--green);font-weight:800}.journey-summary-takeaway small{display:block;margin-top:6px;color:var(--muted);line-height:1.4}.journey-summary-templates{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px 12px;margin:12px 0 0!important;color:var(--ink)!important}.journey-summary-templates b{color:var(--green);margin-right:8px}.journey-upgrade{background:#f7fef9;border:1px solid #bbf7d0;border-radius:8px;padding:14px;margin-top:12px}.journey-upgrade-head{display:grid;grid-template-columns:1fr auto;gap:14px;align-items:center}.journey-upgrade-head strong{display:block;font-size:21px;line-height:1.2;margin:6px 0}.journey-upgrade-badge{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;font-size:22px;font-weight:800;color:var(--green);white-space:nowrap}.journey-upgrade-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:12px}.journey-upgrade-grid div{background:#fff;border:1px solid var(--line);border-radius:8px;padding:12px}.journey-upgrade-grid b{display:block;color:var(--ink);margin-bottom:4px}.journey-upgrade-grid p{margin:0;color:var(--muted)}.journey-list{display:grid;gap:10px;margin-top:14px}.journey-item{display:grid;grid-template-columns:86px 1fr auto;gap:14px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:8px;padding:14px}.journey-step{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;font-weight:800;color:var(--blue)}.journey-main strong{display:block;line-height:1.25}.journey-main p{margin:6px 0 0}.journey-meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.journey-reflection{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px;margin-top:10px}.journey-reflection b{display:block;color:var(--green);margin-bottom:3px}.journey-reflection p{margin:0;color:var(--ink)}.journey-action{display:flex;align-items:center;justify-content:flex-end}.journey-status-done{color:var(--green)}.journey-status-now{color:var(--blue)}.journey-status-wait{color:var(--amber)}
+.starter-card{border-color:#9bd0ff;background:#f2f9ff}.starter-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}.starter-head strong{display:block;font-size:24px;line-height:1.15;margin:6px 0}.starter-fast-path{display:flex;align-items:center;justify-content:space-between;gap:14px;background:#fff;border:1px solid #9bd0ff;border-radius:8px;padding:12px;margin-top:14px}.starter-fast-path b{display:block;color:var(--blue);margin-bottom:3px}.starter-fast-path span{display:block;color:var(--ink)}.starter-fast-path form{margin:0;flex:0 0 auto}.starter-fast-path button{white-space:normal}.starter-selected{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}.starter-selected div{background:#fff;border:1px solid #d7e6ff;border-radius:8px;padding:12px}.starter-selected b{display:block;color:var(--blue);margin-bottom:4px}.starter-selected span{display:block;color:var(--ink);font-size:13px;line-height:1.35}.starter-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}.starter-form{margin:0}.starter-choice{display:block;width:100%;min-height:156px;text-align:left;background:#fff;color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:16px;white-space:normal}.starter-choice:hover{border-color:var(--blue);background:#fbfdff}.starter-choice strong{display:block;font-size:18px;line-height:1.2;margin:8px 0}.starter-choice p{margin:0;color:var(--muted);font-weight:400}.starter-choice small{display:block;margin-top:10px;color:var(--blue);font-weight:800}.starter-choice.recommended{border-color:var(--blue);box-shadow:0 0 0 2px rgba(29,78,216,.08)}.choice-outcome{display:grid;gap:6px;margin-top:12px;background:#f8fbff;border:1px solid #d7e6ff;border-radius:8px;padding:10px}.choice-outcome span{display:block;color:var(--ink);font-size:13px;line-height:1.35}.choice-outcome b{color:var(--blue);font-weight:800}
+.task-action-card{border-color:#9bd0ff;background:#f2f9ff}.task-action-head{display:grid;grid-template-columns:1fr auto;gap:18px;align-items:center}.task-action-head strong{display:block;font-size:24px;line-height:1.15;margin:6px 0}.task-action-card form{margin:0}.next-action-cta{display:grid;gap:8px;justify-items:end;max-width:280px}.next-action-cta p{margin:0;font-size:13px;text-align:right}.task-loop-hint{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:center;background:#fff;border:1px solid #9bd0ff;border-radius:8px;padding:12px;margin-top:14px}.task-loop-hint b{color:var(--blue)}.task-loop-hint span{color:var(--ink)}.task-action-points,.task-flow{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}.task-action-points div,.task-flow-step{background:#fff;border:1px solid var(--line);border-radius:8px;padding:12px}.task-action-points b{display:block;color:var(--ink);margin-bottom:4px}.task-action-points p{margin:0;font-size:13px}.task-flow{margin-top:12px}.task-flow-step span{display:block;margin-bottom:6px;font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:var(--muted);letter-spacing:1px}.task-flow-step b{display:block;color:var(--ink);margin-bottom:4px}.task-flow-step p{margin:0;font-size:13px}.task-flow-step.done{border-color:#86efac;background:#f0fdf4}.task-flow-step.done span{color:var(--green)}.task-flow-step.current{border-color:#93c5fd;background:#eff6ff}.task-flow-step.current span{color:var(--blue);font-weight:800}.coach-digest{display:grid;grid-template-columns:1.05fr .95fr;gap:12px;margin:14px 0}.coach-digest-main,.coach-digest-side{background:#fff;border:1px solid #d7e6ff;border-radius:8px;padding:14px}.coach-digest-main strong{display:block;font-size:20px;line-height:1.2;margin:6px 0}.coach-digest-main p,.coach-digest-side p{margin:0;color:var(--ink)}.coach-digest-side b{display:block;color:var(--blue);margin-bottom:6px}.coach-digest-steps{display:grid;gap:8px;margin-top:10px}.coach-digest-steps div{background:#f8fbff;border:1px solid var(--line);border-radius:8px;padding:10px}.coach-digest-steps strong{display:block;color:var(--ink);font-size:13px;margin-bottom:3px}.coach-digest-steps small{display:block;color:var(--muted);line-height:1.35}.advanced-practice{border:1px solid var(--line);border-radius:8px;background:#fff;margin-top:14px;padding:0}.advanced-practice summary{cursor:pointer;padding:14px 16px;font-weight:800;color:var(--ink)}.advanced-practice summary span{display:block;margin-top:4px;font-weight:500;color:var(--muted)}.advanced-practice-body{border-top:1px solid var(--line);padding:16px;background:#fbfdff}
+.task-shortcut{background:#fff;border:1px solid #9bd0ff;border-radius:8px;padding:14px;margin-top:12px}.task-shortcut b{display:block;color:var(--blue);margin-bottom:4px}.task-shortcut span{display:block;color:var(--ink);line-height:1.45}.task-shortcut-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}.task-shortcut-grid div{background:#f8fbff;border:1px solid #d7e6ff;border-radius:8px;padding:10px}.task-shortcut-grid strong{display:block;color:var(--ink);font-size:13px;margin-bottom:3px}.task-shortcut-grid small{display:block;color:var(--muted);font-size:12px;line-height:1.35}
+.quest-ladder{display:grid;gap:14px;margin:16px 0}.quest-stage{background:#fff;border:1px solid var(--line);border-radius:8px;padding:14px}.quest-stage:first-child{border-color:#9bd0ff;background:#f8fbff}.quest-stage-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}.quest-stage-head strong{display:block;font-size:19px;line-height:1.2;margin:4px 0}.quest-stage-head p{margin:0;color:var(--muted)}.quest-stage-meta{display:inline-flex;align-items:center;border:1px solid #d7e6ff;border-radius:999px;background:#fff;color:var(--blue);font-size:12px;font-weight:800;padding:4px 9px}.preset-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:0}.preset-form{margin:0}.preset-card{display:block;width:100%;min-height:178px;text-align:left;background:#fff;color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:18px;white-space:normal}.preset-card:hover{border-color:var(--blue);background:#fbfdff}.preset-card strong{display:block;font-size:18px;line-height:1.2;margin:8px 0}.preset-card span{display:inline-flex;margin-right:6px}.preset-card p{margin:8px 0 0;color:var(--muted);font-weight:400}.preset-card .quest-lock{display:block;margin-top:9px;color:var(--amber);font-size:12px;font-weight:800}.preset-card .quest-start{display:block;margin-top:9px;color:var(--blue);font-size:12px;font-weight:800}
+.demo-loop{display:grid;grid-template-columns:1.1fr .9fr;gap:16px;align-items:stretch}.demo-loop .card{margin:0}.demo-pill{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:999px;padding:4px 10px;margin:0 6px 8px 0;font-size:12px;font-weight:800;color:var(--blue);background:#f7fbff}.demo-checklist{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:14px 0}.demo-checklist div{background:#fff;border:1px solid var(--line);border-radius:8px;padding:14px}.demo-checklist strong{display:block;margin-bottom:6px}.demo-next{border-color:#9bd0ff;background:#f2f9ff}
+.practice-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:14px 0}.practice-card{background:#fff;border:1px solid var(--line);border-radius:8px;padding:16px;display:flex;flex-direction:column;gap:10px}.practice-card h3{margin:0;font-size:18px;line-height:1.25}.practice-card .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:auto}.practice-card form{margin:0}.practice-primary-action{margin-top:0!important}.practice-primary-action form,.practice-primary-action button{width:100%}.practice-action-note{display:block;margin-top:6px;color:var(--muted);font-size:13px;line-height:1.35;text-align:center}.practice-card p{margin:0}.practice-focus{background:#f2f9ff;border:1px solid #9bd0ff;border-radius:8px;padding:11px 12px}.practice-focus b{display:block;color:var(--blue);margin-bottom:4px}.practice-focus p{margin:0;color:var(--ink)}.practice-summary{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.practice-summary div{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:10px}.practice-summary span{display:block;font-size:12px;color:var(--muted);font-weight:800;margin-bottom:3px}.practice-summary strong{display:block;color:var(--ink);line-height:1.2}.practice-summary small{display:block;color:var(--muted);margin-top:3px}.practice-ready{display:grid;grid-template-columns:1.1fr repeat(3,1fr);gap:8px;align-items:stretch;background:#fff;border:1px solid #d7e6ff;border-radius:8px;padding:10px}.practice-ready b{color:var(--blue)}.practice-ready span{display:block;background:#f8fbff;border:1px solid var(--line);border-radius:8px;padding:8px;color:var(--ink);font-size:13px;line-height:1.35}.practice-ready strong{display:block;color:var(--ink);margin-bottom:2px}.practice-ready small{display:block;color:var(--muted);font-size:12px}.practice-rationale{background:#fbfdff;border:1px solid #d7e6ff;border-radius:8px;padding:10px;color:var(--ink)}.practice-rationale b,.practice-next b{display:block;color:var(--ink);margin-bottom:4px}.practice-next{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px;color:var(--ink)}.practice-detail{border:1px solid var(--line);border-radius:8px;background:#fff}.practice-detail summary{cursor:pointer;padding:10px 12px;font-weight:800;color:var(--ink)}.practice-detail summary span{display:block;margin-top:3px;font-weight:500;color:var(--muted);font-size:13px}.practice-detail-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;border-top:1px solid var(--line);padding:10px;background:#fbfdff}.practice-detail-grid div{background:#fff;border:1px solid var(--line);border-radius:8px;padding:9px 10px}.practice-detail-grid b{display:block;color:var(--muted);font-size:12px;margin-bottom:3px}.practice-detail-grid span{display:block;color:var(--ink);font-weight:800}.practice-checklist{display:grid;gap:7px;list-style:none;margin:0;padding:0}.practice-checklist li{border:1px solid var(--line);border-radius:8px;background:#fff;padding:9px 10px;color:var(--ink)}.practice-checklist b{color:var(--blue);margin-right:6px}
+.review-focus{background:#fff;border:1px solid #9bd0ff;border-radius:8px;padding:16px;margin:14px 0}.review-focus-head{display:grid;grid-template-columns:1fr auto;gap:16px;align-items:center}.review-focus-head strong{display:block;font-size:22px;line-height:1.2;margin:6px 0}.review-focus-head form{margin:0}.review-primary-cta{display:grid;gap:8px;justify-items:end;max-width:280px}.review-primary-cta p{margin:0;font-size:13px;text-align:right}.review-unlock{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}.review-unlock div{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:12px}.review-unlock b{display:block;color:var(--green);margin-bottom:4px}.review-unlock p{margin:0;color:var(--ink);font-size:13px}.review-template-note{background:#f8fbff;border:1px solid #d7e6ff;border-radius:8px;padding:10px 12px;margin-top:12px}.review-template-note b{display:block;color:var(--blue);margin-bottom:4px}.review-template-note p{margin:0;color:var(--ink)}.review-focus-answers{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}.review-focus-answers div{background:#f8fbff;border:1px solid #d7e6ff;border-radius:8px;padding:12px}.review-focus-answers b{display:block;color:var(--ink);margin-bottom:4px}.review-focus-answers p{margin:0;color:var(--muted);font-size:13px}.review-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:14px 0}.review-card{background:#fff;border:1px solid var(--line);border-radius:8px;padding:16px}.review-card h3{margin:8px 0;font-size:18px;line-height:1.25}.review-card p{margin:8px 0 0}.review-snapshot{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:10px 0}.review-snapshot div{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:10px}.review-snapshot span{display:block;font-size:12px;color:var(--muted);font-weight:800;margin-bottom:3px}.review-snapshot strong{display:block;color:var(--ink);line-height:1.2}.review-start{background:#f2f9ff;border:1px solid #9bd0ff;border-radius:8px;padding:12px;margin-top:12px}.review-start strong{display:block;color:var(--ink);margin-bottom:4px}.review-start p{margin:0 0 10px}.review-compare{background:#fff;border:1px solid #9bd0ff;border-radius:8px;padding:12px;margin-top:12px}.review-compare strong{display:block;color:var(--ink);margin-bottom:4px}.review-compare p{margin:6px 0;color:var(--ink)}.review-compare-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}.review-compare-grid div{background:#fbfdff;border:1px solid var(--line);border-radius:8px;padding:10px}.review-compare-grid b{display:block;color:var(--ink);margin-bottom:3px}.review-done-note{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:12px;margin-top:12px}.review-done-note strong{display:block;color:var(--green);margin-bottom:4px}.review-done-note p{margin:6px 0 0;color:var(--ink)}.review-done-list{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}.review-done-list div{background:#fff;border:1px solid #bbf7d0;border-radius:8px;padding:10px}.review-done-list b{display:block;color:var(--ink);margin-bottom:3px}.review-done-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.review-next-recommend{background:#fff;border:1px solid #9bd0ff;border-radius:8px;padding:12px;margin-top:12px}.review-next-recommend strong{display:block;color:var(--ink);margin-bottom:4px}.review-next-recommend p{margin:0 0 10px}.review-next-recommend form{margin:0}.review-questions{margin:10px 0 0;padding-left:20px;color:var(--ink)}.review-questions li{margin:6px 0}
+.return-mission{background:#f8fbff;border:1px solid #9bd0ff;border-radius:8px;padding:14px;margin-top:14px}.return-mission-head{display:grid;grid-template-columns:1fr auto;gap:16px;align-items:center}.return-mission-head strong{display:block;font-size:21px;line-height:1.2;margin:5px 0}.return-mission-head p{margin:0}.return-mission-action{display:grid;gap:7px;justify-items:end;min-width:210px}.return-mission-action form{margin:0}.return-mission-action p{font-size:13px;text-align:right}.return-mission-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}.return-mission-grid div{background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px}.return-mission-grid b{display:block;color:var(--blue);margin-bottom:3px}.return-mission-grid p{margin:0;color:var(--ink);font-size:13px}
+.manual-reflection{border:1px solid var(--line);border-radius:8px;background:#fff;margin-top:12px}.manual-reflection summary{cursor:pointer;padding:12px 14px;font-weight:800;color:var(--ink)}.manual-reflection summary span{display:block;margin-top:4px;font-weight:500;color:var(--muted)}.manual-reflection-body{border-top:1px solid var(--line);padding:14px;background:#fbfdff}.reflection-form{margin-top:12px;border-top:1px solid var(--line);padding-top:12px}.reflection-form label{font-size:13px;margin-top:10px}.reflection-form textarea{min-height:78px}.saved-reflection{margin-top:12px;border:1px solid #bbf7d0;background:#f0fdf4;border-radius:8px;padding:12px}.saved-reflection strong{display:block;color:var(--green);margin-bottom:6px}.saved-reflection p{color:var(--ink);margin:6px 0 0}
+.markdown-body{background:#fff;border:1px solid var(--line);border-radius:8px;padding:18px;overflow:auto;line-height:1.65}.markdown-body h3,.markdown-body h4{margin:18px 0 8px;font-weight:800;line-height:1.2}.markdown-body h3{font-size:18px;color:var(--blue)}.markdown-body h4{font-size:16px}.markdown-body h3:first-child,.markdown-body h4:first-child{margin-top:0}.markdown-body p{margin:10px 0;color:var(--ink)}.markdown-body ul,.markdown-body ol{margin:10px 0 10px 22px;padding:0;color:var(--ink)}.markdown-body li{margin:6px 0}.markdown-body blockquote{margin:12px 0;padding:10px 12px;border-left:4px solid var(--blue);background:#f2f9ff;color:var(--ink);border-radius:0 8px 8px 0}.markdown-body hr{border:0;border-top:1px solid var(--line);margin:14px 0}.markdown-table{overflow-x:auto;margin:12px 0}.markdown-table table{min-width:520px;background:#fff}.markdown-table th,.markdown-table td{font-size:13px;line-height:1.45}.markdown-body code{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;background:var(--soft);border:1px solid var(--line);border-radius:5px;padding:1px 5px}.markdown-body strong{font-weight:800}
 .guide-list{margin:0;padding-left:20px;color:var(--muted)}.guide-list li{margin:7px 0}
 .demo-board{display:grid;grid-template-columns:1fr .8fr;gap:18px;align-items:stretch}.demo-stage{display:grid;position:relative;min-height:360px;overflow:hidden;background:#fff;border:1px solid var(--line);border-radius:8px}.demo-frame{grid-area:1/1;padding:22px;opacity:0;transform:translateY(10px);animation:demo-frame 49s infinite}.demo-frame:nth-child(1){animation-delay:0s}.demo-frame:nth-child(2){animation-delay:7s}.demo-frame:nth-child(3){animation-delay:14s}.demo-frame:nth-child(4){animation-delay:21s}.demo-frame:nth-child(5){animation-delay:28s}.demo-frame:nth-child(6){animation-delay:35s}.demo-frame:nth-child(7){animation-delay:42s}.demo-frame h3{font-size:22px;margin:0 0 8px}.demo-path{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:4px 10px;background:#fff;font-weight:700;color:var(--blue)}.demo-screen{margin-top:16px;border:1px solid var(--line);border-radius:8px;padding:14px;background:var(--paper)}.demo-screen .bar{height:9px;border-radius:999px;background:var(--blue);margin:10px 0}.demo-progress{height:8px;background:#fff;border:1px solid var(--line);border-radius:999px;overflow:hidden;margin:12px 0}.demo-progress span{display:block;height:100%;background:var(--blue);animation:demo-progress 49s linear infinite}.demo-steps{display:grid;gap:8px}.demo-steps a{display:block;border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:#fff;color:var(--ink)}.voice-box audio{width:100%;margin:8px 0}.voice-command{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px;overflow:auto}
 @keyframes demo-frame{0%,12%{opacity:1;transform:translateY(0)}14%,100%{opacity:0;transform:translateY(10px)}}@keyframes demo-progress{from{width:0}to{width:100%}}
-table{width:100%;border-collapse:collapse;background:transparent}th,td{text-align:left;border-bottom:1px solid var(--line);padding:10px 8px;vertical-align:top}th{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:500}tr:hover td{background:#fbfcfe}
+table{width:100%;border-collapse:collapse;background:transparent}th,td{text-align:left;border-bottom:1px solid var(--line);padding:10px 8px;vertical-align:top}th{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:500}tr:hover td{background:#fbfcfe}.learning-mobile-table,.mobile-card-table{background:#fff}.learning-mobile-table td,.mobile-card-table td{line-height:1.45}
 input,select,textarea,button{font:inherit}label{display:block;margin:12px 0 6px;font-weight:700;color:var(--ink)}input,select,textarea{width:100%;min-height:42px;border:1px solid var(--line);background:#fff;border-radius:7px;padding:9px 10px;color:var(--ink)}textarea{min-height:150px;resize:vertical}input[type=checkbox],input[type=radio]{width:auto;min-height:auto}input:focus,select:focus,textarea:focus{outline:2px solid rgba(29,78,216,.18);border-color:var(--blue)}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}.formline{display:grid;grid-template-columns:1.1fr .8fr .8fr auto;gap:12px;align-items:end}
 td form{display:flex;align-items:center;gap:8px;flex-wrap:wrap}td form input:not([type=hidden]),td form select{width:auto;min-width:150px;flex:1 1 150px}
 button,.btn{display:inline-flex;align-items:center;justify-content:center;border:1.5px solid var(--ink);background:var(--ink);color:#fff;border-radius:7px;padding:10px 15px;min-height:42px;font-weight:700;cursor:pointer;text-decoration:none;white-space:nowrap}.btn:hover,button:hover{text-decoration:none}.btn.blue{background:var(--blue);border-color:var(--blue);color:#fff}.btn.dark{background:var(--ink);color:#fff}.btn.secondary,button.secondary{background:transparent;color:var(--ink);border-color:var(--ink)}
 .nav button{border:0;background:transparent;color:var(--muted);padding:0;min-height:auto;font-weight:500}.nav button:hover{color:var(--ink)}
-.msg{border:1px solid #bfdbfe;background:#eff6ff;color:#1e3a8a;padding:11px 13px;border-radius:8px;margin-bottom:16px}.err{border-color:#fecaca;background:#fff1f2;color:#991b1b}
+.msg{border:1px solid #bfdbfe;background:#eff6ff;color:#1e3a8a;padding:11px 13px;border-radius:8px;margin-bottom:16px}.err{border-color:#fecaca;background:#fff1f2;color:#991b1b}.learning-notice{display:grid;grid-template-columns:1fr auto;gap:14px;align-items:center;background:#f0fdf4;border-color:#bbf7d0;color:var(--ink)}.learning-notice strong{display:block;font-size:19px;line-height:1.2;margin:4px 0}.learning-notice p{margin:0;color:var(--ink)}.learning-notice small{display:block;margin-top:6px;color:var(--muted);line-height:1.35}.learning-notice .btn{white-space:normal}
 .qr{display:grid;grid-template-columns:220px 1fr;gap:22px;align-items:center}.qr img{width:220px;height:220px;border:1px solid var(--line);background:#fff;padding:10px;border-radius:8px}
 .post{border-top:1px solid var(--line);padding:14px 0}.tag{display:inline-flex;align-items:center;font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:var(--blue);letter-spacing:1px;text-transform:uppercase}
 .avatar{width:56px;height:56px;border-radius:50%;object-fit:cover;border:1px solid var(--line);background:#fff}.identity{display:flex;align-items:center;gap:12px}
@@ -275,10 +327,15 @@ button,.btn{display:inline-flex;align-items:center;justify-content:center;border
 .live-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:16px;align-items:start}
 .score{background:#fff;padding:18px 20px;min-height:106px}.score b{display:block;font-size:30px;line-height:1;color:var(--ink);margin-bottom:8px}.score span{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;text-transform:uppercase;color:var(--muted);letter-spacing:1px}
 .step{background:var(--ink);color:#fff;border-radius:8px;padding:22px;min-height:178px}.step p{color:#d7dce5;margin-top:12px}.step span{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:#8fb4ff}
+.mobile-next-bar,.mobile-next-spacer{display:none}
 .footer{border-top:2px solid var(--ink);margin-top:76px;padding:30px 0 58px;color:var(--muted);display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap;font-size:13px}
 @media(prefers-reduced-motion:reduce){.demo-frame,.demo-progress span{animation:none}.demo-frame{position:static;opacity:1;transform:none}.demo-stage{display:block}}
-@media(max-width:880px){.grid,.cards,.qr,.formline,.row,.flow-map,.preset-grid,.demo-board,.live-grid,.data-proof{grid-template-columns:1fr}.wrap{padding:0 20px 28px}.top{align-items:flex-start;gap:12px;flex-direction:column}.data-proof{align-items:flex-start;flex-direction:column}.nav{gap:14px 18px}}
-@media(max-width:560px){.card{padding:18px}.metric{font-size:28px}.rank-row{grid-template-columns:40px 1fr}.score{min-height:auto}}
+@media(max-width:880px){.grid,.cards,.qr,.formline,.row,.flow-map,.loop-steps,.preset-grid,.practice-cards,.practice-summary,.practice-detail-grid,.practice-ready,.review-focus-head,.review-unlock,.review-focus-answers,.review-cards,.review-snapshot,.review-compare-grid,.review-done-list,.demo-loop,.demo-checklist,.demo-board,.live-grid,.data-proof,.loop-complete-head,.achievement-metrics,.first-win-grid,.next-focus-head,.next-focus-points,.next-quests,.bridge-points,.bridge-compare-grid,.risk-boundary-grid,.journey-summary-head,.journey-summary-grid,.journey-upgrade-head,.journey-upgrade-grid,.journey-item,.starter-selected,.starter-grid,.task-action-head,.task-loop-hint,.task-action-points,.task-flow,.task-shortcut-grid,.loop-promise,.beginner-focus-head,.beginner-focus-steps,.achievement-badge,.coach-digest,.learning-notice{grid-template-columns:1fr}.loop-progress-head,.loop-next,.task-bridge-head,.starter-head,.starter-fast-path{align-items:flex-start;flex-direction:column}.starter-fast-path form,.starter-fast-path button,.next-action-cta form,.next-action-cta button,.review-primary-cta form,.review-primary-cta button,.learning-notice form,.learning-notice .btn{width:100%}.next-action-cta,.review-primary-cta{justify-items:stretch;max-width:none;width:100%}.task-first-action-head .next-action-cta,.review-first-action-head .review-primary-cta{order:-1}.next-action-cta p,.review-primary-cta p{text-align:left}.journey-action{justify-content:flex-start}.wrap{padding:0 20px 28px}.top{align-items:flex-start;gap:12px;flex-direction:column}.data-proof{align-items:flex-start;flex-direction:column}.nav{gap:14px 18px}}
+@media(max-width:560px){body{font-size:14px;overflow-x:hidden}body:has(.mobile-next-bar){padding-bottom:calc(86px + env(safe-area-inset-bottom))}.wrap{padding:0 14px 24px}.top{padding:16px 0;margin-bottom:16px}.brand{font-size:16px;line-height:1.2}.nav{width:100%;gap:8px;flex-wrap:nowrap;overflow-x:auto;overscroll-behavior-x:contain;padding:2px 0 8px;scrollbar-width:none;-webkit-overflow-scrolling:touch;scroll-snap-type:x proximity;scroll-padding-inline:2px;-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent)}.nav::-webkit-scrollbar{display:none}.nav a,.nav span,.nav button{flex:0 0 auto;border:1px solid var(--line);border-radius:999px;background:#fff;padding:7px 10px;line-height:1.2;white-space:nowrap;scroll-snap-align:start}.nav .primary{padding:7px 10px}.card{padding:16px;margin-bottom:12px}.card h2{font-size:20px}.card h3{font-size:17px}.card,.markdown-body,.practice-card,.review-card,.preset-card,.starter-choice,.quest-card{overflow-wrap:anywhere}.metric{font-size:28px}.loop-step,.score{min-height:auto}.rank-row{grid-template-columns:40px 1fr}button,.btn{min-height:46px;white-space:normal;line-height:1.25;text-align:center}.card p>.btn,.card p>button{width:100%;margin-top:8px}.card p>.btn+.btn{margin-left:0}.card form button:not(.starter-choice):not(.preset-card):not(.quest-card){width:100%}.nav button{width:auto;min-height:auto}.advanced-practice summary,.manual-reflection summary,.practice-detail summary{padding:12px}.advanced-practice-body,.manual-reflection-body,.markdown-body{padding:12px}.practice-card .actions,.review-done-actions{display:grid;grid-template-columns:1fr}.practice-card .actions form,.practice-card .actions button,.review-done-actions form,.review-done-actions button,.review-next-recommend form,.review-next-recommend button{width:100%}.mobile-next-bar{position:fixed;left:12px;right:12px;bottom:12px;z-index:80;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:8px;padding:10px;box-shadow:0 10px 30px rgba(16,18,23,.18)}.mobile-next-bar span{display:block;color:var(--muted);font-size:12px;font-weight:800;line-height:1.2}.mobile-next-bar b{display:block;color:var(--ink);font-size:14px;line-height:1.25}.mobile-next-bar .btn{min-height:44px;padding:9px 12px}.mobile-next-spacer{display:block;height:82px}.badge,.pill,.demo-pill{white-space:normal;max-width:100%}table{min-width:640px}.learning-mobile-table,.mobile-card-table{min-width:0;border-collapse:separate;border-spacing:0;background:transparent}.learning-mobile-table thead,.mobile-card-table thead{display:none}.learning-mobile-table tbody,.learning-mobile-table tr,.learning-mobile-table td,.mobile-card-table tbody,.mobile-card-table tr,.mobile-card-table td{display:block;width:100%;min-width:0}.learning-mobile-table tr,.mobile-card-table tr{border:1px solid var(--line);border-radius:8px;background:#fff;margin:10px 0;padding:10px}.learning-mobile-table td,.mobile-card-table td{border:0;padding:6px 0}.learning-mobile-table td::before,.mobile-card-table td::before{content:attr(data-label);display:block;color:var(--muted);font-size:12px;font-weight:800;margin-bottom:2px}.learning-mobile-table td:empty::after,.mobile-card-table td:empty::after{content:"-";color:var(--muted)}td form input:not([type=hidden]),td form select,td form button{width:100%;min-width:0;flex:1 1 100%}}
+@media(max-width:560px){html{scroll-padding-top:12px}input,select,textarea{font-size:16px}.review-focus,.task-action-card,.starter-card,.loop-progress,.journey-card{scroll-margin-top:12px}.card-title{align-items:flex-start;flex-direction:column;gap:8px}.starter-grid,.preset-grid,.next-quests,.practice-cards,.review-cards{gap:10px}.starter-choice,.preset-card,.quest-card{min-height:auto;padding:14px}.starter-choice strong,.preset-card strong,.quest-card strong{font-size:16px}.loop-steps{gap:8px}.loop-step{display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:start}.loop-step span{margin-bottom:0}.loop-step p{grid-column:1/-1}.task-action-head strong,.review-focus-head strong,.starter-head strong,.next-focus-head strong,.journey-summary-head strong,.loop-complete-head strong{font-size:19px}.task-loop-hint{gap:8px}.review-unlock div,.review-focus-answers div,.practice-ready span,.practice-summary div,.journey-summary-grid div{padding:10px}.review-focus,.practice-card,.task-action-card,.starter-card,.loop-progress,.loop-complete,.next-focus{padding:14px}.review-primary-cta button,.next-action-cta button,.starter-fast-path button,.practice-primary-action button{font-size:15px}.markdown-table{margin-left:-2px;margin-right:-2px}.rank-row strong{grid-column:2}td form{display:grid;grid-template-columns:1fr}.mobile-next-bar{bottom:max(10px,env(safe-area-inset-bottom));padding-bottom:max(10px,env(safe-area-inset-bottom))}.mobile-next-bar .btn{white-space:nowrap}.mobile-next-spacer{height:calc(86px + env(safe-area-inset-bottom))}.footer{margin-top:36px;display:grid;gap:10px}}
+@media(max-width:560px){.top,.card,.msg,.advanced-practice,.manual-reflection,.practice-detail{max-width:100%}.task-bridge-score,.loop-progress-score,.journey-upgrade-badge{white-space:normal}.coach-digest-main strong{font-size:18px}.task-shortcut-grid div,.bridge-point,.risk-boundary-grid div,.return-mission-grid div{padding:10px}.markdown-body ul,.markdown-body ol{margin-left:18px}.markdown-body code{white-space:normal;overflow-wrap:anywhere}.voice-command,pre{white-space:pre-wrap;overflow-wrap:anywhere}.identity{align-items:flex-start;flex-direction:column}.mobile-next-bar{grid-template-columns:minmax(0,1fr) minmax(88px,auto)}}
+@media(max-width:380px){.wrap{padding:0 10px 22px}.card{padding:13px}.brand{font-size:15px}.nav a,.nav span,.nav button{font-size:13px;padding:7px 9px}.mobile-next-bar{left:8px;right:8px;grid-template-columns:1fr}.mobile-next-bar .btn{width:100%}.mobile-next-spacer{height:calc(128px + env(safe-area-inset-bottom))}}
+@media(max-width:880px){.return-mission-head,.return-mission-grid{grid-template-columns:1fr}.return-mission-action{justify-items:stretch;min-width:0;width:100%}.return-mission-action .btn,.return-mission-action button,.return-mission-action form{width:100%}.return-mission-action p{text-align:left}}
 """
 
 
@@ -307,16 +364,58 @@ def render_markdown(text: str) -> str:
             html.append(f"</{list_type}>")
             list_type = ""
 
-    for raw in lines:
+    def table_cells(raw: str) -> list[str]:
+        return [cell.strip() for cell in raw.strip().strip("|").split("|")]
+
+    def is_table_line(raw: str) -> bool:
+        line = raw.strip()
+        return line.startswith("|") and line.endswith("|") and "|" in line.strip("|")
+
+    def is_table_delimiter(raw: str) -> bool:
+        cells = table_cells(raw)
+        return bool(cells) and all(re.fullmatch(r":?-{3,}:?", cell.replace(" ", "")) for cell in cells)
+
+    idx = 0
+    while idx < len(lines):
+        raw = lines[idx]
         line = raw.strip()
         if not line:
             close_list()
+            idx += 1
+            continue
+        if is_table_line(line) and idx + 1 < len(lines) and is_table_delimiter(lines[idx + 1]):
+            close_list()
+            headers = table_cells(line)
+            idx += 2
+            rows: list[list[str]] = []
+            while idx < len(lines) and is_table_line(lines[idx].strip()):
+                rows.append(table_cells(lines[idx]))
+                idx += 1
+            col_count = max(1, len(headers))
+            head_html = "".join(f"<th>{markdown_inline(cell)}</th>" for cell in headers)
+            row_html = ""
+            for row in rows:
+                normalized = (row + [""] * col_count)[:col_count]
+                row_html += labeled_table_row([(headers[pos], markdown_inline(cell)) for pos, cell in enumerate(normalized)])
+            html.append(f'<div class="markdown-table"><table class="learning-mobile-table markdown-mobile-table"><thead><tr>{head_html}</tr></thead><tbody>{row_html}</tbody></table></div>')
             continue
         heading = re.match(r"^(#{1,4})\s+(.+)$", line)
         if heading:
             close_list()
-            level = 3 if len(heading.group(1)) <= 2 else 4
+            level = 3 if len(heading.group(1)) <= 3 else 4
             html.append(f"<h{level}>{markdown_inline(heading.group(2))}</h{level}>")
+            idx += 1
+            continue
+        quote_match = re.match(r"^>\s*(.+)$", line)
+        if quote_match:
+            close_list()
+            html.append(f"<blockquote>{markdown_inline(quote_match.group(1))}</blockquote>")
+            idx += 1
+            continue
+        if re.fullmatch(r"[-*_]\s*[-*_]\s*[-*_](?:\s*[-*_])*", line):
+            close_list()
+            html.append("<hr>")
+            idx += 1
             continue
         numbered = re.match(r"^\d+[\.)]\s+(.+)$", line)
         if numbered:
@@ -325,6 +424,7 @@ def render_markdown(text: str) -> str:
                 html.append("<ol>")
                 list_type = "ol"
             html.append(f"<li>{markdown_inline(numbered.group(1))}</li>")
+            idx += 1
             continue
         bulleted = re.match(r"^[-*]\s+(.+)$", line)
         if bulleted:
@@ -333,11 +433,29 @@ def render_markdown(text: str) -> str:
                 html.append("<ul>")
                 list_type = "ul"
             html.append(f"<li>{markdown_inline(bulleted.group(1))}</li>")
+            idx += 1
             continue
         close_list()
         html.append(f"<p>{markdown_inline(line)}</p>")
+        idx += 1
     close_list()
     return "".join(html) or '<p class="muted">暂无内容</p>'
+
+
+def learning_display_rationale(value: object) -> str:
+    """Keep learning pages focused on the observation reason, not data plumbing."""
+    text = " ".join(str(value or "").split())
+    if not text:
+        return "记录观察依据、风险边界和复盘问题。"
+    text = re.sub(r"\s*·\s*入场价.*$", "", text)
+    text = re.sub(r"[，,]\s*来源\s*[^|。；;]+", "", text)
+    text = re.sub(r"\s*\|\s*", "。", text)
+    text = re.sub(r"\s{2,}", " ", text).strip(" ，,;；。")
+    if not text:
+        return "记录观察依据、风险边界和复盘问题。"
+    if "不是买卖" not in text and "不构成投资建议" not in text:
+        text = f"{text}。这只是模拟观察依据,不是买卖建议。"
+    return text
 
 
 def env_flag(name: str, default: bool = False) -> bool:
@@ -714,6 +832,15 @@ def side_cn(side: str) -> str:
     return "买入" if side == "buy" else "卖出"
 
 
+def learning_observation_action(side: str, qty: int) -> str:
+    verb = "观察" if side == "buy" else "退出观察"
+    return f"{verb} {int(qty)}"
+
+
+def learning_observation_label(side: str) -> str:
+    return "模拟观察" if side == "buy" else "退出观察"
+
+
 def signal_status_cn(status: str) -> str:
     return {"pending": "待执行", "executed": "已执行", "cancelled": "已取消"}.get(status, status)
 
@@ -831,12 +958,25 @@ def support_request_user_name(row, key_id: str, key_name: str) -> str:
 
 def history_rows(rows) -> str:
     if not rows:
-        return '<tr><td colspan="5" class="muted">暂无资产快照</td></tr>'
+        return '<tr><td data-label="状态" colspan="5" class="muted">暂无资产快照</td></tr>'
     return "".join(
-        f"<tr><td>{escape(r['created_at'])}</td><td>{money(r['equity'])}</td>"
-        f"<td>{money(r['cash'])}</td><td>{money(r['market_value'])}</td><td>{pct(r['return_pct'])}</td></tr>"
+        "<tr>"
+        f"<td data-label=\"时间\">{escape(r['created_at'])}</td>"
+        f"<td data-label=\"总资产\">{money(r['equity'])}</td>"
+        f"<td data-label=\"现金\">{money(r['cash'])}</td>"
+        f"<td data-label=\"持仓市值\">{money(r['market_value'])}</td>"
+        f"<td data-label=\"收益率\">{pct(r['return_pct'])}</td>"
+        "</tr>"
         for r in rows
     )
+
+
+def labeled_table_row(cells: list[tuple[str, str]]) -> str:
+    return "<tr>" + "".join(f'<td data-label="{escape(label, quote=True)}">{value}</td>' for label, value in cells) + "</tr>"
+
+
+def labeled_empty_row(message: str, colspan: int, label: str = "状态") -> str:
+    return f'<tr><td data-label="{escape(label, quote=True)}" colspan="{colspan}" class="muted">{escape(message)}</td></tr>'
 
 
 class AppHandler(BaseHTTPRequestHandler):
@@ -982,6 +1122,8 @@ class AppHandler(BaseHTTPRequestHandler):
             self.render_sitemap()
         elif path == "/preview":
             self.render_preview()
+        elif path == "/learn/demo":
+            self.render_learning_demo(query)
         elif path == "/lessons":
             self.render_lessons()
         elif path == "/research":
@@ -1129,6 +1271,8 @@ class AppHandler(BaseHTTPRequestHandler):
             self.render_sitemap(head=True)
         elif path == "/preview":
             self.render_preview(head=True)
+        elif path == "/learn/demo":
+            self.render_learning_demo(parse_qs(""), head=True)
         elif path == "/lessons":
             self.render_lessons(head=True)
         elif path == "/research":
@@ -1155,7 +1299,7 @@ class AppHandler(BaseHTTPRequestHandler):
             self.render_ready(head=True)
         elif path == "/metrics":
             self.render_metrics(head=True)
-        elif path in {"/register", "/forgot-password", "/login", "/auth/email/confirm", "/guide", "/guide/demo", "/showcase/public", "/forum", "/legal", "/terms", "/privacy", "/risk", "/support"}:
+        elif path in {"/register", "/forgot-password", "/login", "/auth/email/confirm", "/learn/demo", "/guide", "/guide/demo", "/showcase/public", "/forum", "/legal", "/terms", "/privacy", "/risk", "/support"}:
             self.send_html("OK", "", head=True)
         elif path.startswith("/forum/") and path.count("/") == 2:
             self.send_html("OK", "", head=True)
@@ -1256,9 +1400,9 @@ class AppHandler(BaseHTTPRequestHandler):
         elif path == "/practice-signals/execute-pending":
             self.require_active_user(lambda user: self.handle_practice_signal_execute_pending(user, form), form=form)
         elif path.startswith("/practice-signals/") and path.endswith("/execute"):
-            self.require_active_user(lambda user: self.handle_practice_signal_execute(user, path), form=form)
+            self.require_active_user(lambda user: self.handle_practice_signal_execute(user, path, form), form=form)
         elif path.startswith("/practice-signals/") and path.endswith("/cancel"):
-            self.require_active_user(lambda user: self.handle_practice_signal_cancel(user, path), form=form)
+            self.require_active_user(lambda user: self.handle_practice_signal_cancel(user, path, form), form=form)
         elif path == "/account/reset":
             self.require_user(lambda user: self.handle_account_reset(user, form), form=form, csrf_redirect="/account")
         elif path == "/account/settle":
@@ -1271,8 +1415,18 @@ class AppHandler(BaseHTTPRequestHandler):
             self.require_active_user(lambda user: self.handle_account_ai_review(user, form), form=form, csrf_redirect="/account/ai")
         elif path == "/learn/coach":
             self.require_active_user(lambda user: self.handle_learning_coach(user, form), form=form, csrf_redirect="/learn")
+        elif path == "/learn/sample-task":
+            self.require_active_user(lambda user: self.handle_learning_sample_task(user, form), form=form, csrf_redirect="/learn")
+        elif path == "/learn/next-task/quick-start":
+            self.require_active_user(lambda user: self.handle_learning_next_task_quick_start(user, form), form=form, csrf_redirect="/learn")
+        elif path == "/learn/reflections/quick-save":
+            self.require_active_user(lambda user: self.handle_learning_reflection_quick_save(user, form), form=form, csrf_redirect="/learn")
+        elif path == "/learn/reflections":
+            self.require_active_user(lambda user: self.handle_learning_reflection_save(user, form), form=form, csrf_redirect="/learn")
         elif path.startswith("/learn/tasks/") and path.endswith("/preview"):
             self.require_active_user(lambda user: self.handle_learning_task_preview(user, path, form), form=form, csrf_redirect="/learn")
+        elif path.startswith("/learn/tasks/") and path.endswith("/quick-save"):
+            self.require_active_user(lambda user: self.handle_learning_task_quick_save(user, path), form=form, csrf_redirect="/learn")
         elif path.startswith("/learn/tasks/") and path.endswith("/save-signals"):
             self.require_active_user(lambda user: self.handle_learning_task_save_signals(user, path, form), form=form, csrf_redirect="/learn")
         elif path == "/account/password":
@@ -1466,6 +1620,14 @@ class AppHandler(BaseHTTPRequestHandler):
         if parsed.scheme or parsed.netloc or parsed.path == "/account/consent":
             return default
         return candidate[:300]
+
+    def path_with_notice(self, path: str, key: str, message: str) -> str:
+        parsed = urlparse(path)
+        base = parsed.path or "/app"
+        query = parsed.query
+        joiner = "&" if query else ""
+        fragment = f"#{parsed.fragment}" if parsed.fragment else ""
+        return f"{base}?{query}{joiner}{key}={quote(message)}{fragment}"
 
     def ensure_current_legal_consent(self, user) -> bool:
         if not self.legal_consent_required() or self.has_current_legal_consent(user):
@@ -1702,7 +1864,8 @@ class AppHandler(BaseHTTPRequestHandler):
             f"确认页: {self.base_url()}/auth/email/confirm\n"
             "你也可以直接打开下面的备用确认链接:\n\n"
             f"{login_url}\n\n"
-            "确认后设置用户名和密码,再使用账号密码登录。注册码和链接 15 分钟内有效,且只能使用一次。"
+            "确认后设置用户名和密码,完成后会自动进入学习工作台;第一屏先懂一句话,再点蓝色推荐按钮,不用配置 DeepSeek key。"
+            "以后再使用账号密码登录。注册码和链接 15 分钟内有效,且只能使用一次。"
             "如果不是你本人操作,请忽略这封邮件。"
         )
         html = (
@@ -1710,7 +1873,8 @@ class AppHandler(BaseHTTPRequestHandler):
             f'<p style="font-size:24px;font-weight:700">{escape(code)}</p>'
             f'<p><a href="{escape(self.base_url() + "/auth/email/confirm", quote=True)}">打开邮箱确认页</a></p>'
             f'<p>备用链接: <a href="{escape(login_url, quote=True)}">直接确认邮箱</a></p>'
-            "<p>确认后设置用户名和密码,再使用账号密码登录。注册码和链接 15 分钟内有效,且只能使用一次。"
+            "<p>确认后设置用户名和密码,完成后会自动进入学习工作台;第一屏先懂一句话,再点蓝色推荐按钮,不用配置 DeepSeek key。"
+            "以后再使用账号密码登录。注册码和链接 15 分钟内有效,且只能使用一次。"
             "如果不是你本人操作,请忽略这封邮件。</p>"
         )
         return self.send_transactional_email(email, subject, text, html)
@@ -1870,7 +2034,7 @@ class AppHandler(BaseHTTPRequestHandler):
 
     def public_join_label(self, primary: bool = True) -> str:
         if self.public_registration_available():
-            return "邮箱验证注册" if primary else "邮箱注册"
+            return "注册进入学习工作台" if primary else "邮箱注册"
         return "申请加入" if primary else "联系支持"
 
     def public_join_button(self, class_name: str = "btn", primary: bool = True) -> str:
@@ -1878,7 +2042,7 @@ class AppHandler(BaseHTTPRequestHandler):
 
     def public_join_hint(self) -> str:
         if self.public_registration_available():
-            return "首次完成邮箱验证会自动加入公开赛"
+            return "首次完成邮箱验证后先进入学习工作台"
         return "注册开放前可先提交支持请求,由管理员联系处理"
 
     def social_meta_html(self, title: str, meta: dict | None = None) -> str:
@@ -1927,19 +2091,64 @@ class AppHandler(BaseHTTPRequestHandler):
         nav = ""
         if user:
             admin_link = '<a href="/admin">管理</a>' if self.is_admin_user(user) else ""
-            nav = (
-                '<div class="nav">'
-                '<a href="/learn">学习</a><a href="/app">高级模拟盘</a><a href="/market">基础数据</a><a href="/portfolio-lab">组合设计</a><a href="/research">研究引擎</a><a href="/showcase">比赛展示</a>'
-                f'<a href="/forum">论坛</a><a href="/guide">指南</a><a href="/glossary">术语</a><a href="/account/ai">AI教练</a><a href="/support">支持</a><a href="/account">账户</a>{admin_link}'
-                f'<span>{escape(user["nickname"])}</span>'
-                f'<form method="post" action="/logout">{csrf_input(user)}<button type="submit">退出</button></form>'
-                "</div>"
-            )
+            clean_path = urlparse(self.path).path
+            if clean_path in {"/learn", "/learn/demo"} or clean_path.startswith("/learn/tasks/"):
+                try:
+                    nav_state = self.con.execute(
+                        """
+                        SELECT
+                            (SELECT COUNT(*) FROM learning_tasks WHERE user_id=?) AS task_count,
+                            (SELECT COUNT(*) FROM learning_reflections WHERE user_id=?) AS reflection_count
+                        """,
+                        (int(user["id"]), int(user["id"])),
+                    ).fetchone()
+                    task_count = int(nav_state["task_count"] or 0) if nav_state else 0
+                    reflection_count = int(nav_state["reflection_count"] or 0) if nav_state else 0
+                except Exception:  # noqa: BLE001 - navigation must not break the main page
+                    task_count = 0
+                    reflection_count = 0
+                try:
+                    key_row = ai_service.get_key_row(self.con, int(user["id"]))
+                    ai_label = "AI教练" if key_row is not None and bool(int(key_row["enabled"])) else "AI教练(稍后)"
+                except Exception:  # noqa: BLE001 - navigation must not break the main page
+                    ai_label = "AI教练(稍后)"
+                if task_count <= 0:
+                    learn_links = (
+                        '<a href="/learn">学习首页</a><a href="/learn#learn-presets">一键开始</a>'
+                        '<a href="/learn/demo">示例体验</a><a href="/account">账户</a>'
+                    )
+                elif reflection_count <= 0:
+                    learn_links = (
+                        '<a href="/learn">学习首页</a><a href="/learn#learning-loop">当前进度</a>'
+                        '<a href="/learn#learning-journey">学习轨迹</a><a href="/account">账户</a>'
+                    )
+                else:
+                    learn_links = (
+                        '<a href="/learn">学习首页</a><a href="/learn#learning-loop">当前进度</a>'
+                        f'<a href="/learn#learning-journey">学习轨迹</a><a href="/account/ai">{ai_label}</a>'
+                        '<a href="/account">账户</a><a href="/app">高级模拟盘</a>'
+                    )
+                nav = (
+                    '<div class="nav learn-nav">'
+                    f'{learn_links}{admin_link}'
+                    f'<span>{escape(user["nickname"])}</span>'
+                    f'<form method="post" action="/logout">{csrf_input(user)}<button type="submit">退出</button></form>'
+                    "</div>"
+                )
+            else:
+                nav = (
+                    '<div class="nav">'
+                    '<a href="/learn">学习</a><a href="/app">高级模拟盘</a><a href="/market">基础数据</a><a href="/portfolio-lab">组合设计</a><a href="/research">研究引擎</a><a href="/showcase">比赛展示</a>'
+                    f'<a href="/forum">论坛</a><a href="/guide">指南</a><a href="/glossary">术语</a><a href="/account/ai">AI教练</a><a href="/support">支持</a><a href="/account">账户</a>{admin_link}'
+                    f'<span>{escape(user["nickname"])}</span>'
+                    f'<form method="post" action="/logout">{csrf_input(user)}<button type="submit">退出</button></form>'
+                    "</div>"
+                )
         else:
             nav_join = self.public_join_button("primary", primary=False if self.public_registration_available() else True)
             nav = (
                 '<div class="nav">'
-                '<a href="/">首页</a><a href="/preview">试一试</a><a href="/lessons">三大坑</a><a href="/glossary">术语</a><a href="/showcase/public">排行榜</a><a href="/forum">论坛</a>'
+                '<a href="/">首页</a><a href="/learn/demo">学习体验</a><a href="/preview">试一试</a><a href="/lessons">三大坑</a><a href="/glossary">术语</a><a href="/showcase/public">排行榜</a><a href="/forum">论坛</a>'
                 f'<a href="/data-status">数据状态</a><a href="/guide">指南</a><a href="/support">支持</a><a href="/login">登录</a>{nav_join}'
                 "</div>"
             )
@@ -2160,39 +2369,35 @@ class AppHandler(BaseHTTPRequestHandler):
         # This block now owns the whole login-area of the landing nav (the static 登录 link was
         # folded in here) so it flips fully with login state — no stray 登录 link when signed in.
         if user:
-            return '<a href="/account">账户</a><a class="primary" href="/app">进入模拟盘</a>'
+            return '<a href="/account">账户</a><a class="primary" href="/learn">学习工作台</a>'
         label = self.public_join_label(primary=False if self.public_registration_available() else True)
         return f'<a href="/login">登录</a><a class="primary" href="{self.public_join_href()}">{escape(label)}</a>'
 
     def landing_hero_actions(self, user=None) -> str:
         if user:
-            # Already logged in: the marketing CTAs become "enter the product", not "sign up".
+            # Already logged in: keep the first screen focused on the guided learning loop.
             return "\n".join(
                 [
-                    '<a class="btn blue" href="/app">进入模拟盘</a>',
-                    '<a class="btn" href="/learn">继续学习</a>',
-                    '<a class="btn" href="/research">研究引擎</a>',
-                    '<a class="btn" href="/showcase/public">查看公开榜单</a>',
-                    '<a class="btn" href="/forum">进入策略论坛</a>',
+                    '<a class="btn blue" href="/learn">进入学习工作台</a>',
+                    '<a class="btn" href="/learn#learn-presets">一键开始第一关</a>',
+                    '<a class="btn" href="/learn/demo">看 3 分钟示例</a>',
                 ]
             )
-        join = self.public_join_button("btn blue", primary=True)
-        # Two clear lanes: the blue primary is the "参赛/进阶" path (register or, when closed,
-        # 申请加入); the second button is the no-login "新手" path. The rest (榜单/论坛/支持) stay
-        # reachable via the nav and the link tiles below, so the hero isn't a wall of equal CTAs.
+        join = self.public_join_button("btn", primary=True)
+        join_label = "注册进入学习工作台" if self.public_registration_available() else "申请加入"
         return "\n".join(
             [
+                '<a class="btn blue" href="/learn/demo">先体验 3 分钟学习闭环</a>',
                 join,
-                '<a class="btn" href="/lessons">我是新手 · 先免费学(免登录)</a>',
                 '<a class="btn" href="/login">账号密码登录</a>',
-                '<a class="btn" href="/guide">使用指南</a>',
+                f'<span class="badge">下一步: {escape(join_label)}</span>',
             ]
         )
 
     def landing_flow_step_one(self) -> str:
         if self.public_registration_available():
-            title = "邮箱验证"
-            detail = "确认邮箱后设置用户名和密码，再登录参赛。"
+            title = "邮箱注册"
+            detail = "确认邮箱后设置用户名和密码,先进入学习工作台完成第一次学习闭环。"
         else:
             title = "申请加入"
             detail = "当前新用户注册暂未开放，请先提交支持请求，等待管理员联系开通。"
@@ -2200,75 +2405,48 @@ class AppHandler(BaseHTTPRequestHandler):
 
     def landing_link_tiles(self, user=None) -> str:
         if user:
-            first = '<a class="link-tile" href="/app"><strong>进入模拟盘</strong><p>查看你的账户、持仓、净值曲线和本周复盘。</p></a>'
+            first = '<a class="link-tile" href="/learn"><strong>继续学习工作台</strong><p>从目标、教练拆解、今日练习和复盘继续完成学习闭环。</p></a>'
         elif self.public_registration_available():
-            first = '<a class="link-tile" href="/register"><strong>邮箱注册</strong><p>验证邮箱、设置账号密码并加入公开赛。</p></a>'
+            first = '<a class="link-tile" href="/learn/demo"><strong>3 分钟学习体验</strong><p>免登录看完目标、教练拆解、模拟练习和复盘问题。</p></a>'
         else:
-            first = '<a class="link-tile" href="/support"><strong>申请加入</strong><p>提交注册或登录支持请求，等待管理员联系开通。</p></a>'
+            first = '<a class="link-tile" href="/learn/demo"><strong>3 分钟学习体验</strong><p>注册暂未开放时,也可以先免登录看完第一次闭环。</p></a>'
+        second = (
+            '<a class="link-tile" href="/register"><strong>注册进入学习工作台</strong><p>验证邮箱、设置账号密码,先完成第一次学习闭环。</p></a>'
+            if self.public_registration_available()
+            else '<a class="link-tile" href="/support"><strong>申请加入</strong><p>提交注册或登录支持请求,等待管理员联系开通。</p></a>'
+        )
         return "\n".join(
             [
                 first,
+                second,
                 '<a class="link-tile" href="/showcase/public"><strong>公开榜单</strong><p>查看排名和参赛者战绩。</p></a>',
                 '<a class="link-tile" href="/forum"><strong>策略论坛</strong><p>阅读复盘，参与讨论。</p></a>',
                 '<a class="link-tile" href="/data-status"><strong>数据状态</strong><p>查看行情来源、预测候选和赛场活跃度。</p></a>',
-                '<a class="link-tile" href="/guide"><strong>使用指南</strong><p>按流程了解注册、模拟交易、组合设计和公开复盘。</p></a>',
+                '<a class="link-tile" href="/guide"><strong>使用指南</strong><p>按流程了解学习工作台、今日练习、模拟观察和三问复盘。</p></a>',
             ]
         )
 
-    def landing_hero_scores(self, summary: dict) -> str:
-        participant_count = int(summary.get("participant_count") or 0)
-        post_count = int(summary.get("post_count") or 0)
-        market_count = self.landing_market_count_text(summary)
-        board = summary.get("leaderboard") or []
-        top_return = pct(board[0]["return_pct"]) if board else "待开赛"
+    def landing_hero_scores(self, _summary: dict) -> str:
         return "\n".join(
             [
-                f'<div class="score"><b>{participant_count} 人</b><span>当前参赛账户</span></div>',
-                f'<div class="score"><b>{market_count}</b><span>已接入行情标的</span></div>',
-                f'<div class="score"><b>{post_count} 篇</b><span>公开策略复盘</span></div>',
-                f'<div class="score"><b>{top_return}</b><span>当前榜首收益</span></div>',
+                '<div class="score"><b>1</b><span>理解一个量化概念</span></div>',
+                '<div class="score"><b>2</b><span>选择一个学习目标</span></div>',
+                '<div class="score"><b>3</b><span>生成一条模拟练习</span></div>',
+                '<div class="score"><b>6/6</b><span>保存三问复盘</span></div>',
             ]
         )
 
-    def landing_hero_feed(self, summary: dict) -> str:
-        rows = []
-        board = summary.get("leaderboard") or []
-        if board:
-            leader = board[0]
-            rows.append(
-                '<div class="feed-row"><span class="tag">LEADER</span>'
-                f'<span>当前榜首: {escape(self.landing_display_name(leader["row"]))}，收益 {pct(leader["return_pct"])}</span>'
-                '<span class="pill">公开榜单</span></div>'
-            )
-        else:
-            leader_text = "公开赛已开放报名，等待第一批参赛账户形成榜单" if self.public_registration_available() else "公开赛暂未开放新注册，等待第一批申请账户形成榜单"
-            rows.append(
-                '<div class="feed-row"><span class="tag">LEADER</span>'
-                f'<span>{leader_text}</span>'
-                '<span class="pill">公开榜单</span></div>'
-            )
-        latest_posts = summary.get("latest_posts") or []
-        if latest_posts:
-            post = latest_posts[0]
-            rows.append(
-                '<div class="feed-row"><span class="tag">DISCUSS</span>'
-                f'<span>最新复盘: {escape(post["title"])}</span>'
-                '<span class="pill">策略论坛</span></div>'
-            )
-        else:
-            rows.append(
-                '<div class="feed-row"><span class="tag">DISCUSS</span>'
-                '<span>论坛等待第一篇带战绩快照的策略复盘</span>'
-                '<span class="pill">策略论坛</span></div>'
-            )
-        source = self.landing_source_label(summary)
-        as_of = self.landing_date_text(summary.get("market_as_of"))
-        rows.append(
-            '<div class="feed-row"><span class="tag">DATA</span>'
-            f'<span>行情源: {escape(source)}，最新交易日 {escape(str(as_of))}</span>'
-            '<span class="pill">真实数据</span></div>'
+    def landing_hero_feed(self, _summary: dict) -> str:
+        return "\n".join(
+            [
+                '<div class="feed-row"><span class="tag">START</span>'
+                '<span>先看 3 分钟示例,知道 AI 教练会怎样拆解目标</span><span class="pill">免登录</span></div>',
+                '<div class="feed-row"><span class="tag">PRACTICE</span>'
+                '<span>注册后点蓝色按钮,生成 1 条小数量模拟练习</span><span class="pill">不成交</span></div>',
+                '<div class="feed-row"><span class="tag">REVIEW</span>'
+                '<span>最后保存三问复盘,看到 6/6 就完成第一圈</span><span class="pill">正反馈</span></div>',
+            ]
         )
-        return "\n".join(rows)
 
     def landing_metric_strip(self, summary: dict) -> str:
         discussion_count = int(summary.get("post_count") or 0) + int(summary.get("comment_count") or 0)
@@ -2338,25 +2516,29 @@ class AppHandler(BaseHTTPRequestHandler):
         discussion_count = int(summary.get("post_count") or 0) + int(summary.get("comment_count") or 0)
         join_secondary = self.public_join_button("btn secondary", primary=True)
         source_rows = "".join(
-            "<tr>"
-            f"<td>{escape(str(row['source']))}</td>"
-            f"<td>{int(row['codes'] or 0)}</td>"
-            f"<td>{int(row['rows'] or 0)}</td>"
-            f"<td>{escape(str(row['date_max'] or '-'))}</td>"
-            f"<td>{escape(str(row['updated_at'] or '-'))}</td>"
-            "</tr>"
+            labeled_table_row(
+                [
+                    ("来源", escape(str(row["source"]))),
+                    ("标的数", str(int(row["codes"] or 0))),
+                    ("记录数", str(int(row["rows"] or 0))),
+                    ("最新日期", escape(str(row["date_max"] or "-"))),
+                    ("更新时间", escape(str(row["updated_at"] or "-"))),
+                ]
+            )
             for row in summary.get("sources", [])
-        ) or '<tr><td colspan="5" class="muted">暂无行情来源记录</td></tr>'
+        ) or labeled_empty_row("暂无行情来源记录", 5)
         prediction_rows = "".join(
-            "<tr>"
-            f"<td>{escape(row['code'])}</td>"
-            f"<td>{escape(str(row['name'] or '-'))}</td>"
-            f"<td>{pct(float(row['prediction']) * 100)}</td>"
-            f"<td>{escape(str(row['as_of'] or '-'))}</td>"
-            f"<td>{escape(str(row['source'] or '-'))}</td>"
-            "</tr>"
+            labeled_table_row(
+                [
+                    ("代码", escape(row["code"])),
+                    ("名称", escape(str(row["name"] or "-"))),
+                    ("预测", pct(float(row["prediction"]) * 100)),
+                    ("行情日期", escape(str(row["as_of"] or "-"))),
+                    ("行情来源", escape(str(row["source"] or "-"))),
+                ]
+            )
             for row in prediction.get("top", [])
-        ) or '<tr><td colspan="5" class="muted">暂无可展示的可交易预测候选</td></tr>'
+        ) or labeled_empty_row("暂无可展示的可交易预测候选", 5)
         body = f"""
 <section class="card">
   <h2>数据透明度</h2>
@@ -2375,12 +2557,12 @@ class AppHandler(BaseHTTPRequestHandler):
 </div>
 <section class="card">
   <h2>行情来源明细</h2>
-  <table><thead><tr><th>来源</th><th>标的数</th><th>记录数</th><th>最新日期</th><th>更新时间</th></tr></thead><tbody>{source_rows}</tbody></table>
+  <table class="mobile-card-table"><thead><tr><th>来源</th><th>标的数</th><th>记录数</th><th>最新日期</th><th>更新时间</th></tr></thead><tbody>{source_rows}</tbody></table>
 </section>
 <section class="card">
   <h2>模型候选状态</h2>
   <p>预测候选来自服务端生成的 CSV,并且只展示能匹配当前真实行情的标的。候选结果用于组合演练,不构成投资建议或收益承诺。</p>
-  <table><thead><tr><th>代码</th><th>名称</th><th>预测</th><th>行情日期</th><th>行情来源</th></tr></thead><tbody>{prediction_rows}</tbody></table>
+  <table class="mobile-card-table"><thead><tr><th>代码</th><th>名称</th><th>预测</th><th>行情日期</th><th>行情来源</th></tr></thead><tbody>{prediction_rows}</tbody></table>
 </section>
 <section class="card">
   <h2>使用边界</h2>
@@ -2419,9 +2601,9 @@ class AppHandler(BaseHTTPRequestHandler):
 {self.message_html(query)}
 <section class="card">
   <h2>网站使用流程</h2>
-  <p>这套系统从公开了解、邮箱注册、密码登录、模拟交易、组合设计、公开展示到论坛复盘形成闭环。下面按真实用户路径展开。</p>
+  <p>这套系统从公开了解、邮箱注册、学习工作台、生成今日练习、模拟观察、三问复盘到高级模拟盘形成闭环。下面按真实用户路径展开。</p>
   <div class="flow-map">{self.usage_flow_cards()}</div>
-  <p><a class="btn" href="/guide/demo">观看自动演示</a> <a class="btn secondary" href="/register">开始注册</a> <a class="btn secondary" href="/showcase/public">查看榜单</a></p>
+  <p><a class="btn" href="/guide/demo">观看自动演示</a> <a class="btn secondary" href="/register">注册进入学习工作台</a> <a class="btn secondary" href="/showcase/public">查看榜单</a></p>
 </section>
 <section class="grid">
   <div class="card">
@@ -2435,13 +2617,13 @@ class AppHandler(BaseHTTPRequestHandler):
 </section>
 <section class="card">
   <h2>角色路径</h2>
-  <table>
+  <table class="mobile-card-table">
     <thead><tr><th>角色</th><th>第一步</th><th>核心页面</th><th>完成目标</th></tr></thead>
     <tbody>
-      <tr><td>访客</td><td>看首页和指南</td><td><a href="/data-status">数据状态</a> / <a href="/showcase/public">公开榜单</a> / <a href="/forum">论坛</a></td><td>判断赛场、数据和讨论是否值得加入</td></tr>
-      <tr><td>新用户</td><td>邮箱注册并输入注册码</td><td><a href="/register">注册</a> / <a href="/auth/email/confirm">注册码确认</a> / <a href="/login">登录</a></td><td>设置密码并进入模拟盘</td></tr>
-      <tr><td>参赛用户</td><td>制定演练计划</td><td><a href="/app">模拟盘</a> / <a href="/portfolio-lab">组合设计</a> / <a href="/showcase/public">公开榜单</a></td><td>执行模拟交易、跟踪收益、公开复盘</td></tr>
-      <tr><td>管理员</td><td>完成发布体检</td><td><a href="/admin">管理后台</a> / <a href="/readyz">严格体检</a> / <a href="/support">支持请求</a></td><td>保障发信、行情、备份和内容治理可用</td></tr>
+      <tr><td data-label="角色">访客</td><td data-label="第一步">看首页和指南</td><td data-label="核心页面"><a href="/data-status">数据状态</a> / <a href="/showcase/public">公开榜单</a> / <a href="/forum">论坛</a></td><td data-label="完成目标">判断赛场、数据和讨论是否值得加入</td></tr>
+      <tr><td data-label="角色">新用户</td><td data-label="第一步">邮箱注册并输入注册码</td><td data-label="核心页面"><a href="/register">注册</a> / <a href="/auth/email/confirm">注册码确认</a> / <a href="/learn">学习工作台</a></td><td data-label="完成目标">设置密码后先完成第一次学习闭环</td></tr>
+      <tr><td data-label="角色">参赛用户</td><td data-label="第一步">从学习任务生成演练计划</td><td data-label="核心页面"><a href="/learn">学习工作台</a> / <a href="/app">高级模拟盘</a> / <a href="/showcase/public">公开榜单</a></td><td data-label="完成目标">执行模拟观察、跟踪收益、公开复盘</td></tr>
+      <tr><td data-label="角色">管理员</td><td data-label="第一步">完成发布体检</td><td data-label="核心页面"><a href="/admin">管理后台</a> / <a href="/readyz">严格体检</a> / <a href="/support">支持请求</a></td><td data-label="完成目标">保障发信、行情、备份和内容治理可用</td></tr>
     </tbody>
   </table>
 </section>
@@ -2451,7 +2633,7 @@ class AppHandler(BaseHTTPRequestHandler):
             body,
             meta={
                 "title": "OurWorlds Quant 使用指南",
-                "description": "按流程了解邮箱注册、模拟交易、组合设计、公开榜单、论坛复盘和后台运维。",
+                "description": "按流程了解邮箱注册、学习工作台、今日练习、模拟观察、三问复盘和高级模拟盘。",
                 "url": self.public_url("/guide"),
             },
             head=head,
@@ -2498,7 +2680,7 @@ class AppHandler(BaseHTTPRequestHandler):
 {self.message_html(query)}
 <section class="card">
   <h2>自动演示</h2>
-  <p>演示会每 7 秒切换一站,串起公开了解、注册确认、密码登录、模拟交易、组合设计、公开展示和论坛复盘。浏览器偏好减少动画时会直接展开全部步骤。</p>
+  <p>演示会每 7 秒切换一站,串起公开了解、邮箱注册、学习工作台、今日练习、模拟观察、三问复盘和高级模拟盘。浏览器偏好减少动画时会直接展开全部步骤。</p>
   <div class="demo-progress"><span></span></div>
   <div class="demo-board">
     <div class="demo-stage">{''.join(frames)}</div>
@@ -2509,7 +2691,7 @@ class AppHandler(BaseHTTPRequestHandler):
       </div>
     </div>
   </div>
-  <p><a class="btn" href="/guide">返回使用指南</a> <a class="btn secondary" href="/register">开始注册</a> <a class="btn secondary" href="/showcase/public">查看公开榜单</a></p>
+  <p><a class="btn" href="/guide">返回使用指南</a> <a class="btn secondary" href="/register">注册进入学习工作台</a> <a class="btn secondary" href="/showcase/public">查看公开榜单</a></p>
 </section>
 """
         self.send_html(
@@ -2517,7 +2699,7 @@ class AppHandler(BaseHTTPRequestHandler):
             body,
             meta={
                 "title": "OurWorlds Quant 自动演示",
-                "description": "自动演示 OurWorlds Quant 从注册、模拟交易、组合设计到公开复盘的完整使用流程。",
+                "description": "自动演示 OurWorlds Quant 从注册、学习目标、教练拆解、今日练习到三问复盘的第一次学习闭环。",
                 "url": self.public_url("/guide/demo"),
             },
             head=head,
@@ -2664,6 +2846,7 @@ class AppHandler(BaseHTTPRequestHandler):
         if clean in {
             "/",
             "/preview",
+            "/learn/demo",
             "/lessons",
             "/research",
             "/data-status",
@@ -2790,8 +2973,103 @@ class AppHandler(BaseHTTPRequestHandler):
         if err:
             return f'<div class="msg err">{escape(err)}</div>'
         if msg:
+            learning_notice = self.learning_notice_html(msg)
+            if learning_notice:
+                return learning_notice
             return f'<div class="msg">{escape(msg)}</div>'
         return ""
+
+    def learning_notice_html(self, msg: str) -> str:
+        clean = " ".join(str(msg or "").split())
+        if not clean:
+            return ""
+        notice: tuple[str, str, str, str, str] | None = None
+        if (
+            "先从学习工作台开始" in clean
+            or "账号已就绪" in clean
+            or "注册成功" in clean
+            or "扫码注册成功" in clean
+        ):
+            notice = (
+                "0/6",
+                "欢迎来到学习工作台",
+                "现在不用找菜单、配置 key 或写提示词。先看一句话,再点蓝色推荐按钮开始第一关。",
+                "#learn-presets",
+                "开始第一关",
+            )
+        elif "下一步点击“一键生成今日练习”" in clean:
+            notice = (
+                "3/6",
+                "目标已经建好",
+                "刚才已经完成选目标和教练拆解。现在不用读完全文,只点蓝色按钮生成 1 条今日练习。",
+                "#task-next-action",
+                "生成今日练习",
+            )
+        elif "今日练习" in clean and ("已保存" in clean or "生成" in clean or "草稿" in clean):
+            notice = (
+                "4/6",
+                "今日练习已经生成",
+                "刚才只是保存了待观察练习,还没有成交。下一步回到今日练习,确认材料、数量和依据后生成观察记录。",
+                "#today-practice",
+                "去生成观察记录",
+            )
+        elif "模拟观察记录已生成" in clean or "已开始模拟观察" in clean or "来自学习任务,先回学习页完成复盘" in clean:
+            notice = (
+                "5/6",
+                "观察记录已经生成",
+                "刚才生成的是模拟观察记录。现在不用判断赚亏,先一键完成 6/6 并保存示例复盘。",
+                "#learning-review",
+                "完成 6/6",
+            )
+        elif "解锁 6/6" in clean or "学习闭环完成" in clean:
+            notice = (
+                "6/6",
+                "第一次学习闭环完成",
+                "复盘已经保存。今天可以停在这里;下次回来先看学习轨迹里的“下次改什么”。",
+                "#learning-journey",
+                "查看学习轨迹",
+            )
+        if notice is None:
+            return ""
+        step, title, text, href, label = notice
+        action_html = f'<a class="btn blue" href="{escape(href, quote=True)}">{escape(label)}</a>'
+        if step == "0/6":
+            user = self.current_user()
+            if user:
+                action_html = (
+                    '<form method="post" action="/learn/sample-task">'
+                    f"{csrf_input(user)}"
+                    '<input type="hidden" name="preset" value="0">'
+                    '<input type="hidden" name="quick_start" value="1">'
+                    '<button class="btn blue" type="submit">一键开始第一关</button>'
+                    "</form>"
+                )
+        elif step == "3/6":
+            user = self.current_user()
+            path = urlparse(self.path).path
+            if user and path.startswith("/learn/tasks/"):
+                try:
+                    task_id = self.learning_task_id_from_path(path)
+                except (TypeError, ValueError):
+                    task_id = 0
+                if task_id > 0:
+                    action_html = (
+                        f'<form method="post" action="/learn/tasks/{task_id}/quick-save">'
+                        f"{csrf_input(user)}"
+                        '<button class="btn blue" type="submit">一键生成今日练习</button>'
+                        "</form>"
+                    )
+        return f"""
+<div class="msg learning-notice" role="status">
+  <div>
+    <span class="tag">{escape(step)}</span>
+    <strong>{escape(title)}</strong>
+    <p>{escape(text)}</p>
+    <small>{escape(clean)}</small>
+  </div>
+  {action_html}
+</div>
+"""
 
     def release_gate_html(self, checks: list[dict]) -> str:
         by_name = {str(row.get("name")): row for row in checks}
@@ -2851,13 +3129,7 @@ class AppHandler(BaseHTTPRequestHandler):
                 if missing:
                     parts.append("缺少检查项: " + ", ".join(missing))
                 detail = "；".join(str(part) for part in parts)
-            rows.append(
-                "<tr>"
-                f"<td>{escape(label)}</td>"
-                f"<td>{status}</td>"
-                f"<td>{escape(detail)}</td>"
-                "</tr>"
-            )
+            rows.append(labeled_table_row([("范围", escape(label)), ("状态", status), ("依据 / 下一步", escape(detail))]))
         headline = "可进入正式发布" if ready else "正式发布前仍有待处理项"
         headline_class = "ok" if ready else "bad"
         guide = (
@@ -2869,7 +3141,7 @@ class AppHandler(BaseHTTPRequestHandler):
 <section class="card">
   <h2>发布闸门 <span class="{headline_class}">{headline}</span></h2>
   <p>{escape(guide)}</p>
-  <table><thead><tr><th>范围</th><th>状态</th><th>依据 / 下一步</th></tr></thead><tbody>{''.join(rows)}</tbody></table>
+  <table class="mobile-card-table"><thead><tr><th>范围</th><th>状态</th><th>依据 / 下一步</th></tr></thead><tbody>{''.join(rows)}</tbody></table>
 	</section>
 	"""
 
@@ -2960,6 +3232,7 @@ class AppHandler(BaseHTTPRequestHandler):
         entries = [
             {"path": "/", "changefreq": "daily", "priority": "1.0"},
             {"path": "/preview", "changefreq": "daily", "priority": "0.9"},
+            {"path": "/learn/demo", "changefreq": "weekly", "priority": "0.9"},
             {"path": "/lessons", "changefreq": "monthly", "priority": "0.8"},
             {"path": "/research", "changefreq": "weekly", "priority": "0.7"},
             {"path": "/glossary", "changefreq": "monthly", "priority": "0.6"},
@@ -3131,16 +3404,32 @@ class AppHandler(BaseHTTPRequestHandler):
             return
         body = f"""
 {self.message_html(query)}
+<section class="card starter-card">
+  <div class="starter-head">
+    <div>
+      <span class="tag">LOGIN FIRST</span>
+      <strong>登录后先进入学习工作台</strong>
+      <p>新用户不用先找模拟盘菜单。登录成功后,系统会带你从第一关开始:懂一句话、点一个目标、完成一次模拟练习和三问复盘。</p>
+    </div>
+    <p class="muted">已有模拟记录的用户会自动回到高级模拟盘;零基础用户先走学习闭环。</p>
+  </div>
+  <div class="starter-grid">
+    <div class="starter-choice"><span class="tag">01</span><strong>登录账号</strong><p>用邮箱验证后设置的用户名或邮箱登录。</p><small>手机上也只填两项</small></div>
+    <div class="starter-choice"><span class="tag">02</span><strong>点第一关</strong><p>进入学习工作台后,先点蓝色推荐按钮,不用写提示词。</p><small>无 DeepSeek key 也能开始</small></div>
+    <div class="starter-choice"><span class="tag">03</span><strong>完成 6/6</strong><p>生成练习、生成观察记录,再一键保存三问复盘。</p><small>不是真实交易</small></div>
+  </div>
+  <p><a class="btn secondary" href="/learn/demo">先看 3 分钟示例</a> <a class="btn secondary" href="/register">还没有账号?邮箱注册</a></p>
+</section>
 <section class="card">
   <h2>账号密码登录</h2>
-  <p>使用邮箱验证后设置的用户名或邮箱登录。退出后再次进入模拟盘,从这里登录。</p>
+  <p>使用邮箱验证后设置的用户名或邮箱登录。新用户登录后会先进入学习工作台;已有模拟记录的用户会回到高级模拟盘。</p>
   <p>如果你是早期测试账号且还没有设置密码,当前不能靠旧测试入口再次进入;请在邮箱发信开通后通过邮箱验证或重置密码设置登录方式,也可以先提交支持请求让管理员补账号密码。</p>
   <form method="post" action="/login">
     <label>用户名或邮箱</label>
     <input name="identifier" autocomplete="username" required value="" placeholder="username 或 you@example.com">
     <label>密码</label>
     <input name="password" type="password" autocomplete="current-password" required>
-    <p><button type="submit">登录模拟盘</button> <a class="btn secondary" href="/forgot-password">忘记密码</a> <a class="btn secondary" href="/register">邮箱注册</a> <a class="btn secondary" href="/support">联系支持</a></p>
+    <p><button type="submit">登录学习工作台</button> <a class="btn secondary" href="/forgot-password">忘记密码</a> <a class="btn secondary" href="/register">邮箱注册</a> <a class="btn secondary" href="/support">联系支持</a></p>
   </form>
 </section>
 """
@@ -3308,8 +3597,8 @@ class AppHandler(BaseHTTPRequestHandler):
   <h2>邮箱注册暂未开放</h2>
   <p>当前环境没有配置可用的出站邮件服务,系统不会发送确认邮件,也不会用注册申请创建登录态。正式开放报名需要配置 Cloudflare Email Sending 或 SMTP。</p>
   <p>已有账号可以继续使用用户名/邮箱和密码登录;早期测试账号如果还没有设置密码,请先联系管理员补登录方式。</p>
-  <p class="muted">不用注册也能先逛:看公开榜单、读「量化三大坑」、查术语表、逛策略论坛。</p>
-  <p><a class="btn" href="/login">去登录</a> <a class="btn secondary" href="/lessons">量化三大坑</a> <a class="btn secondary" href="/glossary">术语表</a> <a class="btn secondary" href="/showcase/public">公开榜单</a> <a class="btn secondary" href="/forum">策略论坛</a> <a class="btn secondary" href="/support">联系支持</a></p>
+  <p class="muted">不用注册也能先逛:看 3 分钟学习体验、读「量化三大坑」、查术语表、逛策略论坛。</p>
+  <p><a class="btn" href="/login">去登录</a> <a class="btn secondary" href="/learn/demo">先体验学习闭环</a> <a class="btn secondary" href="/lessons">量化三大坑</a> <a class="btn secondary" href="/glossary">术语表</a> <a class="btn secondary" href="/showcase/public">公开榜单</a> <a class="btn secondary" href="/forum">策略论坛</a> <a class="btn secondary" href="/support">联系支持</a></p>
   <p class="muted" style="font-size:12px">自托管本站:在服务端配置 SMTP 或 Cloudflare Email Sending(本地调试可设 OWQ_EMAIL_DEV_AUTH=1 让注册码直接显示在页面上)即可开放注册。</p>
 </section>
 """
@@ -3324,8 +3613,8 @@ class AppHandler(BaseHTTPRequestHandler):
 <section class="card">
   <h2>邮箱注册暂未开放</h2>
   <p>当前公网环境尚未配置真实发信服务,新用户邮箱注册暂未开放;系统不会展示测试链接,也不会用注册申请创建登录态。已有账号可以继续使用用户名/邮箱和密码登录。</p>
-  <p>正式开放报名后,系统会向邮箱发送一次性注册码;确认后设置用户名和密码,再回到登录页进入模拟盘。</p>
-  <p><a class="btn" href="/login">去登录</a> <a class="btn secondary" href="/support">联系支持</a> <a class="btn secondary" href="/">先看看赛场</a> <a class="btn secondary" href="/legal">查看服务说明</a></p>
+  <p>正式开放报名后,系统会向邮箱发送一次性注册码;确认后设置用户名和密码,再进入学习工作台。第一屏先懂一句话,再点蓝色推荐按钮,不用配置 DeepSeek key。</p>
+  <p><a class="btn" href="/login">去登录</a> <a class="btn secondary" href="/support">联系支持</a> <a class="btn secondary" href="/learn/demo">先体验学习闭环</a> <a class="btn secondary" href="/legal">查看服务说明</a></p>
 </section>
 """
                 self.send_html("注册", body)
@@ -3336,17 +3625,55 @@ class AppHandler(BaseHTTPRequestHandler):
             mode_note = f"<p>邮箱注册码会发送到你的邮箱。当前发信服务: {provider_text}。</p>"
         body = f"""
 {self.message_html(query)}
-<section class="card">
-  <h2>邮箱验证注册</h2>
-  <p>输入邮箱后会收到一次性注册码。确认后需要设置用户名和密码,未来使用账号密码登录模拟盘。</p>
-  {mode_note}
-  <form method="post" action="/register">
-    <label>邮箱</label>
-    <input name="email" type="email" required placeholder="you@example.com" value="">
-    <p><label><input type="checkbox" name="accept_terms" value="1" style="width:auto"> 我已阅读并同意 <a href="/terms">服务条款</a>、<a href="/privacy">隐私说明</a> 和 <a href="/risk">风险提示</a></label></p>
-    <p><button type="submit">发送注册码</button> <a class="btn secondary" href="/login">已有账号登录</a> <a class="btn secondary" href="/">先看看赛场</a></p>
-  </form>
+<section class="card starter-card">
+  <div class="starter-head">
+    <div>
+      <span class="tag">FIRST LOOP</span>
+      <strong>注册后先完成 3 分钟学习闭环</strong>
+      <p>你不需要先懂股票术语,也不需要自己写专业提示词。确认邮箱并设置密码后,系统会直接把你带到学习工作台,第一屏先懂一句话,再点蓝色推荐按钮。</p>
+    </div>
+    <p class="muted">目标:理解一个概念 -> 选一个目标 -> 看教练拆解 -> 生成一次模拟练习 -> 知道怎么复盘。</p>
+  </div>
+  <div class="starter-grid">
+    <div class="starter-choice"><span class="tag">01</span><strong>收注册码</strong><p>输入邮箱后收到一次性注册码,确认后设置用户名和密码。</p><small>15 分钟内完成</small></div>
+    <div class="starter-choice"><span class="tag">02</span><strong>点预设目标</strong><p>不知道问什么也没关系,学习页会提供新手问题卡片。</p><small>不用先配置 AI key</small></div>
+    <div class="starter-choice"><span class="tag">03</span><strong>做第一次练习</strong><p>先生成一条小数量模拟观察,再用三句话保存复盘。</p><small>不自动交易,不是真实投资</small></div>
+  </div>
 </section>
+<section class="grid">
+  <div class="card">
+    <h2>现在只做一件事:收注册码</h2>
+    <p>输入邮箱后会收到一次性注册码。确认后需要设置用户名和密码,完成后自动进入学习工作台;以后再使用账号密码登录。</p>
+    {mode_note}
+    <div class="task-action-points">
+      <div><b>现在填什么</b><p>只填邮箱,再勾选同意条款。</p></div>
+      <div><b>点完去哪</b><p>去邮箱收 8 位注册码,下一页会带你设置密码。</p></div>
+      <div><b>还不用做什么</b><p>不用配置 AI key,不用看模拟盘,不用自己写提示词。</p></div>
+    </div>
+    <form id="email-register-form" method="post" action="/register">
+      <label>邮箱</label>
+      <input name="email" type="email" required placeholder="you@example.com" value="">
+      <p><label><input type="checkbox" name="accept_terms" value="1" style="width:auto"> 我已阅读并同意 <a href="/terms">服务条款</a>、<a href="/privacy">隐私说明</a> 和 <a href="/risk">风险提示</a></label></p>
+      <p><button type="submit">发送注册码</button> <a class="btn secondary" href="/login">已有账号登录</a></p>
+      <p class="muted">下一步:输入注册码并设置密码,完成后自动进入学习工作台。</p>
+    </form>
+  </div>
+  <div class="card">
+    <h2>先放心</h2>
+    <ul class="guide-list">
+      <li>第一次不用手动选股票下单,先从学习目标开始。</li>
+      <li>没有 DeepSeek key 也能用内置示例教练跑通流程。</li>
+      <li>注册后第一屏先看一句话,再点蓝色推荐按钮,系统会继续提示 3/6、4/6、5/6、6/6。</li>
+      <li>练习只写入模拟盘,不会自动成交,也不构成投资建议。</li>
+    </ul>
+    <p><a class="btn secondary" href="/learn/demo">先看 3 分钟示例</a> <a class="btn secondary" href="/lessons">量化三大坑</a></p>
+  </div>
+</section>
+<div class="mobile-next-spacer" aria-hidden="true"></div>
+<div class="mobile-next-bar" role="navigation" aria-label="手机注册下一步提示">
+  <div><span>现在只做一件事</span><b>填写邮箱并发送注册码</b></div>
+  <a class="btn blue" href="#email-register-form">去填写</a>
+</div>
 """
         self.send_html("注册", body)
 
@@ -3400,6 +3727,30 @@ class AppHandler(BaseHTTPRequestHandler):
 """
         self.send_html("重置密码", body)
 
+    def email_registration_sent_next_html(self) -> str:
+        return """
+<section class="card starter-card">
+  <div class="starter-head">
+    <div>
+      <span class="tag">CHECK EMAIL</span>
+      <strong>现在去邮箱复制 8 位注册码</strong>
+      <p>不用重新注册,也不用找模拟盘入口。打开邮箱找到 OurWorlds Quant 注册码邮件,复制 8 位数字,再回本站输入。</p>
+    </div>
+    <p class="muted">如果暂时没看到邮件,先检查垃圾邮件/广告邮件;注册码 15 分钟内有效。</p>
+  </div>
+  <div class="starter-selected">
+    <div><b>现在做什么</b><span>去邮箱复制 8 位数字注册码。</span></div>
+    <div><b>回来填哪里</b><span>点击“输入注册码”,填写邮箱和注册码。</span></div>
+    <div><b>完成后去哪</b><span>设置密码后自动进入学习工作台。</span></div>
+  </div>
+</section>
+<div class="mobile-next-spacer" aria-hidden="true"></div>
+<div class="mobile-next-bar" role="navigation" aria-label="手机邮箱验证下一步提示">
+  <div><span>下一步</span><b>输入邮箱里的 8 位注册码</b></div>
+  <a class="btn blue" href="/auth/email/confirm">去输入</a>
+</div>
+"""
+
     def handle_register_start(self, form):
         mode = self.auth_mode()
         if mode == "disabled":
@@ -3437,9 +3788,10 @@ class AppHandler(BaseHTTPRequestHandler):
   <h2>测试邮箱验证链接已生成</h2>
   <p>邮箱: {escape(email)}</p>
   <p>测试注册码: <code>{escape(code)}</code></p>
-  <p>正式运营配置发信服务后,这里会改为发送邮件,不会展示注册码和链接。确认后需要设置用户名和密码,再使用账号密码登录。</p>
+  <p>正式运营配置发信服务后,这里会改为发送邮件,不会展示注册码和链接。确认后需要设置用户名和密码,完成后自动进入学习工作台;第一屏先懂一句话,再点蓝色推荐按钮。</p>
   <p><a class="btn" href="/auth/email/confirm">输入注册码</a> <a class="btn secondary" href="{escape(login_url, quote=True)}">打开备用确认链接</a></p>
 </section>
+{self.email_registration_sent_next_html()}
 """
             self.send_html("邮箱验证", body)
             return
@@ -3465,9 +3817,10 @@ class AppHandler(BaseHTTPRequestHandler):
         body = f"""
 <section class="card">
   <h2>验证邮件已发送</h2>
-  <p>我们已经向 {escape(email)} 发送了一封一次性邮箱验证邮件。注册码 15 分钟内有效,确认后需要设置用户名和密码,再使用账号密码登录。</p>
+  <p>我们已经向 {escape(email)} 发送了一封一次性邮箱验证邮件。注册码 15 分钟内有效,确认后需要设置用户名和密码,完成后自动进入学习工作台;第一屏先懂一句话,再点蓝色推荐按钮。</p>
   <p><a class="btn" href="/auth/email/confirm">输入注册码</a> <a class="btn secondary" href="/register">换一个邮箱</a></p>
 </section>
+{self.email_registration_sent_next_html()}
 """
         self.send_html("邮箱验证", body)
 
@@ -3597,39 +3950,81 @@ class AppHandler(BaseHTTPRequestHandler):
         is_reset = bool(existing_user and existing_user["password_hash"])
         title = "重置登录密码" if is_reset else "设置登录账号"
         description = (
-            "邮箱已确认。请确认用户名并设置新密码;完成后会自动登录进入模拟盘。"
+            "邮箱已确认。请确认用户名并设置新密码;完成后会自动登录进入学习工作台。"
             if is_reset
-            else "邮箱已确认。请设置用户名和密码;完成后会自动登录,直接进入。"
+            else "邮箱已确认。请设置用户名和密码;完成后会自动登录,先进入学习工作台。第一屏先懂一句话,再点蓝色推荐按钮,不用配置 DeepSeek key。"
         )
-        button = "重置密码并进入" if is_reset else "设置密码并进入"
+        button = "重置密码并进入学习工作台" if is_reset else "设置密码并进入学习工作台"
         retry_path = "/forgot-password" if is_reset else "/register"
+        setup_hint = "设置新密码后自动回到学习工作台" if is_reset else "设置密码后自动进入学习工作台"
         body = f"""
 {self.message_html(query)}
+<section class="card starter-card">
+  <div class="starter-head">
+    <div>
+      <span class="tag">LAST STEP</span>
+      <strong>{escape(setup_hint)}</strong>
+      <p>这一步只需要确认用户名、输入两次密码。完成后系统会自动登录,新用户先进入学习工作台,不用自己去找模拟盘入口。</p>
+    </div>
+    <p class="muted">进入学习工作台后,第一屏先懂一句话,再点蓝色推荐按钮;没有 DeepSeek key 也能开始。</p>
+  </div>
+  <div class="starter-selected">
+    <div><b>现在填什么</b><span>用户名已自动填好,先输入两遍密码。</span></div>
+    <div><b>点完去哪</b><span>自动登录并进入学习工作台。</span></div>
+    <div><b>第一件事</b><span>点蓝色推荐按钮开始第一关。</span></div>
+  </div>
+</section>
 <section class="card">
   <h2>{title}</h2>
   <p>邮箱: {escape(state.get("email") or "")}</p>
   <p>{escape(description)}</p>
-  <form method="post" action="/auth/email/confirm">
+  <div class="task-action-points">
+    <div><b>用户名</b><p>系统已经按邮箱自动填好。第一次看不懂规则时,先不要改。</p></div>
+    <div><b>密码怎么写</b><p>至少 10 位,同时包含字母和数字;按“英文词 + 数字”的格式写自己的密码。</p></div>
+    <div><b>确认密码</b><p>把同一个密码再输入一遍。两次不一样时,页面会提示你重填。</p></div>
+  </div>
+  <form id="email-password-form" method="post" action="/auth/email/confirm">
     <label>用户名</label>
-    <input name="login_name" autocomplete="username" required pattern="[a-z0-9][a-z0-9_-]{{2,31}}" value="{escape(suggested)}" placeholder="3-32 位小写字母、数字、_ 或 -">
+    <input name="login_name" autocomplete="username" required pattern="[a-z0-9][a-z0-9_-]{{2,31}}" value="{escape(suggested)}" placeholder="3-32 位小写字母、数字、_ 或 -" aria-describedby="login-name-help">
+    <p id="login-name-help" class="muted" style="margin:4px 0 10px">已按邮箱自动生成,一般不用改。只能用小写字母、数字、下划线或短横线。</p>
     <label>密码</label>
-    <input name="password" type="password" autocomplete="new-password" required minlength="10" maxlength="128" pattern="(?=.*[A-Za-z])(?=.*[0-9]).{{10,128}}" title="10–128 位，且必须同时包含字母和数字" placeholder="10–128 位，字母 + 数字">
-    <p class="muted" style="margin:4px 0 10px">密码要求：10–128 位，<strong>同时包含字母和数字</strong>。</p>
+    <input name="password" type="password" autocomplete="new-password" required minlength="10" maxlength="128" pattern="(?=.*[A-Za-z])(?=.*[0-9]).{{10,128}}" title="10–128 位，且必须同时包含字母和数字" placeholder="例如: 英文词 + 4 位数字" aria-describedby="password-help">
+    <p id="password-help" class="muted" style="margin:4px 0 10px">密码要求：10–128 位，<strong>同时包含字母和数字</strong>。不要直接使用页面里的示例格式,请换成自己的内容。</p>
     <label>确认密码</label>
     <input name="password_confirm" type="password" autocomplete="new-password" required minlength="10" maxlength="128" title="需与上面的密码完全一致" placeholder="再输入一次">
     <p><button type="submit">{button}</button> <a class="btn secondary" href="{retry_path}">重新获取邮件</a></p>
   </form>
 </section>
+<div class="mobile-next-spacer" aria-hidden="true"></div>
+<div class="mobile-next-bar" role="navigation" aria-label="手机设置密码下一步提示">
+  <div><span>最后一步</span><b>{escape(setup_hint)}</b></div>
+  <a class="btn blue" href="#email-password-form">去设置</a>
+</div>
 """
         self.send_html("设置登录账号", body)
 
     def render_email_code_entry(self, query):
         body = f"""
 {self.message_html(query)}
+<section class="card starter-card">
+  <div class="starter-head">
+    <div>
+      <span class="tag">EMAIL CODE</span>
+      <strong>先输入邮箱里的 8 位注册码</strong>
+      <p>注册码验证通过后,下一页只需要设置用户名和密码。完成后会自动登录,先进入学习工作台。</p>
+    </div>
+    <p class="muted">如果你在手机邮箱里复制了注册码,回到这里粘贴即可;空格也可以。</p>
+  </div>
+  <div class="starter-selected">
+    <div><b>现在填什么</b><span>邮箱和 8 位数字注册码。</span></div>
+    <div><b>下一页</b><span>设置用户名和密码。</span></div>
+    <div><b>最后去哪</b><span>自动进入学习工作台。</span></div>
+  </div>
+</section>
 <section class="card">
   <h2>输入邮箱注册码</h2>
   <p>请输入邮件里的 8 位注册码。确认后即可设置登录密码;忘记密码时也可以用邮件里的重置码进入同一个确认流程。</p>
-  <form method="post" action="/auth/email/code">
+  <form id="email-code-form" method="post" action="/auth/email/code">
     <label>邮箱</label>
     <input name="email" type="email" required autocomplete="email" placeholder="you@example.com">
     <label>注册码</label>
@@ -3637,6 +4032,11 @@ class AppHandler(BaseHTTPRequestHandler):
     <p><button type="submit">确认注册码</button> <a class="btn secondary" href="/register">重新注册</a> <a class="btn secondary" href="/forgot-password">忘记密码</a></p>
   </form>
 </section>
+<div class="mobile-next-spacer" aria-hidden="true"></div>
+<div class="mobile-next-bar" role="navigation" aria-label="手机注册码下一步提示">
+  <div><span>下一步</span><b>输入邮箱和 8 位注册码</b></div>
+  <a class="btn blue" href="#email-code-form">去输入</a>
+</div>
 """
         self.send_html("邮箱注册码", body)
 
@@ -3711,7 +4111,7 @@ class AppHandler(BaseHTTPRequestHandler):
         login_name = (form.get("login_name") or "").strip()
         password = form.get("password") or ""
         if password != (form.get("password_confirm") or ""):
-            self.redirect("/auth/email/confirm?err=" + quote("两次输入的密码不一致。"))
+            self.redirect("/auth/email/confirm?err=" + quote("两次输入的密码不一致。") + "#email-password-form")
             return
         existing_user = services.get_user_by_email(self.con, state.get("email") or "")
         try:
@@ -3722,7 +4122,7 @@ class AppHandler(BaseHTTPRequestHandler):
             )
             services.validate_password(password)
         except ValueError as exc:
-            self.redirect("/auth/email/confirm?err=" + quote(str(exc)))
+            self.redirect("/auth/email/confirm?err=" + quote(str(exc)) + "#email-password-form")
             return
         try:
             user_id = services.confirm_email_login_session_by_hash(self.con, token_hash)
@@ -3821,7 +4221,7 @@ class AppHandler(BaseHTTPRequestHandler):
     <label>昵称</label>
     <input name="nickname" value="参赛用户">
     <p><label><input type="checkbox" name="accept_terms" value="1" style="width:auto"> 我已阅读并同意 <a href="/terms">服务条款</a>、<a href="/privacy">隐私说明</a> 和 <a href="/risk">风险提示</a></label></p>
-    <p><button type="submit">确认注册并进入模拟盘</button></p>
+    <p><button type="submit">确认注册并进入学习工作台</button></p>
   </form>
 </section>
 """
@@ -3891,20 +4291,127 @@ class AppHandler(BaseHTTPRequestHandler):
             for value, label in items
         )
 
+    def learning_promise_strip_html(self, items: tuple[tuple[str, str], ...]) -> str:
+        item_html = "".join(
+            f"<div><b>{escape(title)}</b><span>{escape(text)}</span></div>"
+            for title, text in items
+        )
+        return f'<div class="loop-promise">{item_html}</div>'
+
+    def learning_preset_by_index(self, raw: str | int | None) -> tuple[int, dict]:
+        try:
+            idx = int(str(raw if raw is not None else "0").strip())
+        except ValueError:
+            idx = 0
+        if idx < 0 or idx >= len(LEARNING_PRESETS):
+            idx = 0
+        return idx, LEARNING_PRESETS[idx]
+
+    def sample_learning_task_template(self, preset: dict) -> str:
+        template = services.normalize_learning_template(preset.get("template") or "reversal")
+        return "reversal" if template == "risk_review" else template
+
+    def learning_task_practice_template(self, task) -> str:
+        template = services.normalize_learning_template(task["template"] or "reversal")
+        return "reversal" if template == "risk_review" else template
+
+    def learning_task_coach_label(self, task) -> str:
+        coach_text = str(task["coach_text"] or "")
+        if "示例教练" in coach_text or "AI 教练暂时不可用" in coach_text:
+            return "示例教练"
+        return "AI 教练"
+
+    def sample_learning_coach_text(self, preset: dict) -> str:
+        template = services.normalize_learning_template(preset.get("template") or "reversal")
+        template_label = services.LEARNING_TEMPLATES.get(template, template)
+        if template == "risk_review":
+            practice_line = (
+                "先把风险拆成 3 个小问题: **数量边界、回撤边界、停止条件**;生成今日练习时,"
+                "系统会用一条小数量观察作为材料,重点不是买卖,而是给练习补上边界。"
+            )
+        else:
+            practice_line = f"先用 **{template_label}** 做小数量模拟观察,重点看依据、数量和风险边界。"
+        return f"""
+### 示例教练拆解
+你选择的是: **{preset['title']}**。
+
+这不是 DeepSeek 实时生成的回答,而是系统内置的示例教练。它的目标是让你先跑通第一次学习闭环:理解一个概念,生成今日练习,生成观察记录,再保存三问复盘。
+
+### 这次先学什么
+1. 把“量化投资”理解成一套可记录、可复盘的学习流程,不是让 AI 替你预测涨跌。
+2. {practice_line}
+3. 练习完成后先问“我想练什么、有没有按小数量规则做、下次先改哪一点”,不要先问短期赚亏。
+
+### 练习边界
+- 只做模拟训练,不产生真实交易。
+- 候选由系统按现有行情/预测数据生成,不是模型自由荐股。
+- 保存后只会出现在学习页的「今日练习」里,你仍然要自己确认后才会生成观察记录。
+
+### 下一步
+先点击“一键生成今日练习”。系统只会保存为待观察计划,不会自动成交;想自己调参数时,再展开进阶草稿设置。
+"""
+
+    def fallback_learning_coach_text(self, goal: str, difficulty: str, template: str, reason: str) -> str:
+        preset = {
+            "title": "你的自定义学习目标",
+            "goal": goal,
+            "difficulty": services.normalize_learning_difficulty(difficulty),
+            "template": services.normalize_learning_template(template),
+        }
+        safe_reason = " ".join(str(reason or "AI 服务暂时不可用。").split())[:180]
+        return f"""
+### AI 教练暂时不可用,先用示例教练继续
+DeepSeek 这次没有返回可用拆解: {safe_reason}
+
+为了不让第一次学习闭环卡在外部模型问题上,系统已改用内置示例教练。你仍然可以继续完成同一个流程:看拆解、生成今日练习、生成观察记录、保存三问复盘。
+
+{self.sample_learning_coach_text(preset)}
+"""
+
     def learning_preset_cards(self, user, ai_ready: bool) -> str:
-        cards = []
-        for preset in LEARNING_PRESETS:
+        stages = (
+            ("第 1 关 · 先懂概念", "完全不懂也从这里开始。第一次优先点第一个推荐题,不要先研究所有菜单。", "适合 0-3 分钟"),
+            ("第 2 关 · 做一次观察", "完成第一圈 6/6 后再来。这里开始练反转、动量和预测候选,仍然只做模拟观察。", "完成第一关后"),
+            ("第 3 关 · 风险和复盘", "有第一条复盘记录后再看。重点是风险边界、复盘习惯和常见研究陷阱。", "有复盘后"),
+        )
+        cards_by_stage: dict[str, list[str]] = {title: [] for title, _, _ in stages}
+        for idx, preset in enumerate(LEARNING_PRESETS):
+            if str(preset["difficulty"]) == "beginner":
+                stage_title = stages[0][0]
+            elif str(preset["difficulty"]) == "balanced":
+                stage_title = stages[1][0]
+            else:
+                stage_title = stages[2][0]
             chips = (
                 f'<span class="badge">{escape(preset["level"])}</span>'
                 f'<span class="badge">{escape(services.LEARNING_TEMPLATES[preset["template"]])}</span>'
+            )
+            if idx == 0:
+                stage_hint = '<span class="quest-start">推荐第一关:完全不懂就点这个</span>'
+                cta_line = "<p><strong>点这里开始第 1 关</strong></p>"
+            elif str(preset["difficulty"]) == "beginner":
+                stage_hint = '<span class="quest-start">第 1 关可选题:想换一个概念再点</span>'
+                cta_line = "<p><strong>点这里创建学习任务</strong></p>"
+            else:
+                stage_hint = '<span class="quest-lock">建议完成当前 6/6 后再点</span>'
+                cta_line = "<p><strong>完成第一圈后再创建</strong></p>"
+            outcome = (
+                '<div class="choice-outcome">'
+                f"<span><b>点击后</b>{'让 AI 拆解这个目标' if ai_ready else '创建一个示例教练任务'}</span>"
+                "<span><b>下一步</b>生成 1 条今日练习</span>"
+                "<span><b>安全边界</b>不会自动成交</span>"
+                "</div>"
             )
             content = (
                 f"{chips}"
                 f"<strong>{escape(preset['title'])}</strong>"
                 f"<p>{escape(preset['summary'])}</p>"
+                f"{outcome}"
+                f"{stage_hint}"
+                f"{cta_line}"
             )
             if ai_ready:
-                cards.append(
+                cards_by_stage[stage_title].append(
                     '<form class="preset-form" method="post" action="/learn/coach">'
                     f"{csrf_input(user)}"
                     f'<input type="hidden" name="goal" value="{escape(preset["goal"], quote=True)}">'
@@ -3914,13 +4421,555 @@ class AppHandler(BaseHTTPRequestHandler):
                     "</form>"
                 )
             else:
-                cards.append(
-                    '<a class="preset-card" href="/account/ai">'
-                    f"{content}"
-                    '<p><strong>先配置 DeepSeek API key 后可一键创建。</strong></p>'
-                    "</a>"
+                quick_start_input = '<input type="hidden" name="quick_start" value="1">' if idx == 0 else ""
+                cards_by_stage[stage_title].append(
+                    '<form class="preset-form" method="post" action="/learn/sample-task">'
+                    f"{csrf_input(user)}"
+                    f'<input type="hidden" name="preset" value="{idx}">'
+                    f"{quick_start_input}"
+                    f'<button type="submit" class="preset-card">{content}'
+                    '<p><strong>创建示例任务,不用 DeepSeek key。</strong></p>'
+                    '</button>'
+                    "</form>"
                 )
-        return '<div class="preset-grid">' + "".join(cards) + "</div>"
+        stage_html = []
+        for stage_title, stage_text, stage_meta in stages:
+            cards = "".join(cards_by_stage[stage_title])
+            if not cards:
+                continue
+            stage_html.append(
+                '<section class="quest-stage">'
+                '<div class="quest-stage-head">'
+                f'<div><span class="tag">QUEST MAP</span><strong>{escape(stage_title)}</strong><p>{escape(stage_text)}</p></div>'
+                f'<span class="quest-stage-meta">{escape(stage_meta)}</span>'
+                '</div>'
+                f'<div class="preset-grid">{cards}</div>'
+                '</section>'
+            )
+        return '<div class="quest-ladder" aria-label="分级学习任务地图">' + "".join(stage_html) + "</div>"
+
+    def learning_starter_choice_form(
+        self,
+        user,
+        ai_ready: bool,
+        preset_idx: int,
+        heading: str,
+        summary: str,
+        recommended: bool = False,
+    ) -> str:
+        idx, preset = self.learning_preset_by_index(preset_idx)
+        button_class = "starter-choice"
+        form_id = ""
+        chips = (
+            f'<span class="badge">{escape("推荐起步" if recommended else preset["level"])}</span> '
+            f'<span class="badge">{escape(services.LEARNING_TEMPLATES[preset["template"]])}</span>'
+        )
+        outcome = (
+            '<div class="choice-outcome">'
+            f"<span><b>点击后</b>{'让 AI 教练拆解目标' if ai_ready else '创建示例教练任务'}</span>"
+            "<span><b>下一步</b>生成 1 条今日练习</span>"
+            "<span><b>安全边界</b>不会自动成交</span>"
+            "</div>"
+        )
+        cta_text = "点这里创建学习任务" if not recommended else "推荐第一关"
+        mode_text = "AI 教练会拆解" if ai_ready else "不用 key,直接创建示例任务"
+        content = (
+            f"{chips}"
+            f"<strong>{escape(heading)}</strong>"
+            f"<p>{escape(summary)}</p>"
+            f"{outcome}"
+            f"<small>{escape(cta_text)} · {escape(mode_text)}</small>"
+        )
+        if ai_ready:
+            return (
+                f'<form class="starter-form" method="post" action="/learn/coach"{form_id}>'
+                f"{csrf_input(user)}"
+                f'<input type="hidden" name="goal" value="{escape(preset["goal"], quote=True)}">'
+                f'<input type="hidden" name="difficulty" value="{escape(preset["difficulty"])}">'
+                f'<input type="hidden" name="template" value="{escape(preset["template"])}">'
+                f'<button type="submit" class="{button_class}">{content}</button>'
+                "</form>"
+            )
+        return (
+            f'<form class="starter-form" method="post" action="/learn/sample-task"{form_id}>'
+            f"{csrf_input(user)}"
+            f'<input type="hidden" name="preset" value="{idx}">'
+            f'<button type="submit" class="{button_class}">{content}</button>'
+            "</form>"
+        )
+
+    def learning_starter_choices_html(self, user, ai_ready: bool, has_tasks: bool) -> str:
+        if has_tasks:
+            return ""
+        mode_text = (
+            "AI 教练已配置,但第一圈蓝色按钮仍先用内置示例教练,更快完成闭环;想自己写目标时再展开 AI 输入框。"
+            if ai_ready
+            else "没配置 DeepSeek key 也能开始,点击后创建内置示例教练任务,不调用 DeepSeek、不产生 AI 费用。"
+        )
+        fast_action = (
+            '<form method="post" action="/learn/sample-task">'
+            f"{csrf_input(user)}"
+            '<input type="hidden" name="preset" value="0">'
+            '<input type="hidden" name="quick_start" value="1">'
+            '<button class="blue" type="submit">一键开始第一关</button>'
+            "</form>"
+        )
+        return f"""
+<section class="card starter-card" id="learn-presets">
+  <div class="starter-head">
+    <div>
+      <span class="tag">从这里开始</span>
+      <strong>第一步:先懂一句话,再一键开始</strong>
+      <p>不用先写提示词,也不用理解所有菜单。先用 30 秒知道这里不是荐股工具,再点蓝色按钮开始第一次学习闭环。</p>
+    </div>
+    <p class="muted">{escape(mode_text)}</p>
+  </div>
+  <div class="starter-fast-path">
+    <div><b>现在只做一件事</b><span>先记住一句话:量化投资不是猜涨跌,而是把想法写成规则,再用模拟记录检查。然后点“一键开始第一关”。</span></div>
+    {fast_action}
+  </div>
+  <div class="task-action-points starter-primer">
+    <div><b>30 秒先懂一句话</b><p>量化投资不是猜涨跌,而是把想法写成规则,再用数据和模拟记录检查。</p></div>
+    <div><b>AI 在这里像教练</b><p>它帮你解释、拆解和复盘,不替你决定买卖,也不会自动成交。</p></div>
+    <div><b>第一圈只求完成</b><p>点一键开始,生成 1 条练习,生成观察记录后保存三问复盘。</p></div>
+  </div>
+  {self.learning_promise_strip_html((
+    ("3-5 分钟", "只跑通第一次闭环,不要求学完所有概念。"),
+    ("无 key 也能开始", "没有 DeepSeek key 时使用示例教练,不消耗额度。"),
+    ("不会真实交易", "只创建学习任务和模拟练习,不会自动成交。"),
+    ("完成有反馈", "保存复盘后会解锁 6/6 和第一枚学习徽章。"),
+  ))}
+  <div class="starter-selected">
+    <div><b>推荐第一关</b><span>我完全不懂,先从概念开始。</span></div>
+    <div><b>点击后发生什么</b><span>创建示例教练任务,并直接准备 1 条今日练习。</span></div>
+    <div><b>安全边界</b><span>不会扣 AI 费用,不会自动成交,下一步只确认观察材料。</span></div>
+  </div>
+</section>
+"""
+
+    def learning_beginner_focus_html(
+        self,
+        has_tasks: bool,
+        reflection_count: int,
+        continue_task_html: str,
+        today_practice_html: str,
+        recent_review_html: str,
+    ) -> str:
+        if reflection_count > 0:
+            tag = "FIRST BADGE"
+            title = "第一枚学习徽章已解锁"
+            text = "你已经完成一次从目标、拆解、练习、观察到复盘的闭环。今天可以停在这里,下次回来先看学习轨迹。"
+            href = "#learning-journey"
+            label = "查看我的学习轨迹"
+            steps = (
+                ("已完成", "目标、练习、观察记录和复盘已经串起来。"),
+                ("今天可以停", "第一圈已经达标,不用马上继续。"),
+                ("下次回来", "先看学习轨迹里的“下次改什么”。"),
+            )
+        elif recent_review_html:
+            tag = "ONLY STEP"
+            title = "小白模式:最后 30 秒完成 6/6"
+            text = "现在不用判断赚亏,也不用写长分析。点“一键完成 6/6”保存示例复盘,第一圈就完成。"
+            href = "#learning-review"
+            label = "去完成 6/6"
+            steps = (
+                ("只答三问", "想练什么、有没有按规则做、下次改哪一点。"),
+                ("可以用示例", "不会写就先保存示例,之后还能修改。"),
+                ("完成标志", "页面显示 6/6 和学习徽章。"),
+            )
+        elif today_practice_html:
+            tag = "ONLY STEP"
+            title = "小白模式:现在只生成观察记录"
+            text = "不要去高级模拟盘,也不要研究参数。先确认最上面那 1 条今日练习,点蓝色按钮进入复盘。"
+            href = "#today-practice"
+            label = "去生成观察记录"
+            steps = (
+                ("看三件事", "观察材料、练习规模、为什么观察它。"),
+                ("只点一条", "第一次只做最上面那条推荐练习。"),
+                ("下一屏", "系统会带你保存三问复盘。"),
+            )
+        elif continue_task_html:
+            tag = "ONLY STEP"
+            title = "小白模式:现在只生成今日练习"
+            text = "你已经有教练拆解。不要展开进阶设置,先点蓝色按钮生成 1 条今日练习。"
+            href = "#continue-learning-task"
+            label = "去一键生成今日练习"
+            steps = (
+                ("不用调参数", "第一次不用改模板、数量或候选数。"),
+                ("不会成交", "只是保存一条待观察练习。"),
+                ("会回这里", "生成后回学习页继续下一步。"),
+            )
+        elif has_tasks:
+            tag = "CURRENT STEP"
+            title = "小白模式:回到当前步骤"
+            text = "你已经开始第一圈。先跟着页面上方的当前步骤走,不要开新题。"
+            href = "#learning-loop"
+            label = "查看当前进度"
+            steps = (
+                ("先别换题", "当前第一圈完成前,新题会分散注意力。"),
+                ("看蓝色按钮", "每一步只需要找当前蓝色主按钮。"),
+                ("完成标准", "看到 6/6 和一条复盘记录。"),
+            )
+        else:
+            tag = "ZERO START"
+            title = "小白模式:现在只点一个按钮"
+            text = "不用先配置 DeepSeek key,不用写提示词,也不用理解所有菜单。先点“一键开始第一关”。"
+            href = "#learn-presets"
+            label = "去一键开始第一关"
+            steps = (
+                ("不用会术语", "第一关会从“量化是什么”开始。"),
+                ("不用写问题", "系统已经准备好推荐目标。"),
+                ("不会下单", "只会创建学习任务和 1 条今日练习,不会自动成交。"),
+            )
+        steps_html = "".join(
+            f"<div><b>{escape(step_title)}</b><span>{escape(step_text)}</span></div>"
+            for step_title, step_text in steps
+        )
+        return f"""
+<section class="card beginner-focus" id="beginner-focus">
+  <div class="beginner-focus-head">
+    <div>
+      <span class="tag">{escape(tag)}</span>
+      <strong>{escape(title)}</strong>
+      <p>{escape(text)}</p>
+    </div>
+    <a class="btn blue" href="{escape(href, quote=True)}">{escape(label)}</a>
+  </div>
+  <div class="beginner-focus-steps">{steps_html}</div>
+</section>
+"""
+
+    def learning_demo_preset(self, query) -> dict:
+        _, preset = self.learning_preset_by_index(query.get("preset", ["0"])[0] if query else "0")
+        return preset
+
+    def handle_learning_sample_task(self, user, form):
+        if not self.require_user_write_limit(user, "learning_sample_task", 20, 3600, "/learn"):
+            return
+        idx, preset = self.learning_preset_by_index(form.get("preset"))
+        template = services.normalize_learning_template(preset.get("template") or "reversal")
+        try:
+            task_id = services.create_learning_task(
+                self.con,
+                user["id"],
+                preset["goal"],
+                preset["difficulty"],
+                template,
+                self.sample_learning_coach_text(preset),
+            )
+        except ValueError as exc:
+            self.redirect("/learn?err=" + quote(str(exc)))
+            return
+        self.audit(
+            "learning.sample_task_create",
+            user=user,
+            target_type="learning_task",
+            target_id=task_id,
+            detail={"preset": idx, "template": template, "quick_start": form.get("quick_start", "")},
+        )
+        if form.get("quick_start") in TRUE_VALUES:
+            try:
+                created_signal_count = services.create_practice_signals_from_learning_task(
+                    self.con,
+                    user["id"],
+                    task_id,
+                    f"第一关 · {services.LEARNING_TEMPLATES[template]}",
+                    template,
+                    qty="100",
+                    limit=1,
+                    rationale_note="第一关一键开始:先用一条小数量观察材料跑通学习闭环,不要当成现实买卖建议。",
+                )
+            except ValueError as exc:
+                self.redirect(f"/learn/tasks/{task_id}?msg=" + quote("示例教练任务已创建。下一步点击“一键生成今日练习”。") + "&err=" + quote(str(exc)))
+                return
+            self.audit(
+                "learning.sample_task_quick_signal_saved",
+                user=user,
+                target_type="learning_task",
+                target_id=task_id,
+                detail={"preset": idx, "template": template, "count": created_signal_count},
+            )
+            if created_signal_count > 0:
+                message = "第一关已准备好:示例教练拆解和 1 条今日练习都已生成。下一步只确认观察材料,再生成观察记录。"
+                self.redirect("/learn?msg=" + quote(message) + "#today-practice")
+                return
+        summary = self.con.execute(
+            """
+            SELECT
+                (SELECT COUNT(*) FROM learning_tasks WHERE user_id=?) AS task_count,
+                (SELECT COUNT(*) FROM learning_reflections WHERE user_id=?) AS reflection_count
+            """,
+            (int(user["id"]), int(user["id"])),
+        ).fetchone()
+        if int(summary["task_count"] or 0) > 1 and int(summary["reflection_count"] or 0) > 0:
+            message = "下一关已创建:先看它和上一关有什么不同。"
+        else:
+            message = "示例教练任务已创建。下一步点击“一键生成今日练习”。"
+        self.redirect(f"/learn/tasks/{task_id}?msg=" + quote(message))
+
+    def handle_learning_next_task_quick_start(self, user, form):
+        if not self.require_user_write_limit(user, "learning_next_task.quick_start", 10, 600, "/learn"):
+            return
+        idx, preset = self.learning_preset_by_index(form.get("preset") or "4")
+        latest_reflection = self.con.execute(
+            """
+            SELECT t.id AS task_id
+            FROM learning_reflections r
+            JOIN practice_signals s ON s.id=r.practice_signal_id AND s.user_id=r.user_id
+            JOIN learning_tasks t ON t.id=s.learning_task_id AND t.user_id=s.user_id
+            WHERE r.user_id=?
+            ORDER BY r.updated_at DESC, r.id DESC
+            LIMIT 1
+            """,
+            (int(user["id"]),),
+        ).fetchone()
+        if latest_reflection is None:
+            self.redirect("/learn?err=" + quote("先完成第一圈 6/6,再开始下一关。"))
+            return
+        latest_task_id = int(latest_reflection["task_id"] or 0)
+        task = self.con.execute(
+            """
+            SELECT *
+            FROM learning_tasks
+            WHERE user_id=? AND id>?
+            ORDER BY id
+            LIMIT 1
+            """,
+            (int(user["id"]), latest_task_id),
+        ).fetchone()
+        created = False
+        if task is None:
+            template = services.normalize_learning_template(preset.get("template") or "momentum")
+            try:
+                task_id = services.create_learning_task(
+                    self.con,
+                    user["id"],
+                    preset["goal"],
+                    preset["difficulty"],
+                    template,
+                    self.sample_learning_coach_text(preset),
+                )
+            except ValueError as exc:
+                self.redirect("/learn?err=" + quote(str(exc)))
+                return
+            task = services.learning_task(self.con, user["id"], task_id)
+            created = True
+        if task is None:
+            self.redirect("/learn?err=" + quote("第二关任务创建失败,请稍后再试。"))
+            return
+        task_id = int(task["id"])
+        sequence = int(
+            self.con.execute(
+                "SELECT COUNT(*) FROM learning_tasks WHERE user_id=? AND id<=?",
+                (int(user["id"]), task_id),
+            ).fetchone()[0]
+        )
+        task_template = services.normalize_learning_template(task["template"] or "reversal")
+        stage_label = {1: "第一关", 2: "第二关", 3: "第三关", 4: "第四关"}.get(sequence, f"第 {sequence} 关")
+        stage_ready_label = f"{stage_label}已准备好"
+        if task_template == "risk_review":
+            stage_ready_label = f"{stage_label}风险边界已准备好"
+        state = self.con.execute(
+            """
+            SELECT
+                COUNT(CASE WHEN s.status='pending' THEN 1 END) AS pending_count,
+                COUNT(CASE WHEN s.status='executed' AND r.id IS NULL THEN 1 END) AS unreviewed_count,
+                COUNT(r.id) AS reflection_count
+            FROM practice_signals s
+            LEFT JOIN learning_reflections r ON r.practice_signal_id=s.id AND r.user_id=s.user_id
+            WHERE s.user_id=? AND s.learning_task_id=?
+            """,
+            (int(user["id"]), task_id),
+        ).fetchone()
+        pending_count = int(state["pending_count"] or 0) if state else 0
+        unreviewed_count = int(state["unreviewed_count"] or 0) if state else 0
+        reflection_count = int(state["reflection_count"] or 0) if state else 0
+        created_signal_count = 0
+        if pending_count <= 0 and unreviewed_count <= 0 and reflection_count <= 0:
+            template = self.learning_task_practice_template(task)
+            rationale_note = (
+                f"{stage_label}风险边界一键开始:先用一条小数量观察材料,写清数量边界、回撤边界和停止条件。"
+                if task_template == "risk_review"
+                else f"{stage_label}一键开始:用同样小数量换一个观察角度,和上一关做对照复盘。"
+            )
+            try:
+                created_signal_count = services.create_practice_signals_from_learning_task(
+                    self.con,
+                    user["id"],
+                    task_id,
+                    f"{stage_label} · {services.LEARNING_TEMPLATES[task_template]}",
+                    template,
+                    qty="100",
+                    limit=1,
+                    rationale_note=rationale_note,
+                )
+            except Exception as exc:  # noqa: BLE001 - beginner-facing validation
+                self.redirect(f"/learn/tasks/{task_id}?err=" + quote(str(exc)))
+                return
+            pending_count += created_signal_count
+        if unreviewed_count > 0:
+            target = "/learn#learning-review"
+            message = f"{stage_label}已经生成观察记录。下一步只保存三问复盘。"
+        elif reflection_count > 0:
+            target = "/learn#learning-journey"
+            message = f"{stage_label}已经完成。回到学习轨迹查看学习记录。"
+        else:
+            target = "/learn#today-practice"
+            message = f"{stage_ready_label}:已经生成 1 条今日练习。下一步只确认观察材料,再生成观察记录。"
+        self.audit(
+            "learning.next_task_quick_start",
+            user=user,
+            target_type="learning_task",
+            target_id=task_id,
+            detail={"preset": idx, "created_task": created, "created_signals": created_signal_count, "pending": pending_count},
+        )
+        self.redirect(self.path_with_notice(target, "msg", message))
+
+    def render_learning_demo(self, query, head: bool = False):
+        preset = self.learning_demo_preset(query)
+        template_label = services.LEARNING_TEMPLATES.get(preset["template"], str(preset["template"]))
+        rows_html = "".join(
+            "<tr>"
+            f"<td data-label=\"练习对象\">{escape(row['name'])}</td>"
+            f"<td data-label=\"模拟动作\">{escape(row['action'])}</td>"
+            f"<td data-label=\"这一步学习什么\">{escape(row['why'])}</td>"
+            "</tr>"
+            for row in LEARNING_DEMO_ROWS
+        )
+        user = self.current_user()
+        demo_reflection_count = 0
+        if user:
+            demo_reflection_count = int(
+                self.con.execute(
+                    "SELECT COUNT(*) FROM learning_reflections WHERE user_id=?",
+                    (int(user["id"]),),
+                ).fetchone()[0]
+            )
+        primary = (
+            '<a class="btn blue" href="/learn">回到我的学习工作台</a>'
+            if user
+            else '<a class="btn blue" href="/register">注册后创建自己的练习</a>'
+        )
+        mobile_primary_href = "/learn" if user else "/register"
+        mobile_primary_text = "回学习工作台" if user else "注册开始"
+        mobile_primary_hint = "回到自己的学习工作台" if user else "注册后创建自己的练习"
+        if not user:
+            secondary = '<a class="btn secondary" href="/login">已有账号登录</a>'
+        elif demo_reflection_count > 0:
+            secondary = '<a class="btn secondary" href="/app">高级模拟盘</a>'
+        else:
+            secondary = '<span class="muted">完成 6/6 后再看高级模拟盘。</span>'
+        if user and demo_reflection_count > 0:
+            followup_title = "看完后可以继续第二关"
+            followup_intro = "你已经完成过一次 6/6 闭环。现在可以回学习工作台换一个目标,也可以进入高级模拟盘查看更完整的账户和持仓细节。"
+            followup_points = (
+                ("回学习轨迹", "先看上一次复盘,再决定第二关要练什么。"),
+                ("换一个目标", "继续用预设任务,不用一次学习所有策略。"),
+                ("再看高级页", "高级模拟盘只用于深入查看模拟记录。"),
+            )
+            followup_actions = f'{primary} {secondary}'
+        elif user:
+            followup_title = "看完后只回学习工作台"
+            followup_intro = "你还没完成第一次 6/6 闭环。现在不要配置 key、不要看榜单、不要进高级模拟盘,先回学习工作台点蓝色按钮。"
+            followup_points = (
+                ("第一屏看什么", "学习工作台会把下一步放在最上面。"),
+                ("第一个动作", "点“一键开始第一关”或继续当前任务。"),
+                ("暂时不用 key", "第一圈可以用示例教练完成,不调用 DeepSeek。"),
+            )
+            followup_actions = primary
+        else:
+            followup_title = "看完后只做下一步"
+            followup_intro = "注册后不会把你丢进复杂模拟盘。第一屏是学习工作台,只需要点蓝色推荐按钮开始第一关。"
+            followup_points = (
+                ("注册后去哪里", "先进入学习工作台,不是高级模拟盘。"),
+                ("第一下点什么", "点“一键开始第一关”,不用自己写提示词。"),
+                ("不用先配置 AI key", "第一圈用示例教练,不调用 DeepSeek。"),
+            )
+            followup_actions = f'{primary} <a class="btn secondary" href="/login">已有账号登录</a>'
+        followup_point_html = "".join(
+            f"<div><b>{escape(title)}</b><p>{escape(text)}</p></div>"
+            for title, text in followup_points
+        )
+        followup_html = f"""
+<section class="card demo-next demo-start-next">
+  <span class="tag">NEXT</span>
+  <h2>{escape(followup_title)}</h2>
+  <p>{escape(followup_intro)}</p>
+  <div class="task-action-points">{followup_point_html}</div>
+  <p>{followup_actions}</p>
+</section>
+"""
+        mobile_demo_next_bar = f"""
+<div class="mobile-next-spacer" aria-hidden="true"></div>
+<div class="mobile-next-bar" role="navigation" aria-label="手机示例下一步提示">
+  <div><span>看完示例后</span><b>{escape(mobile_primary_hint)}</b></div>
+  <a class="btn blue" href="{escape(mobile_primary_href, quote=True)}">{escape(mobile_primary_text)}</a>
+</div>
+"""
+        body = f"""
+<section class="card demo-next">
+  <span class="demo-pill">免登录</span><span class="demo-pill">免 DeepSeek key</span><span class="demo-pill">不产生真实交易</span>
+  <h2>3 分钟体验一次 AI 量化学习闭环</h2>
+  <p>这里用一个固定示例演示完整路径:先理解概念,再看教练拆解,然后看到模拟练习草稿,最后知道该怎么复盘。你不用先懂代码,也不用先配置 API key。</p>
+  <p>{primary} <a class="btn secondary" href="/lessons">先看量化三大坑</a> {secondary}</p>
+</section>
+<section class="card demo-next">
+  <h2>真实学习页会一路告诉你下一步</h2>
+  <p>你不用自己记住完整流程。登录后,页面会按进度告诉你已经完成了什么、还差哪一步、现在该点哪个按钮。</p>
+  <div class="task-action-points">
+    <div><b>刚完成 3/6</b><p>你已经选了目标,也拿到了教练拆解;下一步只一键生成今日练习。</p></div>
+    <div><b>刚完成 4/6</b><p>练习已经生成,但还没有生成观察记录;确认观察材料、练习规模和依据后再生成观察记录。</p></div>
+    <div><b>刚完成 5/6</b><p>模拟观察记录已经生成;不用判断赚亏,先保存一条三问复盘。</p></div>
+    <div><b>完成 6/6</b><p>学习成果已保存。第一圈可以停在这里,想巩固时再开第二关。</p></div>
+  </div>
+</section>
+<section class="demo-loop">
+  <div class="card">
+    <h2>你选择的学习目标</h2>
+    <p><span class="badge">{escape(preset["level"])}</span> <span class="badge">{escape(template_label)}</span></p>
+    <h3>{escape(preset["title"])}</h3>
+    <p>{escape(preset["goal"])}</p>
+  </div>
+  <div class="card">
+    <h2>这次体验要完成什么</h2>
+    <ol class="guide-list">
+      <li>看懂“量化不是预测神话”。</li>
+      <li>看懂系统如何把目标变成练习。</li>
+      <li>知道练习完成后该问哪 3 个复盘问题。</li>
+    </ol>
+  </div>
+</section>
+<section class="card">
+  <h2>示例教练会这样拆解</h2>
+  <div class="markdown-body">{render_markdown(LEARNING_DEMO_COACH_MARKDOWN)}</div>
+</section>
+<section class="card">
+  <h2>系统会生成这样的练习草稿</h2>
+  <p class="msg">这只是示例,不会写入你的模拟盘,也不是买卖建议。真实登录后,你需要确认后才会保存练习,保存后也不会自动成交。</p>
+  <table class="learning-mobile-table"><thead><tr><th>练习对象</th><th>模拟动作</th><th>这一步学习什么</th></tr></thead><tbody>{rows_html}</tbody></table>
+</section>
+<section class="card">
+  <h2>第一次复盘只回答 3 个问题</h2>
+  <div class="demo-checklist">
+	    <div><strong>我这次想练什么?</strong><p>能不能用一句话说明为什么看这些对象。</p></div>
+	    <div><strong>我有没有按小数量规则做?</strong><p>例如最多观察几个对象、每个对象多少模拟数量。</p></div>
+	    <div><strong>下次先改哪一点?</strong><p>复盘重点不是短期赚亏,而是下次能不能把一个小动作做清楚。</p></div>
+  </div>
+</section>
+{followup_html}
+{mobile_demo_next_bar}
+"""
+        self.send_html(
+            "学习体验",
+            body,
+            user=user,
+            head=head,
+            meta={
+                "title": "3 分钟学习体验 · OurWorlds Quant",
+                "description": "免登录、免 DeepSeek API key,先体验一次 AI 量化学习闭环:目标、教练拆解、模拟练习和复盘问题。",
+                "url": f"{self.base_url()}/learn/demo",
+            },
+        )
 
     def learning_task_id_from_path(self, path: str) -> int:
         parts = path.strip("/").split("/")
@@ -3928,62 +4977,1379 @@ class AppHandler(BaseHTTPRequestHandler):
             raise ValueError("学习任务路径无效")
         return int(parts[2])
 
+    def learning_next_quest_form(self, user, ai_ready: bool, preset_idx: int, heading: str, summary: str) -> str:
+        idx, preset = self.learning_preset_by_index(preset_idx)
+        chips = (
+            f'<span class="badge">{escape(preset["level"])}</span> '
+            f'<span class="badge">{escape(services.LEARNING_TEMPLATES[preset["template"]])}</span>'
+        )
+        content = (
+            f"{chips}"
+            f"<strong>{escape(heading)}</strong>"
+            f"<p>{escape(summary)}</p>"
+            f"<small>{'让 AI 教练拆解' if ai_ready else '创建示例任务'}</small>"
+        )
+        if ai_ready:
+            return (
+                '<form class="quest-form" method="post" action="/learn/coach">'
+                f"{csrf_input(user)}"
+                f'<input type="hidden" name="goal" value="{escape(preset["goal"], quote=True)}">'
+                f'<input type="hidden" name="difficulty" value="{escape(preset["difficulty"])}">'
+                f'<input type="hidden" name="template" value="{escape(preset["template"])}">'
+                f'<button type="submit" class="quest-card">{content}</button>'
+                "</form>"
+            )
+        return (
+            '<form class="quest-form" method="post" action="/learn/sample-task">'
+            f"{csrf_input(user)}"
+            f'<input type="hidden" name="preset" value="{idx}">'
+            f'<button type="submit" class="quest-card">{content}</button>'
+            "</form>"
+        )
+
+    def learning_recommended_next_html(self, user, ai_ready: bool, current_task_id: int) -> str:
+        later = self.con.execute(
+            "SELECT id FROM learning_tasks WHERE user_id=? AND id>? ORDER BY id LIMIT 1",
+            (int(user["id"]), int(current_task_id)),
+        ).fetchone()
+        if later is not None:
+            return (
+                '<details class="advanced-practice review-next-recommend">'
+                "<summary>可选:下一关已经创建<span>第一圈已经完成;想继续时再打开。</span></summary>"
+                '<div class="advanced-practice-body">'
+                "<strong>下一关已经创建</strong>"
+                "<p>你已经有后续学习任务,建议回到学习轨迹继续。</p>"
+                '<a class="btn blue" href="#learning-journey">查看学习轨迹</a>'
+                "</div></details>"
+            )
+        idx, preset = self.learning_preset_by_index(4)
+        title = "可选第二关: 做一次动量观察"
+        text = "今天第一圈已经达标,不用马上继续。想巩固时,再用另一种常见策略跑一遍闭环,比较它和这一关有什么不同。"
+        if ai_ready:
+            action = (
+                '<form method="post" action="/learn/coach">'
+                f"{csrf_input(user)}"
+                f'<input type="hidden" name="goal" value="{escape(preset["goal"], quote=True)}">'
+                f'<input type="hidden" name="difficulty" value="{escape(preset["difficulty"])}">'
+                f'<input type="hidden" name="template" value="{escape(preset["template"])}">'
+                '<button class="secondary" type="submit">可选:创建第二关</button>'
+                "</form>"
+            )
+        else:
+            action = (
+                '<form method="post" action="/learn/sample-task">'
+                f"{csrf_input(user)}"
+                f'<input type="hidden" name="preset" value="{idx}">'
+                '<button class="secondary" type="submit">可选:创建第二关</button>'
+                "</form>"
+            )
+        return (
+            '<details class="advanced-practice review-next-recommend">'
+            "<summary>可选:展开第二关建议<span>今天可以先停在这里;想巩固时再打开。</span></summary>"
+            '<div class="advanced-practice-body">'
+            f"<strong>{escape(title)}</strong>"
+            f"<p>{escape(text)}</p>"
+            f"{action}"
+            "</div></details>"
+        )
+
+    def learning_completion_next_html(
+        self,
+        user,
+        ai_ready: bool,
+        task_count: int,
+        signal_count: int,
+        reflection_count: int,
+    ) -> str:
+        latest_reflection = self.con.execute(
+            """
+            SELECT t.id AS task_id, t.template, r.hypothesis, r.execution_check, r.adjustment
+            FROM learning_reflections r
+            JOIN practice_signals s ON s.id=r.practice_signal_id AND s.user_id=r.user_id
+            JOIN learning_tasks t ON t.id=s.learning_task_id AND t.user_id=s.user_id
+            WHERE r.user_id=?
+            ORDER BY r.updated_at DESC, r.id DESC
+            LIMIT 1
+            """,
+            (int(user["id"]),),
+        ).fetchone()
+        latest_template = "上一关"
+        latest_template_key = ""
+        latest_task_id = 0
+        latest_hypothesis = "把一个学习目标变成可以复盘的练习目标。"
+        latest_execution = "按小数量模拟观察,没有把练习当成现实买卖建议。"
+        latest_adjustment = "把上次想改的小动作带到下一关。"
+        if latest_reflection is not None:
+            latest_task_id = int(latest_reflection["task_id"] or 0)
+            latest_template_key = str(latest_reflection["template"] or "")
+            latest_template = services.LEARNING_TEMPLATES.get(latest_template_key, latest_template_key or "上一关")
+            latest_hypothesis = str(latest_reflection["hypothesis"] or latest_hypothesis)
+            latest_execution = str(latest_reflection["execution_check"] or latest_execution)
+            latest_adjustment = str(latest_reflection["adjustment"] or latest_adjustment)
+        if latest_template_key == "risk_review":
+            primary_idx, primary_preset = self.learning_preset_by_index(7)
+            mission_title = "下次回来只做 3 分钟模拟盘复盘"
+            mission_text = "今天可以停。下次回来不要打开复杂报表,先把一条模拟记录拆成问题、依据和下次动作。"
+            mission_button = "一键开始第四关并生成练习"
+            mission_continue = "继续第四关并生成练习"
+            mission_points = (
+                ("回来先点哪里", "点上面的第四关按钮,系统继续用示例教练创建任务。"),
+                ("这次只看什么", "只看一条模拟记录怎样变成复盘问题。"),
+                ("继续给你什么反馈", "学习轨迹会多一条复盘方法记录。"),
+            )
+            details_summary = "可选:展开第四关建议"
+            details_hint = "今天不用继续;想巩固时再打开。"
+            optional_start_label = "可选:开始第四关"
+            optional_continue_label = "可选:继续第四关"
+            focus_title = "可选第四关: 学会复盘模拟盘"
+            focus_text = "你已经练过观察和风险边界。下一关只看如何把模拟记录变成可改进的问题,不研究完整报表。"
+            focus_points = (
+                ("为什么是第四关?", "你已经会跑小闭环,现在练“怎么从记录里提问题”。"),
+                ("这次重点看什么?", "依据、执行是否偏离、下次先改哪一个小动作。"),
+                ("带着什么继续?", latest_execution),
+            )
+        elif reflection_count >= 2:
+            primary_idx, primary_preset = self.learning_preset_by_index(6)
+            mission_title = "下次回来只做 3 分钟风险边界"
+            mission_text = "今天可以停。下次回来不要打开复杂指标,直接给一条小数量观察补上数量、回撤和停止条件。"
+            mission_button = "一键开始第三关风险练习"
+            mission_continue = "继续第三关并生成风险练习"
+            mission_points = (
+                ("回来先点哪里", "点上面的第三关按钮,系统会创建风险边界任务并生成 1 条练习。"),
+                ("这次只写什么", "数量边界、回撤边界、停止条件,不要扩展到完整风控体系。"),
+                ("继续给你什么反馈", "再完成一次 6/6 后,学习轨迹会多一条风险边界记录。"),
+            )
+            details_summary = "可选:展开第三关建议"
+            details_hint = "今天不用继续;想巩固时再打开。"
+            optional_start_label = "可选:开始第三关"
+            optional_continue_label = "可选:继续第三关"
+            focus_title = "可选第三关: 先补风险边界"
+            focus_text = "你已经比较过两种观察角度。下一关不换成复杂交易,只给练习补上数量、回撤和停止条件。"
+            focus_points = (
+                ("为什么是第三关?", "先有观察,再有对照,现在才补风险边界。"),
+                ("这次重点看什么?", "每个对象用多少、亏损扩大看什么、什么时候停止练习。"),
+                ("带着什么继续?", latest_adjustment),
+            )
+        else:
+            primary_idx, primary_preset = self.learning_preset_by_index(4)
+            mission_title = "下次回来只做 3 分钟第二关"
+            mission_text = "今天可以停。下次回来不要重新研究菜单,直接从这里开始一个小对照练习:同样的小数量,换一个观察角度。"
+            mission_button = "一键开始第二关并生成练习"
+            mission_continue = "继续第二关并生成练习"
+            mission_points = (
+                ("回来先点哪里", "点上面的第二关按钮,系统继续用示例教练创建任务。"),
+                ("这次只比什么", "比较上一关和下一关的观察角度、数量边界和复盘修正。"),
+                ("继续给你什么反馈", "再完成一次 6/6 后,学习轨迹会多一条对照记录。"),
+            )
+            details_summary = "可选:展开第二关建议"
+            details_hint = "今天不用继续;想巩固时再打开。"
+            optional_start_label = "可选:开始第二关"
+            optional_continue_label = "可选:继续第二关"
+            focus_title = "可选第二关: 换一种策略练习"
+            focus_text = "推荐你先做“动量观察”。第一关看反转,第二关看动量,这样不是重复点击,而是在比较两种常见想法哪里不同。"
+            focus_points = (
+                ("为什么是第二关?", "你已经会跑流程,现在要练“对照”:同样的数量、不同的观察角度。"),
+                ("这次重点看什么?", "候选怎么来、是不是容易追涨、复盘时和第一关哪里不同。"),
+                ("带着什么继续?", latest_execution),
+            )
+        later_task = None
+        if latest_task_id > 0:
+            later_task = self.con.execute(
+                "SELECT id FROM learning_tasks WHERE user_id=? AND id>? ORDER BY id LIMIT 1",
+                (int(user["id"]), latest_task_id),
+            ).fetchone()
+        if later_task is not None:
+            primary_action = f'<a class="btn blue" href="/learn/tasks/{int(later_task["id"])}">{escape(optional_continue_label)}</a>'
+        elif ai_ready:
+            primary_action = (
+                '<form method="post" action="/learn/coach">'
+                f"{csrf_input(user)}"
+                f'<input type="hidden" name="goal" value="{escape(primary_preset["goal"], quote=True)}">'
+                f'<input type="hidden" name="difficulty" value="{escape(primary_preset["difficulty"])}">'
+                f'<input type="hidden" name="template" value="{escape(primary_preset["template"])}">'
+                f'<button class="blue" type="submit">{escape(optional_start_label)}</button>'
+                "</form>"
+            )
+        else:
+            primary_action = (
+                '<form method="post" action="/learn/sample-task">'
+                f"{csrf_input(user)}"
+                f'<input type="hidden" name="preset" value="{primary_idx}">'
+                f'<button class="blue" type="submit">{escape(optional_start_label)}</button>'
+                "</form>"
+            )
+        return_action_label = mission_continue if later_task is not None else mission_button
+        return_action = (
+            '<form method="post" action="/learn/next-task/quick-start">'
+            f"{csrf_input(user)}"
+            f'<input type="hidden" name="preset" value="{primary_idx}">'
+            f'<button class="blue" type="submit">{escape(return_action_label)}</button>'
+            "</form>"
+        )
+        quests = (
+            (5, "备选: 理解模型预测候选", "把模型预测当成学习材料,练习不盲信 AI 输出。"),
+            (6, "第三关: 先补风险边界", "学习仓位、回撤、成本和停止条件,避免只盯着涨跌。"),
+            (7, "第四关: 学会复盘模拟盘", "把成交、持仓和依据转成问题,积累自己的学习记录。"),
+        )
+        quest_html = "".join(self.learning_next_quest_form(user, ai_ready, *quest) for quest in quests)
+        mode_text = (
+            "下方 3 分钟下一关会继续用示例教练,不调用 DeepSeek;展开完整关卡或自定义目标时才会用你配置的 AI 教练。"
+            if ai_ready
+            else "点击下一关会继续创建内置示例任务,不需要 DeepSeek key。"
+        )
+        mission_point_html = "".join(
+            f"<div><b>{escape(point_title)}</b><p>{escape(point_text)}</p></div>"
+            for point_title, point_text in mission_points
+        )
+        focus_point_html = "".join(
+            f"<div><b>{escape(point_title)}</b><p>{escape(point_text)}</p></div>"
+            for point_title, point_text in focus_points
+        )
+        return f"""
+<div class="loop-complete">
+	  <div class="loop-complete-head">
+	    <div>
+	      <span class="tag">FIRST LOOP COMPLETE</span>
+	      <strong>第一次学习闭环完成</strong>
+	      <p>你已经留下了第一条可复盘的学习记录。第一圈已经达标,现在可以先停在这里;想继续时,再换一个角度练第二关。</p>
+	      <p class="muted">{escape(mode_text)}</p>
+    </div>
+    <div class="achievement-metrics">
+      <div><b>{task_count}</b><span>学习任务</span></div>
+      <div><b>{signal_count}</b><span>模拟练习</span></div>
+      <div><b>{reflection_count}</b><span>复盘记录</span></div>
+	    </div>
+	  </div>
+		  <div class="first-win">
+		    <strong>你刚解锁的不是收益,而是一种学习能力</strong>
+		    <p>小白最重要的第一步不是猜对涨跌,而是把一个模糊问题变成能记录、能观察、能修正的练习。你已经完成了这件事。</p>
+		    <div class="first-win-grid">
+		      <div><b>会提问题</b><p>{escape(latest_template)}不是买卖指令,而是一个观察角度。</p></div>
+		      <div><b>会留证据</b><p>{escape(latest_hypothesis)}</p></div>
+		      <div><b>会做修正</b><p>{escape(latest_adjustment)}</p></div>
+		    </div>
+		  </div>
+		  <div class="achievement-badge">
+		    <div class="achievement-badge-mark">1</div>
+		    <div>
+		      <b>第一枚学习徽章:把想法变成可复盘练习</b>
+		      <span>这枚徽章代表你完成了“提出目标、生成练习、生成观察记录、保存复盘”的最小闭环。以后每一关都在重复并改进这个动作。</span>
+		    </div>
+		  </div>
+		  <div class="review-done-note">
+	    <strong>现在可以停在这里</strong>
+	    <p>第一次闭环已经完成。你可以先关掉页面,之后回来会在学习轨迹里看到这条记录;也可以继续下面的可选第二关。</p>
+	    <div class="review-done-actions">
+	      <a class="btn blue" href="#learning-journey">查看我的学习轨迹</a>
+	      <a class="btn secondary" href="/app">稍后再看高级模拟盘</a>
+	    </div>
+	  </div>
+	  <div class="return-mission" id="next-visit-mission">
+	    <div class="return-mission-head">
+	      <div>
+	        <span class="tag">NEXT VISIT</span>
+	        <strong>{escape(mission_title)}</strong>
+	        <p>{escape(mission_text)}</p>
+	      </div>
+	      <div class="return-mission-action">
+	        {return_action}
+	        <p class="muted">可选任务,不影响今天已经完成的 6/6。</p>
+	      </div>
+	    </div>
+	    <div class="return-mission-grid">{mission_point_html}</div>
+	  </div>
+	  <details class="advanced-practice">
+	    <summary>{escape(details_summary)}<span>{escape(details_hint)}</span></summary>
+	    <div class="advanced-practice-body">
+	      <div class="next-focus">
+	        <div class="next-focus-head">
+	          <div>
+	            <span class="tag">OPTIONAL NEXT</span>
+	            <strong>{escape(focus_title)}</strong>
+	            <p>{escape(focus_text)}</p>
+	          </div>
+	          {primary_action}
+	        </div>
+	        <div class="next-focus-points">{focus_point_html}</div>
+	      </div>
+	      <div class="bridge-compare">
+	        <h3>第二关怎么比较?</h3>
+	        <div class="bridge-compare-grid">
+	          <div><b>上一关是什么?</b><p>{escape(latest_template)}。先记住它的观察角度,不要只看涨跌。</p></div>
+	          <div><b>下一关比什么?</b><p>候选怎么来、数量边界是否一样、复盘时哪里需要修正。</p></div>
+	          <div><b>带走一句话</b><p>{escape(latest_adjustment)}</p></div>
+	        </div>
+	      </div>
+	      <div class="review-done-note">
+	        <strong>你已经掌握的 3 个动作</strong>
+	        <p>下一关不是从零开始,而是重复这三个动作,每次只把一个地方做得更清楚。</p>
+	        <div class="review-done-list">
+	          <div><b>把问题变成目标</b><p>不问“买什么”,先写清楚这次想学什么、验证什么。</p></div>
+		          <div><b>把目标变成模拟练习</b><p>系统先生成待观察计划,你确认后才生成观察记录。</p></div>
+		          <div><b>把结果变成复盘</b><p>用想练什么、有没有按规则做、下次改哪一点留下自己的学习记录。</p></div>
+	        </div>
+	      </div>
+	      <h3>更多下一关推荐</h3>
+	      <div class="next-quests">{quest_html}</div>
+	    </div>
+	  </details>
+	</div>
+"""
+
+    def learning_loop_progress_html(self, user, ai_ready: bool) -> str:
+        row = self.con.execute(
+            """
+            SELECT
+                (SELECT COUNT(*) FROM learning_tasks WHERE user_id=?) AS task_count,
+                (SELECT id FROM learning_tasks WHERE user_id=? ORDER BY id DESC LIMIT 1) AS latest_task_id,
+                (SELECT COUNT(*) FROM practice_signals WHERE user_id=? AND learning_task_id IS NOT NULL AND status IN ('pending','executed')) AS signal_count,
+                (SELECT COUNT(*) FROM practice_signals WHERE user_id=? AND learning_task_id IS NOT NULL AND status='pending') AS pending_count,
+                (SELECT COUNT(*) FROM practice_signals WHERE user_id=? AND learning_task_id IS NOT NULL AND status='executed') AS executed_count,
+                (SELECT COUNT(*) FROM learning_reflections WHERE user_id=?) AS reflection_count
+            """,
+            (
+                int(user["id"]),
+                int(user["id"]),
+                int(user["id"]),
+                int(user["id"]),
+                int(user["id"]),
+                int(user["id"]),
+            ),
+        ).fetchone()
+        task_count = int(row["task_count"] or 0)
+        latest_task_id = int(row["latest_task_id"] or 0)
+        signal_count = int(row["signal_count"] or 0)
+        pending_count = int(row["pending_count"] or 0)
+        executed_count = int(row["executed_count"] or 0)
+        reflection_count = int(row["reflection_count"] or 0)
+        done = {
+            "concept": task_count > 0,
+            "goal": task_count > 0,
+            "coach": task_count > 0,
+            "practice": signal_count > 0,
+            "observe": executed_count > 0,
+            "reflection": reflection_count > 0,
+        }
+        steps = [
+            ("concept", "1", "理解概念", "先知道量化是可记录、可复盘的学习流程。"),
+            ("goal", "2", "选择目标", "从预设问题或自己的问题开始。"),
+            ("coach", "3", "看拆解", "看 AI 或示例教练如何拆成任务。"),
+            ("practice", "4", "生成练习", "把目标变成今日练习草稿。"),
+            ("observe", "5", "生成观察记录", "确认后生成一条模拟观察记录。"),
+            ("reflection", "6", "保存复盘", "留下自己的三问学习记录。"),
+        ]
+        completed = sum(1 for key, *_ in steps if done[key])
+        remaining = max(0, len(steps) - completed)
+        if completed <= 0:
+            time_text = "预计 3-5 分钟跑完第一次闭环"
+        elif remaining > 0:
+            time_text = f"还剩 {remaining} 步,先做当前这一步"
+        else:
+            time_text = "第一次闭环已完成"
+        current_key = next((key for key, *_ in steps if not done[key]), "reflection")
+        if completed >= len(steps):
+            next_title = "第一次闭环完成"
+            next_text = "你已经完成一次从概念、目标、拆解、练习到复盘的完整学习闭环。下一步可以换一个预设任务再练一次。"
+            next_href = "#learn-presets"
+            next_label = "继续选择新任务"
+        elif task_count == 0:
+            next_title = "下一步:先记住一句话,再点按钮"
+            next_text = "量化学习不是让 AI 告诉你买什么,而是把一个想法变成规则、模拟练习和复盘记录;不知道问什么也没关系,回到上方点蓝色推荐按钮。"
+            next_href = "#learn-presets"
+            next_label = "看完,点蓝色推荐按钮"
+        elif signal_count == 0:
+            next_title = "下一步:生成一个练习"
+            next_text = "打开最近的学习任务,先点击“一键生成今日练习”;想调参数时再展开进阶草稿设置。"
+            next_href = f"/learn/tasks/{latest_task_id}" if latest_task_id else "#learn-presets"
+            next_label = "打开最近学习任务"
+        elif pending_count > 0 and executed_count == 0:
+            next_title = "下一步:生成观察记录"
+            next_text = "到今日练习里确认观察材料、练习规模和依据,再点击生成观察记录;系统只会生成一条模拟观察记录。"
+            next_href = "#today-practice"
+            next_label = "去今日练习"
+        elif reflection_count == 0:
+            next_title = "下一步:保存第一次复盘"
+            next_text = "先不用判断赚亏,点击“一键完成 6/6”也可以;完成后再慢慢改成自己的三句话。"
+            next_href = "#learning-review"
+            next_label = "去完成 6/6"
+        else:
+            next_title = "下一步:继续练习"
+            next_text = "你已经保存过复盘,可以继续选择新目标,逐步积累自己的观察记录。"
+            next_href = "#learn-presets"
+            next_label = "继续选择新任务"
+        cards = []
+        for key, number, title, desc in steps:
+            klass = "done" if done[key] else "current" if key == current_key else "todo"
+            status = "DONE" if done[key] else "NOW" if key == current_key else "TODO"
+            cards.append(
+                f'<div class="loop-step {klass}">'
+                f"<span>{status} · {number}/6</span>"
+                f"<strong>{escape(title)}</strong>"
+                f"<p>{escape(desc)}</p>"
+                "</div>"
+            )
+        if completed >= len(steps):
+            next_panel = self.learning_completion_next_html(user, ai_ready, task_count, signal_count, reflection_count)
+        else:
+            primer_html = (
+                """
+  <div class="task-action-points">
+    <div><b>量化投资是什么</b><p>把投资想法写成规则,再用数据和模拟结果检查它。</p></div>
+    <div><b>AI 在这里做什么</b><p>帮你解释、拆解和复盘,不替你预测涨跌或决定买卖。</p></div>
+    <div><b>第一次只做什么</b><p>选一个问题,生成今日练习,再生成观察记录并保存三问复盘。</p></div>
+  </div>
+"""
+                if task_count == 0
+                else ""
+            )
+            next_panel = f"""
+  <div class="loop-next">
+    <p><strong>{escape(next_title)}</strong><br>{escape(next_text)}</p>
+    <a class="btn blue" href="{escape(next_href, quote=True)}">{escape(next_label)}</a>
+  </div>
+  {primer_html}
+"""
+        return f"""
+<section class="card loop-progress" id="learning-loop">
+  <div class="loop-progress-head">
+    <div>
+      <h2>第一次学习闭环</h2>
+      <p>目标是在 3-5 分钟内完成一次正反馈:看懂一个概念,生成一次模拟练习,并保存一条自己的复盘。</p>
+    </div>
+    <div class="loop-progress-score">已完成 {completed}/6<span>{escape(time_text)}</span></div>
+  </div>
+  <div class="loop-steps">{''.join(cards)}</div>
+  {next_panel}
+</section>
+"""
+
+    def learning_today_practice_html(self, user) -> str:
+        rows = self.con.execute(
+            """
+            SELECT
+                s.id,
+                s.code,
+                s.side,
+                s.qty,
+                s.rationale,
+                s.learning_task_id,
+                m.name,
+                m.price,
+                t.goal,
+                t.template
+            FROM practice_signals s
+            JOIN learning_tasks t ON t.id=s.learning_task_id AND t.user_id=s.user_id
+            LEFT JOIN market_prices m ON m.code=s.code
+            WHERE s.user_id=? AND s.status='pending' AND s.learning_task_id IS NOT NULL
+            ORDER BY s.id DESC
+            LIMIT 6
+            """,
+            (int(user["id"]),),
+        ).fetchall()
+        if not rows:
+            return ""
+        cards = []
+        for idx, row in enumerate(rows):
+            signal_id = int(row["id"])
+            title = row["name"] or row["code"]
+            template = services.LEARNING_TEMPLATES.get(str(row["template"] or ""), str(row["template"] or "学习练习"))
+            price_text = money(row["price"]) if row["price"] is not None else "暂无价格"
+            rationale = learning_display_rationale(row["rationale"])
+            observation_text = learning_observation_action(row["side"], int(row["qty"]))
+            first_badge = "推荐先做这一条" if idx == 0 else "备用练习"
+            card_hint = (
+                "第一次只点这一条的蓝色按钮;回看和取消入口都收在可选区。"
+                if idx == 0
+                else "这是备用练习。第一次闭环可以先留着不动,等熟悉后再回来。"
+            )
+            card_id = ' id="first-practice-card"' if idx == 0 else ""
+            cards.append(
+                f'<article class="practice-card"{card_id}>'
+                f'<p><span class="badge">{escape(first_badge)}</span> <span class="badge">还没开始</span> <span class="badge">{escape(template)}</span></p>'
+                '<h3>确认这 1 条模拟练习</h3>'
+                f'<div class="practice-focus"><b>一句话任务</b><p>把 {escape(title)} 当作练习材料,练习“看依据 -> 生成观察记录 -> 三问复盘”,不是判断它会不会涨。</p></div>'
+                '<div class="practice-summary">'
+                f'<div><span>观察材料</span><strong>{escape(title)}</strong><small>先当作练习样本</small></div>'
+                f'<div><span>练习规模</span><strong>{escape(observation_text)}</strong><small>小数量,只为训练流程</small></div>'
+                f'<div><span>学习重点</span><strong>{escape(template)}</strong><small>看依据,不是看涨跌</small></div>'
+                '<div><span>下一步</span><strong>进入三问复盘</strong><small>点蓝色按钮后出现</small></div>'
+                "</div>"
+                f'<p class="practice-rationale"><b>我为什么观察它?</b>{escape(rationale)}</p>'
+                '<div class="practice-ready" aria-label="点按钮前只核对三件事">'
+                '<b>点前只核对 3 件事</b>'
+                '<span><strong>材料</strong><small>知道这是练习样本。</small></span>'
+                '<span><strong>规模</strong><small>确认数量很小。</small></span>'
+                '<span><strong>依据</strong><small>能读懂一句理由。</small></span>'
+                '</div>'
+                f'<p class="practice-next"><b>第一次怎么选?</b>{escape(card_hint)}</p>'
+                '<div class="actions practice-primary-action">'
+                f'<form method="post" action="/practice-signals/{signal_id}/execute">'
+                f'{csrf_input(user)}<input type="hidden" name="next" value="/learn#learning-review">'
+                '<button class="blue" type="submit">生成模拟观察记录,去复盘</button>'
+                '<small class="practice-action-note">只生成模拟学习记录,不是现实交易。</small></form>'
+                "</div>"
+                '<p class="practice-next"><b>点完会发生什么?</b>系统只会生成一条模拟观察记录,然后带你回答三问复盘;这不是现实交易。</p>'
+                '<details class="practice-detail">'
+                '<summary>可选:查看代码和模拟价<span>第一次可以先不展开;这些只用于生成模拟记录。</span></summary>'
+                '<div class="practice-detail-grid">'
+                f'<div><b>代码</b><span>{escape(row["code"])}</span></div>'
+                f'<div><b>模拟记录参考价</b><span>{price_text}</span></div>'
+                "</div></details>"
+                '<ul class="practice-checklist">'
+                '<li><b>确认 1</b>我能看懂“为什么观察它”的一句话。</li>'
+                '<li><b>确认 2</b>数量很小,只用于训练流程,不是现实委托。</li>'
+                '<li><b>确认 3</b>点蓝色按钮后会自动跳到三问复盘。</li>'
+                "</ul>"
+                '<details class="practice-detail practice-optional-actions">'
+                '<summary>可选:回看教练或管理这条练习<span>第一次可以先不展开;这里只有回看和暂不练这条。</span></summary>'
+                '<div class="practice-detail-grid">'
+                f'<div><b>教练拆解</b><span><a href="/learn/tasks/{int(row["learning_task_id"])}">回看这一关</a></span></div>'
+                '<div><b>暂不练这条</b>'
+                f'<form method="post" action="/practice-signals/{signal_id}/cancel">'
+                f'{csrf_input(user)}<input type="hidden" name="next" value="/learn#today-practice">'
+                '<button class="secondary" type="submit">暂不练这条</button></form>'
+                "</div>"
+                "</div></details>"
+                "</article>"
+            )
+        return f"""
+<section class="card demo-next" id="today-practice">
+  <div class="task-action-head">
+    <div>
+      <span class="tag">READY</span>
+      <strong>刚完成 4/6:确认练习后生成观察记录</strong>
+      <p>今日练习已经生成,但还没有生成观察记录。现在只看观察材料、练习规模和依据,看懂后点蓝色按钮“生成模拟观察记录,去复盘”。</p>
+    </div>
+  </div>
+  <div class="task-action-points">
+    <div><b>已经完成</b><p>学习目标和教练拆解已经变成今日练习。</p></div>
+    <div><b>还没发生</b><p>系统还没有生成模拟观察记录,也不会产生现实交易。</p></div>
+    <div><b>下一步</b><p>确认这 1 条练习,再进入三问复盘。</p></div>
+  </div>
+  {self.learning_promise_strip_html((
+    ("预计 60 秒", "只确认 1 条最上面的练习。"),
+    ("看三件事", "观察材料、练习规模、为什么观察它。"),
+    ("不会真实交易", "只生成模拟观察记录,不是现实委托。"),
+    ("点完去哪", "自动跳到三问复盘,完成最后一步。"),
+  ))}
+  <h2>今日练习</h2>
+  <p>这些练习来自你的学习任务。第一次只看三件事:观察材料是什么、练习规模有多小、依据能不能读懂;代码和价格已经收进可选详情,先不用展开。确认后点蓝色按钮,系统只会生成一条模拟观察记录,不会产生现实交易。</p>
+  <p class="practice-next"><b>第一次只建议生成 1 条观察记录。</b>如果页面里有多条练习,先选最上面一条点蓝色按钮;其他先留着不动。</p>
+  <div class="practice-cards">{''.join(cards)}</div>
+  <p class="muted">生成后,学习页会出现“观察复盘”卡。先回答三问并保存复盘,看到 6/6 后再看高级页面。</p>
+</section>
+"""
+
+    def learning_continue_task_html(self, user) -> str:
+        row = self.con.execute(
+            """
+            SELECT
+                t.id,
+                t.goal,
+                t.template,
+                t.difficulty,
+                COUNT(DISTINCT CASE WHEN s.status IN ('pending','executed') THEN s.id END) AS signal_count,
+                (SELECT COUNT(*) FROM learning_tasks p WHERE p.user_id=t.user_id AND p.id<=t.id) AS sequence,
+                (SELECT COUNT(*) FROM learning_reflections r WHERE r.user_id=t.user_id) AS reflection_count
+            FROM learning_tasks t
+            LEFT JOIN practice_signals s ON s.learning_task_id=t.id AND s.user_id=t.user_id
+            WHERE t.user_id=?
+            GROUP BY t.id
+            ORDER BY t.id DESC
+            LIMIT 1
+            """,
+            (int(user["id"]),),
+        ).fetchone()
+        if row is None or int(row["signal_count"] or 0) > 0:
+            return ""
+        task_id = int(row["id"])
+        template = services.LEARNING_TEMPLATES.get(str(row["template"] or ""), str(row["template"] or "学习练习"))
+        difficulty = services.LEARNING_DIFFICULTIES.get(str(row["difficulty"] or ""), str(row["difficulty"] or "新手"))
+        sequence = int(row["sequence"] or 1)
+        reflection_count = int(row["reflection_count"] or 0)
+        returning = reflection_count > 0 and sequence > 1
+        goal_text = str(row["goal"] or "").strip()
+        if len(goal_text) > 96:
+            goal_text = goal_text[:96].rstrip() + "..."
+        tag = "RETURN" if returning else "CONTINUE"
+        title = f"回访继续:第 {sequence} 关待生成练习" if returning else "继续当前学习任务"
+        intro = (
+            f"你上次已经完成 {reflection_count} 条复盘记录。现在不用重新找入口,直接把第 {sequence} 关生成今日练习。"
+            if returning
+            else "你已经有教练拆解。下一步不用改参数,直接一键生成今日练习。"
+        )
+        location_text = (
+            f"第 {sequence} 关还没生成练习;当前目标: {goal_text}"
+            if returning
+            else goal_text
+        )
+        cta_note = (
+            f"点蓝色按钮会把第 {sequence} 关变成 1 条待观察练习,然后回到学习工作台继续,不会自动成交。"
+            if returning
+            else "点蓝色按钮只会生成待观察练习,然后回到学习工作台继续;不会自动成交。"
+        )
+        return f"""
+<section class="card task-action-card" id="continue-learning-task">
+  <div class="task-action-head">
+    <div>
+      <span class="tag">{escape(tag)}</span>
+      <strong>{escape(title)}</strong>
+      <p>{escape(intro)}</p>
+    </div>
+    <div class="next-action-cta">
+      <form method="post" action="/learn/tasks/{task_id}/quick-save">
+        {csrf_input(user)}
+        <button class="blue" type="submit">一键生成今日练习</button>
+      </form>
+      <a class="btn secondary" href="/learn/tasks/{task_id}">回看教练拆解</a>
+      <p class="muted">{escape(cta_note)}</p>
+    </div>
+  </div>
+  {self.learning_promise_strip_html((
+    ("预计 30 秒", "只点一次蓝色按钮,不用改参数。"),
+    ("点完去哪", "自动回到学习工作台的今日练习。"),
+    ("不会成交", "这里只保存待观察练习,不是现实交易。"),
+    ("下一步", "看懂观察材料后再生成观察记录。"),
+  ))}
+  <div class="task-loop-hint resume-checkpoint">
+    <b>回访定位:已完成 3/6</b>
+    <span>概念、目标和教练拆解已经完成。现在只差生成今日练习、生成观察记录、保存复盘;先点上面的蓝色按钮。</span>
+  </div>
+  <div class="task-action-points">
+    <div><b>已经完成 3/6</b><p>{escape(location_text)}</p></div>
+    <div><b>练习类型</b><p>{escape(difficulty)} · {escape(template)}</p></div>
+    <div><b>点完去哪</b><p>系统会回到学习工作台,你再确认观察材料并生成观察记录。</p></div>
+  </div>
+</section>
+"""
+
+    def learning_previous_reflection_row(self, user, current_task_id: int):
+        return self.con.execute(
+            """
+            SELECT
+                t.id AS task_id,
+                t.template,
+                r.hypothesis,
+                r.execution_check,
+                r.adjustment
+            FROM learning_tasks t
+            JOIN practice_signals s ON s.learning_task_id=t.id AND s.user_id=t.user_id
+            JOIN learning_reflections r ON r.practice_signal_id=s.id AND r.user_id=t.user_id
+            WHERE t.user_id=? AND t.id<?
+            ORDER BY t.id DESC, r.updated_at DESC
+            LIMIT 1
+            """,
+            (int(user["id"]), int(current_task_id)),
+        ).fetchone()
+
+    def learning_recent_review_html(self, user) -> str:
+        rows = self.con.execute(
+            """
+            SELECT
+                s.id,
+                s.code,
+                s.side,
+                s.qty,
+                s.rationale,
+                s.strategy_name,
+                s.learning_task_id,
+                s.updated_at,
+                m.name,
+                m.price AS current_price,
+                t.goal,
+                t.template,
+                o.price AS executed_price,
+                o.fee,
+                o.amount,
+                o.created_at AS executed_at
+            FROM practice_signals s
+            JOIN learning_tasks t ON t.id=s.learning_task_id AND t.user_id=s.user_id
+            LEFT JOIN market_prices m ON m.code=s.code
+            LEFT JOIN orders o ON o.id=s.order_id
+            WHERE s.user_id=? AND s.status='executed' AND s.learning_task_id IS NOT NULL
+            ORDER BY COALESCE(o.id, s.id) DESC
+            LIMIT 3
+            """,
+            (int(user["id"]),),
+        ).fetchall()
+        if not rows:
+            return ""
+        key_row = ai_service.get_key_row(self.con, user["id"])
+        ai_ready = key_row is not None and bool(int(key_row["enabled"]))
+        ai_review_label = "可选:让 AI 教练复盘" if ai_ready else "可选:配置 AI 教练复盘"
+        reflections = services.learning_reflections_for_signals(self.con, user["id"], [int(row["id"]) for row in rows])
+        first_unreviewed = next((row for row in rows if int(row["id"]) not in reflections), None)
+        focus_html = ""
+        ready_html = ""
+        if first_unreviewed is None:
+            section_title = "学习成果"
+            section_intro = "复盘已经保存。你已经完成 6/6,第一圈可以停在这里;下次回来先看这条记录,再决定是否继续第二关。"
+        else:
+            section_title = "观察复盘"
+            section_intro = "你已经生成了一条模拟观察记录。第一次复盘不用判断涨跌,也不需要 AI key;先留下“我想练什么、我有没有按小数量规则做、下次先改哪一点”三句话就算完成。"
+        if first_unreviewed is not None:
+            focus_title = first_unreviewed["name"] or first_unreviewed["code"]
+            ready_html = """
+  <div class="task-action-head">
+    <div>
+      <span class="tag">FINAL STEP</span>
+      <strong>刚完成 5/6:最后一步保存复盘</strong>
+      <p>模拟观察记录已经生成。现在不用判断赚亏,也不用配置 AI key;先点下面的“一键完成 6/6”按钮,第一次学习闭环就完成。</p>
+    </div>
+  </div>
+  <div class="task-action-points">
+    <div><b>已经完成</b><p>目标、教练拆解、今日练习和观察记录已经串起来。</p></div>
+    <div><b>还差一步</b><p>保存“想练什么、有没有按规则做、下次改哪里”三句话,就解锁 6/6。</p></div>
+    <div><b>最省心做法</b><p>不会写时先用示例复盘,之后还能改成自己的话。</p></div>
+  </div>
+  {self.learning_promise_strip_html((
+    ("预计 30 秒", "直接点一键完成 6/6 也可以。"),
+    ("不看涨跌", "第一次只练复盘动作,不是判断输赢。"),
+    ("完成标志", "页面出现 6/6 和第一枚学习徽章。"),
+    ("可以停下", "第一圈达标后,今天不用马上继续。"),
+  ))}
+"""
+            focus_previous = self.learning_previous_reflection_row(user, int(first_unreviewed["learning_task_id"]))
+            if focus_previous is not None:
+                previous_template = services.LEARNING_TEMPLATES.get(str(focus_previous["template"] or ""), str(focus_previous["template"] or "上一关"))
+                current_template = services.LEARNING_TEMPLATES.get(str(first_unreviewed["template"] or ""), str(first_unreviewed["template"] or "这一关"))
+                previous_adjustment = " ".join(str(focus_previous["adjustment"] or "上一关还没有写修正点。").split())[:120]
+                focus_html = f"""
+  <div class="review-focus">
+	    <div class="review-focus-head review-first-action-head">
+	      <div>
+	        <span class="tag">COMPARE STEP</span>
+	        <strong>第二关对照复盘:先比较,再保存</strong>
+	        <p>你已经开始观察 {escape(focus_title)}。这次不要重新从零写,只比较上一关 {escape(previous_template)} 和这一关 {escape(current_template)} 哪里不同。</p>
+      </div>
+      <div class="review-primary-cta">
+        <form method="post" action="/learn/reflections/quick-save">
+          {csrf_input(user)}
+          <input type="hidden" name="practice_signal_id" value="{int(first_unreviewed['id'])}">
+          <button class="blue" type="submit">一键保存对照复盘</button>
+        </form>
+	        <p class="muted">点这个按钮会保存示例复盘,不调用 AI,不会产生现实交易。</p>
+	      </div>
+	    </div>
+	    <div class="review-unlock" aria-label="保存对照复盘后会看到什么">
+	      <div><b>点完会看到</b><p>这一关变成已复盘,学习轨迹会多一条对照记录。</p></div>
+	      <div><b>不用判断涨跌</b><p>只比较观察角度、数量边界和上次想改的小动作。</p></div>
+	      <div><b>以后还能改</b><p>示例复盘只是先占位,之后可以展开改成自己的话。</p></div>
+	    </div>
+	    <div class="review-template-note"><b>系统会先保存这三句话</b><p>上一关看什么、这一关看什么、上次想改的小动作这次有没有用上。</p></div>
+	    <div class="review-focus-answers">
+	      <div><b>上一关</b><p>{escape(previous_template)}: 先记住原来的观察角度。</p></div>
+	      <div><b>这一关</b><p>{escape(current_template)}: 看候选来源和风险边界是否不同。</p></div>
+	      <div><b>沿用修正</b><p>{escape(previous_adjustment)}</p></div>
+    </div>
+  </div>
+"""
+            else:
+                focus_html = f"""
+  <div class="review-focus">
+	    <div class="review-focus-head review-first-action-head">
+	      <div>
+	        <span class="tag">FINAL STEP</span>
+	        <strong>最后 30 秒:点一下完成 6/6</strong>
+	        <p>你已经开始观察 {escape(focus_title)}。现在不用写专业分析,先点“一键完成 6/6 并保存示例复盘”留下示例记录,第一次闭环就完成了;以后可以随时改成自己的话。</p>
+      </div>
+      <div class="review-primary-cta">
+        <form method="post" action="/learn/reflections/quick-save">
+          {csrf_input(user)}
+          <input type="hidden" name="practice_signal_id" value="{int(first_unreviewed['id'])}">
+          <button class="blue" type="submit">一键完成 6/6 并保存示例复盘</button>
+        </form>
+	        <p class="muted">点这个按钮就完成 6/6,不调用 AI,以后还能修改。</p>
+	      </div>
+	    </div>
+	    <div class="review-unlock" aria-label="保存复盘后会看到什么">
+	      <div><b>点完马上看到</b><p>已完成 6/6、第一枚学习徽章和学习轨迹。</p></div>
+	      <div><b>不用会分析</b><p>示例复盘会先帮你留下三句大白话。</p></div>
+	      <div><b>今天可停</b><p>看到 6/6 后,第一圈已经达标,不必马上进高级模拟盘。</p></div>
+	    </div>
+	    <div class="review-template-note"><b>系统会先保存这三句话</b><p>我想练什么、有没有按小数量规则做、下次先改哪一点;之后可以改成自己的话。</p></div>
+	    <div class="review-focus-answers">
+	      <div><b>我想练什么</b><p>我观察它是为了学习一个想法怎样被记录。</p></div>
+	      <div><b>我有没有按规则做</b><p>我只用小数量做模拟观察,不当作现实买卖建议。</p></div>
+      <div><b>下次先改哪一点</b><p>下一次先比较依据、数量和风险边界。</p></div>
+    </div>
+  </div>
+"""
+        cards = []
+        for row in rows:
+            signal_id = int(row["id"])
+            title = row["name"] or row["code"]
+            template = services.LEARNING_TEMPLATES.get(str(row["template"] or ""), str(row["template"] or "学习练习"))
+            executed_price = money(row["executed_price"]) if row["executed_price"] is not None else "暂无"
+            observation_text = learning_observation_action(row["side"], int(row["qty"]))
+            reflection = reflections.get(signal_id)
+            hypothesis = str(reflection["hypothesis"] or "") if reflection else ""
+            execution_check = str(reflection["execution_check"] or "") if reflection else ""
+            adjustment = str(reflection["adjustment"] or "") if reflection else ""
+            previous_reflection = self.learning_previous_reflection_row(user, int(row["learning_task_id"]))
+            is_compare_review = previous_reflection is not None
+            compare_html = self.learning_review_compare_html(user, int(row["learning_task_id"]), str(row["template"] or ""))
+            recommended_next_html = self.learning_recommended_next_html(user, ai_ready, int(row["learning_task_id"])) if reflection else ""
+            saved_html = (
+                '<div class="saved-reflection">'
+                "<strong>已保存复盘</strong>"
+                f"<p><b>我想练什么:</b> {escape(hypothesis or '未填写')}</p>"
+                f"<p><b>我有没有按规则做:</b> {escape(execution_check or '未填写')}</p>"
+                f"<p><b>下次先改哪一点:</b> {escape(adjustment or '未填写')}</p>"
+                "</div>"
+                if reflection
+                else ""
+            )
+            quick_review_html = (
+                '<div class="review-done-note">'
+                "<strong>你刚完成了第一次学习闭环</strong>"
+                "<p>你已经解锁 6/6。这条记录已经把目标、练习、观察和复盘串起来。今天的第一圈已经达标,现在可以停在这里;下面的三问以后还能继续修改。</p>"
+                '<div class="review-done-list">'
+                "<div><b>你完成了什么</b><span>选目标、看拆解、生成练习、生成观察记录、保存复盘。</span></div>"
+                "<div><b>这次先记住</b><span>复盘不是猜对错,而是记录想练什么、有没有按规则做、下次改哪一点。</span></div>"
+                "<div><b>下一次比较</b><span>换一个任务后,观察它和这一关哪里不同。</span></div>"
+                "</div>"
+                '<div class="review-done-actions">'
+                '<a class="btn blue" href="#learning-loop">查看 6/6 成就</a>'
+                '<a class="btn secondary" href="#learning-journey">回到学习轨迹</a>'
+                "</div>"
+                f"{recommended_next_html}"
+                "</div>"
+                if reflection
+                else (
+                    '<div class="review-start">'
+                    f"<strong>{'第二关先做对照复盘' if is_compare_review else '第一次复盘不用写专业分析'}</strong>"
+                    f"<p>{'这次只比较上一关和这一关哪里不同。不会写时可以先保存对照示例,之后再改成自己的话。' if is_compare_review else '你只需要留下第一条学习记录。不会写时可以先保存示例;点击后就完成 6/6,之后还能改成自己的话。'}</p>"
+                    '<form method="post" action="/learn/reflections/quick-save">'
+                    f'{csrf_input(user)}<input type="hidden" name="practice_signal_id" value="{signal_id}">'
+                    f'<button class="blue" type="submit">{"先用对照示例复盘" if is_compare_review else "一键完成 6/6 并保存示例复盘"}</button>'
+                    "</form>"
+                    "</div>"
+                )
+            )
+            submit_label = "更新复盘" if reflection else "保存我的复盘"
+            manual_title = "想修改自己的三句话? 展开手写复盘" if reflection else ("想自己写对照? 展开三问" if is_compare_review else "想自己写? 展开手写三句话")
+            manual_hint = (
+                "已经有一条复盘记录,需要时再展开修改。"
+                if reflection
+                else ("第二关可以先点上面的对照示例;想自己比较时再展开这里。" if is_compare_review else "第一次可以直接点上面的示例复盘;会写时再展开这里。")
+            )
+            if reflection:
+                card_title = "对照复盘已保存" if is_compare_review else "第一次复盘已保存"
+                status_badge = "已完成复盘"
+            else:
+                card_title = "完成第二关对照复盘" if is_compare_review else "先完成第一次复盘"
+                status_badge = "已生成观察记录"
+            question_items = (
+                (
+                    "这一关和上一关的观察角度哪里不同?",
+                    "我有没有继续用小数量和同样的边界?",
+                    "上次想改的小动作这次有没有用上?",
+                )
+                if is_compare_review
+                else (
+                    "我这次到底想练什么?",
+                    "我有没有按小数量和边界规则做?",
+                    "下次我先改哪一个小动作?",
+                )
+            )
+            placeholders = (
+                (
+                    "例如: 上一关看反转,这一关看动量,我想比较两种观察角度哪里不同。",
+                    "例如: 我仍然只用 100 的模拟数量,没有临时加大练习规模。",
+                    "例如: 上次提醒我要先看依据,这次我会继续避免只盯着涨跌。",
+                )
+                if is_compare_review
+                else (
+                    "例如: 我想练习把一个观察想法记录下来,不是预测它一定上涨。",
+                    "例如: 我只用了 100 的模拟数量,没有临时加大练习规模。",
+                    "例如: 下次先比较两个候选的依据,不要只看涨跌。",
+                )
+            )
+            completion_first_html = quick_review_html if reflection else ""
+            review_prompt_html = "" if reflection else quick_review_html
+            cards.append(
+                '<article class="review-card">'
+                f"{completion_first_html}"
+                f'<p><span class="badge">{escape(status_badge)}</span> <span class="badge">{escape(template)}</span></p>'
+                f'<h3>{escape(card_title)}</h3>'
+                '<div class="review-snapshot">'
+                f'<div><span>观察材料</span><strong>{escape(title)}</strong><small>只作学习样本</small></div>'
+                f'<div><span>练习规模</span><strong>{escape(observation_text)}</strong><small>模拟记录已生成</small></div>'
+                '<div><span>复盘焦点</span><strong>先写三问</strong><small>先不判断涨跌</small></div>'
+                f'<div><span>练习类型</span><strong>{escape(template)}</strong><small>只用于学习复盘</small></div>'
+                "</div>"
+                '<details class="practice-detail">'
+                '<summary>可选:查看代码和模拟记录价<span>复盘先写三句大白话;价格细节可以稍后看。</span></summary>'
+                '<div class="practice-detail-grid">'
+                f'<div><b>代码</b><span>{escape(row["code"])}</span></div>'
+                f'<div><b>模拟记录价</b><span>{executed_price}</span></div>'
+                "</div></details>"
+                f'<p class="muted">{escape(learning_display_rationale(row["rationale"]))}</p>'
+                f"{compare_html}"
+                f"{review_prompt_html}"
+                f"{saved_html}"
+                '<details class="manual-reflection">'
+                f'<summary>{escape(manual_title)}<span>{escape(manual_hint)}</span></summary>'
+                '<div class="manual-reflection-body">'
+                '<p><strong>只写三句大白话就够了</strong></p>'
+                '<ol class="review-questions">'
+                f'<li>{escape(question_items[0])}</li>'
+                f'<li>{escape(question_items[1])}</li>'
+                f'<li>{escape(question_items[2])}</li>'
+                '</ol>'
+                '<form class="reflection-form" method="post" action="/learn/reflections">'
+                f'{csrf_input(user)}<input type="hidden" name="practice_signal_id" value="{signal_id}">'
+                f'<label>1. 我这次想练什么</label><textarea name="hypothesis" maxlength="700" placeholder="{escape(placeholders[0], quote=True)}">{escape(hypothesis)}</textarea>'
+                f'<label>2. 我有没有按小数量规则做</label><textarea name="execution_check" maxlength="700" placeholder="{escape(placeholders[1], quote=True)}">{escape(execution_check)}</textarea>'
+                f'<label>3. 下次先改哪一点</label><textarea name="adjustment" maxlength="700" placeholder="{escape(placeholders[2], quote=True)}">{escape(adjustment)}</textarea>'
+                f'<p><button type="submit">{submit_label}</button></p>'
+                "</form>"
+                "</div>"
+                "</details>"
+                f'<p><a href="/learn/tasks/{int(row["learning_task_id"])}">回看教练拆解</a></p>'
+                "</article>"
+            )
+        optional_actions_html = (
+            f"""
+  <details class="advanced-practice review-optional-actions">
+    <summary>可选:AI 复盘和高级入口<span>第一次先不用展开;先点上方蓝色复盘按钮。AI 复盘和高级模拟盘都不是完成第一圈的前置条件。</span></summary>
+    <div class="advanced-practice-body">
+      <p><a class="btn secondary" href="/account/ai">{ai_review_label}</a></p>
+    </div>
+  </details>
+"""
+            if first_unreviewed is not None
+            else f"""
+  <p class="muted">下面是可选入口,第一次可以先不点。</p>
+  <p><a class="btn secondary" href="/account/ai">{ai_review_label}</a> <a class="btn secondary" href="/app">查看高级模拟盘细节</a></p>
+"""
+        )
+        return f"""
+<section class="card" id="learning-review">
+  <h2>{escape(section_title)}</h2>
+  <p>{escape(section_intro)}</p>
+  {focus_html}
+  {ready_html}
+  <div class="review-cards">{''.join(cards)}</div>
+  {optional_actions_html}
+</section>
+"""
+
+    def learning_review_compare_html(self, user, current_task_id: int, current_template: str) -> str:
+        previous = self.learning_previous_reflection_row(user, current_task_id)
+        if previous is None:
+            return ""
+        previous_template = services.LEARNING_TEMPLATES.get(str(previous["template"] or ""), str(previous["template"] or "上一关"))
+        current_label = services.LEARNING_TEMPLATES.get(str(current_template or ""), str(current_template or "这一关"))
+        previous_adjustment = str(previous["adjustment"] or "上一关还没有写下次要改什么。")
+        return f"""
+<div class="review-compare">
+  <strong>这次复盘要和上一关比较</strong>
+  <p>上一关: {escape(previous_template)}; 这一关: {escape(current_label)}。先比较方法差异,不要急着看涨跌。</p>
+  <p class="muted">只比较三件事:候选来源、数量边界、上次想改的小动作有没有用上。</p>
+  <div class="review-compare-grid">
+    <div><b>候选怎么来?</b><span>上一关看一种观察角度,这一关换一个角度再跑一次。</span></div>
+    <div><b>边界是否一样?</b><span>数量、对象数量和风险边界尽量保持可比较。</span></div>
+    <div><b>上次想改的小动作</b><span>{escape(previous_adjustment)}</span></div>
+  </div>
+</div>
+"""
+
+    def learning_journey_html(self, user) -> str:
+        rows = self.con.execute(
+            """
+            SELECT
+                t.id,
+                t.goal,
+                t.template,
+                t.created_at,
+                (SELECT COUNT(*) FROM learning_tasks p WHERE p.user_id=t.user_id AND p.id<=t.id) AS sequence,
+                COUNT(DISTINCT CASE WHEN s.status IN ('pending','executed') THEN s.id END) AS signal_count,
+                SUM(CASE WHEN s.status='pending' THEN 1 ELSE 0 END) AS pending_count,
+                SUM(CASE WHEN s.status='executed' THEN 1 ELSE 0 END) AS executed_count,
+                COUNT(DISTINCT r.id) AS reflection_count,
+                (
+                    SELECT lr.adjustment
+                    FROM learning_reflections lr
+                    JOIN practice_signals ls ON ls.id=lr.practice_signal_id AND ls.user_id=lr.user_id
+                    WHERE lr.user_id=t.user_id AND ls.learning_task_id=t.id
+                    ORDER BY lr.updated_at DESC, lr.id DESC
+                    LIMIT 1
+                ) AS latest_adjustment
+            FROM learning_tasks t
+            LEFT JOIN practice_signals s ON s.learning_task_id=t.id AND s.user_id=t.user_id
+            LEFT JOIN learning_reflections r ON r.practice_signal_id=s.id AND r.user_id=t.user_id
+            WHERE t.user_id=?
+            GROUP BY t.id
+            ORDER BY t.id DESC
+            LIMIT 6
+            """,
+            (int(user["id"]),),
+        ).fetchall()
+        if not rows:
+            return ""
+        summary = self.con.execute(
+            """
+            SELECT
+                COUNT(DISTINCT t.id) AS task_count,
+                COUNT(DISTINCT CASE WHEN s.status IN ('pending','executed') THEN s.id END) AS signal_count,
+                COUNT(DISTINCT CASE WHEN s.status='pending' THEN s.id END) AS pending_count,
+                COUNT(DISTINCT CASE WHEN s.status='executed' THEN s.id END) AS executed_count,
+                COUNT(DISTINCT CASE WHEN s.status='executed' AND r.id IS NULL THEN s.id END) AS unreflected_count,
+                COUNT(DISTINCT r.id) AS reflection_count,
+                COUNT(DISTINCT CASE WHEN s.status IN ('pending','executed') THEN t.template END) AS template_count,
+                GROUP_CONCAT(DISTINCT CASE WHEN s.status IN ('pending','executed') THEN t.template END) AS templates
+            FROM learning_tasks t
+            LEFT JOIN practice_signals s ON s.learning_task_id=t.id AND s.user_id=t.user_id
+            LEFT JOIN learning_reflections r ON r.practice_signal_id=s.id AND r.user_id=t.user_id
+            WHERE t.user_id=?
+            """,
+            (int(user["id"]),),
+        ).fetchone()
+        task_count = int(summary["task_count"] or 0) if summary is not None else len(rows)
+        signal_total = int(summary["signal_count"] or 0) if summary is not None else 0
+        pending_total = int(summary["pending_count"] or 0) if summary is not None else 0
+        unreflected_total = int(summary["unreflected_count"] or 0) if summary is not None else 0
+        reflection_total = int(summary["reflection_count"] or 0) if summary is not None else 0
+        template_count = int(summary["template_count"] or 0) if summary is not None else 0
+        template_keys = [item for item in str(summary["templates"] or "").split(",") if item] if summary is not None else []
+        template_labels = [services.LEARNING_TEMPLATES.get(key, key) for key in template_keys]
+        templates_text = "还没开始"
+        if template_labels:
+            templates_text = "、".join(template_labels[:3])
+            if len(template_labels) > 3:
+                templates_text += f" 等 {len(template_labels)} 种"
+        latest = rows[0]
+        if unreflected_total > 0:
+            next_suggestion = "先完成待复盘的观察,用三问写下下次改什么。"
+            next_action_href = "#learning-review"
+            next_action_label = "去完成三问复盘"
+        elif pending_total > 0:
+            next_suggestion = "先把待观察练习生成一条观察记录,再回来做三问复盘。"
+            next_action_href = "#today-practice"
+            next_action_label = "去今日练习"
+        elif int(latest["signal_count"] or 0) == 0:
+            next_suggestion = "把最新目标生成今日练习,不用一次学太多。"
+            next_action_href = f"/learn/tasks/{int(latest['id'])}"
+            next_action_label = "生成今日练习"
+        elif reflection_total >= 2:
+            next_suggestion = "进入第三关风险边界,把两次策略对照里的数量、回撤和停止条件讲清楚。"
+            next_action_href = "#learning-loop"
+            next_action_label = "查看下一关建议"
+        elif reflection_total == 1:
+            next_suggestion = "第一圈已完成,可以先停在这里;想巩固时再开第二关动量对照。"
+            next_action_href = "#learning-loop"
+            next_action_label = "可选:查看第二关建议"
+        else:
+            next_suggestion = "先完成第一条练习和复盘,把学习闭环跑通。"
+            next_action_href = "#learning-loop"
+            next_action_label = "继续第一圈"
+        latest_reflection_row = self.con.execute(
+            """
+            SELECT
+                t.template,
+                r.hypothesis,
+                r.adjustment
+            FROM learning_reflections r
+            JOIN practice_signals s ON s.id=r.practice_signal_id AND s.user_id=r.user_id
+            JOIN learning_tasks t ON t.id=s.learning_task_id AND t.user_id=s.user_id
+            WHERE r.user_id=?
+            ORDER BY r.updated_at DESC, r.id DESC
+            LIMIT 1
+            """,
+            (int(user["id"]),),
+        ).fetchone()
+        last_takeaway_html = ""
+        if latest_reflection_row is not None:
+            latest_template = services.LEARNING_TEMPLATES.get(
+                str(latest_reflection_row["template"] or ""),
+                str(latest_reflection_row["template"] or "上一关"),
+            )
+            latest_hypothesis = str(latest_reflection_row["hypothesis"] or "上一关已经留下想练什么。").strip()
+            latest_adjustment = str(latest_reflection_row["adjustment"] or "下次继续把依据、数量和风险边界写清楚。").strip()
+            last_takeaway_html = f"""
+    <div class="journey-summary-takeaway">
+      <b>下次回来先看这里</b>
+      <p><span>{escape(latest_template)}</span>{escape(latest_adjustment)}</p>
+      <small>{escape(latest_hypothesis)}</small>
+    </div>
+"""
+        upgrade_html = ""
+        if reflection_total >= 2:
+            reflected_rows = self.con.execute(
+                """
+                SELECT
+                    t.id,
+                    t.template,
+                    (
+                        SELECT lr.adjustment
+                        FROM learning_reflections lr
+                        JOIN practice_signals ls ON ls.id=lr.practice_signal_id AND ls.user_id=lr.user_id
+                        WHERE lr.user_id=t.user_id AND ls.learning_task_id=t.id
+                        ORDER BY lr.updated_at DESC, lr.id DESC
+                        LIMIT 1
+                    ) AS latest_adjustment
+                FROM learning_tasks t
+                WHERE t.user_id=?
+                  AND EXISTS (
+                      SELECT 1
+                      FROM practice_signals s
+                      JOIN learning_reflections r ON r.practice_signal_id=s.id AND r.user_id=s.user_id
+                      WHERE s.user_id=t.user_id AND s.learning_task_id=t.id
+                  )
+                ORDER BY t.id DESC
+                LIMIT 2
+                """,
+                (int(user["id"]),),
+            ).fetchall()
+            if len(reflected_rows) >= 2:
+                older, newer = list(reversed(reflected_rows))
+                older_template = services.LEARNING_TEMPLATES.get(str(older["template"] or ""), str(older["template"] or "第一关"))
+                newer_template = services.LEARNING_TEMPLATES.get(str(newer["template"] or ""), str(newer["template"] or "第二关"))
+                older_adjustment = str(older["latest_adjustment"] or "第一关留下了下次要改什么。")
+                newer_adjustment = str(newer["latest_adjustment"] or "第二关留下了下次要改什么。")
+                upgrade_html = f"""
+    <div class="journey-upgrade">
+      <div class="journey-upgrade-head">
+        <div>
+          <span class="tag">LEVEL UP</span>
+          <strong>策略视角对照已解锁</strong>
+          <p>你已经不只是完成练习,而是比较过两种观察角度。下一步要把“怎么控制风险”补上,学习才不会只停留在看涨跌。</p>
+        </div>
+        <div class="journey-upgrade-badge">2 VIEW</div>
+      </div>
+      <div class="journey-upgrade-grid">
+        <div><b>第一种视角: {escape(older_template)}</b><p>{escape(older_adjustment)}</p></div>
+        <div><b>第二种视角: {escape(newer_template)}</b><p>{escape(newer_adjustment)}</p></div>
+      </div>
+    </div>
+"""
+        summary_html = f"""
+  <div class="journey-summary" aria-label="学习轨迹摘要">
+    <div class="journey-summary-head">
+      <div>
+        <span class="tag">Learning Summary</span>
+        <strong>学习轨迹摘要</strong>
+        <p>已经创建 {task_count} 个学习任务。先看完成度和下一步,不用在复杂表格里找线索。</p>
+      </div>
+      <div class="journey-summary-next">
+        <b>下一步建议</b>
+        <span>{escape(next_suggestion)}</span>
+        <a class="btn secondary" href="{escape(next_action_href, quote=True)}">{escape(next_action_label)}</a>
+      </div>
+    </div>
+    <div class="journey-summary-grid">
+      <div><b>{reflection_total}</b><span>已完成复盘</span></div>
+      <div><b>{template_count}</b><span>练过的模板</span></div>
+      <div><b>{signal_total}</b><span>累计练习计划</span></div>
+    </div>
+    {last_takeaway_html}
+    <p class="journey-summary-templates"><b>练过的模板</b>{escape(templates_text)}</p>
+    {upgrade_html}
+  </div>
+"""
+        items = []
+        for row in reversed(rows):
+            task_id = int(row["id"])
+            sequence = int(row["sequence"] or 0)
+            signal_count = int(row["signal_count"] or 0)
+            pending_count = int(row["pending_count"] or 0)
+            executed_count = int(row["executed_count"] or 0)
+            reflection_count = int(row["reflection_count"] or 0)
+            latest_adjustment = str(row["latest_adjustment"] or "").strip()
+            template = services.LEARNING_TEMPLATES.get(str(row["template"] or ""), str(row["template"] or "学习练习"))
+            if reflection_count > 0:
+                status = "已复盘"
+                status_class = "journey-status-done"
+                hint = "这一关已经留下学习记录,可以回看拆解或继续下一关。"
+                action_href = f"/learn/tasks/{task_id}"
+                action_label = "回看拆解"
+            elif executed_count > 0:
+                status = "待复盘"
+                status_class = "journey-status-now"
+                hint = "已经生成观察记录,下一步先保存三问复盘。"
+                action_href = "#learning-review"
+                action_label = "去复盘"
+            elif pending_count > 0:
+                status = "待观察"
+                status_class = "journey-status-now"
+                hint = "已经生成今日练习,下一步确认观察材料、练习规模和依据后生成观察记录。"
+                action_href = "#today-practice"
+                action_label = "生成观察记录"
+            elif signal_count > 0:
+                status = "练习已保存"
+                status_class = "journey-status-wait"
+                hint = "练习已有记录,回到任务页确认是否还要补充新的草稿。"
+                action_href = f"/learn/tasks/{task_id}"
+                action_label = "查看任务"
+            else:
+                status = "待生成练习"
+                status_class = "journey-status-wait"
+                hint = "先把教练拆解变成今日练习。"
+                action_href = f"/learn/tasks/{task_id}"
+                action_label = "生成练习"
+            reflection_html = (
+                '<div class="journey-reflection">'
+                "<b>这一关下次想改</b>"
+                f"<p>{escape(latest_adjustment)}</p>"
+                "</div>"
+                if latest_adjustment
+                else ""
+            )
+            items.append(
+                '<div class="journey-item">'
+                f'<div class="journey-step">第 {sequence} 关</div>'
+                '<div class="journey-main">'
+                f'<strong>{escape(row["goal"])}</strong>'
+                f'<p>{escape(hint)}</p>'
+                '<div class="journey-meta">'
+                f'<span class="badge">{escape(template)}</span>'
+                f'<span class="badge {status_class}">{escape(status)}</span>'
+                f'<span class="badge">练习 {signal_count}</span>'
+                f'<span class="badge">复盘 {reflection_count}</span>'
+                "</div>"
+                f"{reflection_html}"
+                "</div>"
+                f'<div class="journey-action"><a class="btn secondary" href="{escape(action_href, quote=True)}">{escape(action_label)}</a></div>'
+                "</div>"
+            )
+        return f"""
+<section class="card journey-card" id="learning-journey">
+  <h2>我的学习轨迹</h2>
+  <p>把每一关的目标、练习和复盘串起来看。复盘后的“下次改什么”会留在这里,下一关就能拿来比较。</p>
+  {summary_html}
+  <div class="journey-list">{''.join(items)}</div>
+</section>
+"""
+
     def render_learn(self, user, query):
         key_row = ai_service.get_key_row(self.con, user["id"])
         ai_ready = key_row is not None and bool(int(key_row["enabled"]))
         task_rows = services.learning_tasks(self.con, user["id"], limit=6)
-        tasks_html = "".join(
-            '<tr>'
-            f'<td><a href="/learn/tasks/{int(task["id"])}">#{int(task["id"])}</a></td>'
-            f'<td>{escape(task["goal"])}</td>'
-            f'<td>{escape(services.LEARNING_TEMPLATES.get(task["template"], task["template"]))}</td>'
-            f'<td>{escape(task["status"])}</td>'
-            f'<td>{escape(task["created_at"])}</td>'
-            '</tr>'
-            for task in task_rows
-        ) or '<tr><td colspan="5" class="muted">暂无学习任务。先写一个目标,让 AI 教练帮你拆解。</td></tr>'
-        ai_box = (
-            """
-<div class="msg">
-  DeepSeek API key 已配置。你可以直接创建学习任务,AI 会先做方法拆解,不会替你下单。
+        has_tasks = bool(task_rows)
+        reflection_count = int(
+            self.con.execute(
+                "SELECT COUNT(*) FROM learning_reflections WHERE user_id=?",
+                (int(user["id"]),),
+            ).fetchone()[0]
+        )
+        progress_html = self.learning_loop_progress_html(user, ai_ready)
+        starter_html = self.learning_starter_choices_html(user, ai_ready, has_tasks)
+        continue_task_html = self.learning_continue_task_html(user)
+        today_practice_html = self.learning_today_practice_html(user)
+        recent_review_html = self.learning_recent_review_html(user)
+        journey_html = self.learning_journey_html(user)
+        preset_section_id = "more-presets" if starter_html else "learn-presets"
+        preset_title = "想换关? 更多新手关卡" if starter_html else "不知道问什么? 从关卡地图开始"
+        task_log_html = ""
+        if has_tasks:
+            task_log_intro = "日常只看上面的「我的学习轨迹」就够了。下面保留任务 ID、状态和创建时间,方便以后排查或回看。"
+            tasks_html = "".join(
+                labeled_table_row(
+                    [
+                        ("ID", f'<a href="/learn/tasks/{int(task["id"])}">#{int(task["id"])}</a>'),
+                        ("目标", escape(task["goal"])),
+                        ("模板", escape(services.LEARNING_TEMPLATES.get(task["template"], task["template"]))),
+                        ("状态", escape(task["status"])),
+                        ("创建时间", escape(task["created_at"])),
+                    ]
+                )
+                for task in task_rows
+            )
+            task_log_html = f"""
+<section class="card">
+  <h2>学习记录</h2>
+  <p>{escape(task_log_intro)}</p>
+  <details class="advanced-practice">
+    <summary>查看高级任务记录<span>新手第一次闭环可以先不展开;这里是更像后台记录的明细表。</span></summary>
+    <div class="advanced-practice-body">
+      <table class="mobile-card-table"><thead><tr><th>ID</th><th>目标</th><th>模板</th><th>状态</th><th>创建时间</th></tr></thead><tbody>{tasks_html}</tbody></table>
+    </div>
+  </details>
+</section>
+"""
+        preset_cards_html = self.learning_preset_cards(user, ai_ready)
+        if starter_html:
+            preset_library_html = f"""
+  <p>第一次先用上面的蓝色推荐按钮。下面是分级关卡地图,想换关时再展开;没完成第一圈前先不要跨到第二关。</p>
+  <details class="advanced-practice preset-library">
+    <summary>可选:展开新手关卡地图<span>第一次先不用展开;不知道怎么选时,直接点上面的蓝色按钮。</span></summary>
+    <div class="advanced-practice-body">
+      {preset_cards_html}
+    </div>
+  </details>
+"""
+        elif has_tasks and reflection_count <= 0:
+            preset_library_html = f"""
+		  <p>你已经有一个学习任务在进行中。先完成当前第一圈:生成练习、生成观察记录、保存复盘;完成 6/6 后再换关。</p>
+  <details class="advanced-practice preset-library">
+    <summary>可选:完成当前第一圈后再换关<span>现在先不用展开;当前任务完成复盘前,新题会分散注意力。</span></summary>
+    <div class="advanced-practice-body">
+      {preset_cards_html}
+    </div>
+  </details>
+"""
+        else:
+            preset_library_html = f"""
+  <p>上面三个入口适合继续学习;这里保留完整关卡地图。已配置 key 时会调用 AI 创建任务;没配置 key 时会创建内置示例教练任务,不调用 DeepSeek。</p>
+  {preset_cards_html}
+"""
+        first_loop_in_progress = has_tasks and reflection_count <= 0
+        if continue_task_html:
+            current_step_href = "#continue-learning-task"
+            current_step_label = "回到当前任务"
+        elif today_practice_html:
+            current_step_href = "#first-practice-card"
+            current_step_label = "生成观察记录"
+        elif recent_review_html:
+            current_step_href = "#learning-review"
+            current_step_label = "保存复盘"
+        else:
+            current_step_href = "#learning-loop"
+            current_step_label = "查看当前进度"
+        if reflection_count > 0:
+            mobile_next_bar_html = ""
+        elif not has_tasks:
+            mobile_next_bar_html = """
+<div class="mobile-next-spacer" aria-hidden="true"></div>
+<div class="mobile-next-bar" role="navigation" aria-label="手机下一步提示">
+  <div><span>现在只做一件事</span><b>先开始第一关</b></div>
+  <a class="btn blue" href="#learn-presets">去开始</a>
 </div>
 """
-            if ai_ready
-            else """
-<div class="msg">
-  AI 教练是<strong>可选</strong>功能,需要你自己的 DeepSeek API key(用的是你自己账户的余额,调用会产生少量费用)。
-  没有也不影响:左边的「量化三大坑」课程免登录、免 key 就能看,模拟盘下单和复盘也都不需要 key。
-  想让 AI 帮你拆解学习目标,到 <a href="/account/ai">账户 → AI 教练配置</a> 填入并启用 key 即可。
+        else:
+            mobile_next_bar_html = f"""
+<div class="mobile-next-spacer" aria-hidden="true"></div>
+<div class="mobile-next-bar" role="navigation" aria-label="手机下一步提示">
+  <div><span>下一步</span><b>{escape(current_step_label)}</b></div>
+  <a class="btn blue" href="{escape(current_step_href, quote=True)}">继续</a>
 </div>
 """
+        beginner_focus_html = self.learning_beginner_focus_html(
+            has_tasks,
+            reflection_count,
+            continue_task_html,
+            today_practice_html,
+            recent_review_html,
         )
-        submit = (
-            '<button type="submit">让 AI 拆解目标</button>'
-            if ai_ready
-            else '<a class="btn" href="/account/ai">配置 DeepSeek API key</a>'
-        )
-        body = f"""
-{self.message_html(query)}
-<section class="card">
-  <h2>新手 AI 学习工作台</h2>
-  <p>这里先帮你理解量化投资的基本环节,再把一个学习目标拆成可演练、可记录、可复盘的模拟盘任务。</p>
-  <p><a class="btn secondary" href="/lessons">先看:量化三大坑(免登录、免 key)</a> <a class="btn secondary" href="/app">想直接上手?进入模拟盘 →</a></p>
-  <div class="flow-map">
-    <div class="flow-step"><span>STEP 1</span><strong>量化投资是什么</strong><p>用数据、规则和程序把投资想法转成可检验流程。它不是 AI 替你预测涨跌,也不是自动稳赚。</p></div>
-    <div class="flow-step"><span>STEP 2</span><strong>你需要理解哪些环节</strong><p>数据、交易规则、策略假设、回测陷阱、模拟盘执行和复盘,分别解决不同问题。</p></div>
-    <div class="flow-step"><span>STEP 3</span><strong>目标如何拆成任务</strong><p>把“我想学习量化”拆成一个观察模板、几个参数、一组记录问题和一次可复盘练习。</p></div>
-    <div class="flow-step"><span>STEP 4</span><strong>以练代学</strong><p>AI 先解释方法,系统生成候选草稿,你确认后保存为待执行计划,再用模拟结果复盘。</p></div>
-  </div>
-</section>
-<section class="card">
-  <h2>不知道问什么? 从这些任务开始</h2>
-  <p>按你的基础选择一个常见问题,系统会直接把它送给 AI 教练拆解成学习任务。</p>
-  {self.learning_preset_cards(user, ai_ready)}
-</section>
-<section class="grid">
-  <div class="card">
-    <h2>创建学习任务</h2>
-    {ai_box}
+        if first_loop_in_progress:
+            coach_status = "AI 教练已配置,但第一圈先不要新建第二个目标。" if ai_ready else "没有 DeepSeek key 也能完成当前第一圈。"
+            custom_task_html = f"""
+    <h2>当前第一圈先不新建任务</h2>
+    <div class="msg">
+	      你已经开始第一次学习闭环。现在先回到页面上方的当前步骤,完成生成练习、生成观察记录和保存复盘;完成 6/6 后再换关或配置 AI。
+    </div>
+    <div class="task-action-points">
+      <div><b>现在怎么继续</b><p>只看页面上方的蓝色主按钮,不要再开新题。</p></div>
+      <div><b>什么时候配 key</b><p>{escape(coach_status)}</p></div>
+      <div><b>完成标准</b><p>看到 6/6 和一条复盘记录,第一圈才算完成。</p></div>
+    </div>
+    <p><a class="btn blue" href="{escape(current_step_href, quote=True)}">{escape(current_step_label)}</a> <a class="btn secondary" href="/account/ai">AI 教练配置(稍后再看)</a></p>
+"""
+        else:
+            if ai_ready:
+                ai_custom_form_html = f"""
     <form method="post" action="/learn/coach">
       {csrf_input(user)}
       <label>我想学习或练习的目标</label>
@@ -3992,8 +6358,101 @@ class AppHandler(BaseHTTPRequestHandler):
         <div><label>当前基础</label><select name="difficulty">{self.learning_difficulty_options()}</select></div>
         <div><label>练习模板</label><select name="template">{self.learning_template_options()}</select></div>
       </div>
-      <p>{submit}</p>
+      <p><button type="submit">让 AI 拆解目标</button></p>
     </form>
+"""
+                if not has_tasks and reflection_count <= 0:
+                    custom_task_html = f"""
+    <h2>AI key 已配置,第一圈仍建议用推荐任务</h2>
+    <div class="msg">
+      你已经可以使用 AI 教练。第一次先不要自己写提示词,直接用上方蓝色推荐按钮跑完 6/6;想自己提目标时再展开下面的输入框。
+    </div>
+    <details class="advanced-practice custom-ai-goal">
+      <summary>可选:自己写学习目标<span>第一次可以先不展开;不知道怎么问时,先用推荐任务更快完成第一圈。</span></summary>
+      <div class="advanced-practice-body">
+        {ai_custom_form_html}
+      </div>
+    </details>
+"""
+                else:
+                    custom_task_html = f"""
+    <h2>创建自定义 AI 学习任务</h2>
+    <div class="msg">
+      DeepSeek API key 已配置。你可以输入自己的学习目标,AI 会先做方法拆解,不会替你下单。
+    </div>
+    {ai_custom_form_html}
+"""
+            else:
+                if reflection_count > 0:
+                    custom_task_html = f"""
+    <h2>第一圈已完成,AI key 是可选升级</h2>
+    <div class="msg">
+      你已经完成第一次学习闭环。现在可以先停在这里,也可以换一个预设跑第二关;配置 AI key 只是为了写自定义目标和 AI 复盘,不是继续学习的前置条件。
+    </div>
+    <div class="task-action-points">
+      <div><b>现在怎么继续</b><p>先看上方的学习成果和学习轨迹,再决定要不要打开第二关建议。</p></div>
+      <div><b>什么时候配 key</b><p>想自己写目标、让 AI 拆解或复盘时再配置。</p></div>
+      <div><b>费用边界</b><p>不配置 key 也能继续使用示例教练和模拟练习。</p></div>
+    </div>
+    <p><a class="btn" href="#learning-loop">查看第二关建议</a> <a class="btn secondary" href="#{preset_section_id}">选择新任务</a> <a class="btn secondary" href="/account/ai">配置 AI 教练(可选)</a></p>
+"""
+                else:
+                    custom_task_html = """
+    <h2>第一圈不用 DeepSeek key</h2>
+    <div class="msg">
+      你现在可以直接开始:点击上面的蓝色推荐按钮,系统会创建「示例教练任务」,不调用 DeepSeek、不产生 AI 费用。
+      等你完成第一次闭环后,如果想写自己的目标再让 AI 拆解,再配置 key。
+    </div>
+    <div class="task-action-points">
+      <div><b>现在怎么开始</b><p>先看上面的 30 秒概念,再点蓝色推荐按钮;不用 key 也能生成示例任务。</p></div>
+      <div><b>什么时候配 key</b><p>完成第一圈后,想写自己的目标再去 AI 教练配置。</p></div>
+      <div><b>费用边界</b><p>示例教练不调用 DeepSeek,不会消耗你的 API 额度。</p></div>
+    </div>
+	    <p><a class="btn" href="#learn-presets">回到蓝色推荐按钮</a> <a class="btn secondary" href="/learn/demo">看 3 分钟示例</a> <a class="btn secondary" href="/account/ai">以后再配置 AI key</a></p>
+	"""
+        advanced_intro_link = (
+            '<a class="btn secondary" href="/app">高级模拟盘</a>'
+            if reflection_count > 0
+            else '<span class="badge">6/6 前先不要进入高级模拟盘</span>'
+        )
+        advanced_intro_text = (
+            "第一次闭环已经完成,可以进入高级模拟盘查看账户、持仓和成交细节。"
+            if reflection_count > 0
+            else "高级模拟盘入口会在完成 6/6 后出现。完成后页面会再给你高级入口。"
+        )
+        boundary_actions_html = (
+            '<p><a class="btn secondary" href="/app">高级模拟盘</a> <a class="btn secondary" href="/account/ai">AI 教练配置</a></p>'
+            if reflection_count > 0
+            else '<p><span class="badge">高级模拟盘入口会在完成 6/6 后出现</span> <a class="btn secondary" href="/account/ai">AI 教练配置(可选,以后再看)</a></p>'
+        )
+        body = f"""
+	{self.message_html(query)}
+{recent_review_html}
+{today_practice_html}
+{continue_task_html}
+{starter_html}
+{beginner_focus_html}
+{progress_html}
+{journey_html}
+	<section class="card">
+	  <h2>新手 AI 学习工作台</h2>
+	  <p>这里先帮你理解量化投资的基本环节,再把一个学习目标拆成可演练、可记录、可复盘的模拟盘任务。</p>
+	  <p><a class="btn" href="/learn/demo">3 分钟示例体验</a> <a class="btn secondary" href="/lessons">先看:量化三大坑(免登录、免 key)</a> {advanced_intro_link}</p>
+	  <p class="muted">第一次不需要进入高级模拟盘。先在本页完成选目标、生成练习、生成观察记录和三问复盘,再去看账户、持仓和成交细节。{advanced_intro_text}</p>
+  <div class="flow-map">
+    <div class="flow-step"><span>STEP 1</span><strong>量化投资是什么</strong><p>用数据、规则和程序把投资想法转成可检验流程。它不是 AI 替你预测涨跌,也不是自动稳赚。</p></div>
+    <div class="flow-step"><span>STEP 2</span><strong>你需要理解哪些环节</strong><p>数据、交易规则、策略假设、回测陷阱、模拟盘执行和复盘,分别解决不同问题。</p></div>
+    <div class="flow-step"><span>STEP 3</span><strong>目标如何拆成任务</strong><p>把“我想学习量化”拆成一个观察模板、几个参数、一组记录问题和一次可复盘练习。</p></div>
+    <div class="flow-step"><span>STEP 4</span><strong>以练代学</strong><p>AI 先解释方法,系统生成候选草稿,你确认后保存为待执行计划,再用模拟结果复盘。</p></div>
+  </div>
+</section>
+<section class="card" id="{preset_section_id}">
+  <h2>{preset_title}</h2>
+  {preset_library_html}
+</section>
+<section class="grid">
+  <div class="card">
+    {custom_task_html}
   </div>
   <div class="card">
     <h2>新手边界</h2>
@@ -4001,29 +6460,399 @@ class AppHandler(BaseHTTPRequestHandler):
       <li>AI 只做方法教学、目标拆解和草稿说明。</li>
       <li>具体候选由系统按行情/预测数据确定,不是模型荐股。</li>
       <li>保存后只是待执行计划,不会自动成交。</li>
-      <li>执行、取消、复盘都由你自己确认。</li>
-    </ul>
-    <p><a class="btn secondary" href="/app">进入高级模拟盘</a> <a class="btn secondary" href="/account/ai">AI 教练配置</a></p>
-  </div>
-</section>
-<section class="card">
-  <h2>最近学习任务</h2>
-  <table><thead><tr><th>ID</th><th>目标</th><th>模板</th><th>状态</th><th>创建时间</th></tr></thead><tbody>{tasks_html}</tbody></table>
-</section>
-"""
+	      <li>执行、取消、复盘都由你自己确认。</li>
+	    </ul>
+	    {boundary_actions_html}
+	  </div>
+	</section>
+{task_log_html}
+{mobile_next_bar_html}
+	"""
         self.send_html("学习工作台", body, user=user)
 
     def learning_preview_rows_html(self, rows: list[dict]) -> str:
         return "".join(
             "<tr>"
-            f"<td>{escape(row['code'])}</td>"
-            f"<td>{escape(row.get('name') or '-')}</td>"
-            f"<td>{side_cn(row['side'])}</td>"
-            f"<td>{int(row['qty'])}</td>"
-            f"<td>{escape(row.get('rationale') or '-')}</td>"
+            f"<td data-label=\"代码\">{escape(row['code'])}</td>"
+            f"<td data-label=\"名称\">{escape(row.get('name') or '-')}</td>"
+            f"<td data-label=\"观察动作\">{escape(learning_observation_label(row['side']))}</td>"
+            f"<td data-label=\"模拟观察数量\">{escape(learning_observation_action(row['side'], int(row['qty'])))}</td>"
+            f"<td data-label=\"依据\">{escape(learning_display_rationale(row.get('rationale')))}</td>"
             "</tr>"
             for row in rows
         )
+
+    def learning_task_digest_html(self, task, saved_count: int) -> str:
+        template = services.normalize_learning_template(task["template"] or "reversal")
+        template_label = services.LEARNING_TEMPLATES.get(template, template)
+        coach_label = self.learning_task_coach_label(task)
+        goal = " ".join(str(task["goal"] or "这一关的学习目标").split())
+        if len(goal) > 118:
+            goal = goal[:115].rstrip() + "..."
+        template_titles = {
+            "reversal": "用反转观察理解“规则如何变成练习”",
+            "momentum": "用动量观察理解“趋势不是确定预测”",
+            "prediction": "把模型候选当成学习材料",
+            "risk_review": "先把风险边界说清楚",
+        }
+        template_notes = {
+            "reversal": "看短期波动后的修复假设,重点是记录依据和边界,不是猜明天涨跌。",
+            "momentum": "看短期强势能否延续的观察假设,重点是避免追涨冲动和事后找理由。",
+            "prediction": "把预测候选当作解释材料,重点看预测、行情、规则和复盘怎样连接。",
+            "risk_review": "这一关不追求买卖动作,重点写清数量、回撤和停止条件。",
+        }
+        if saved_count > 0:
+            next_text = "这关已经生成过今日练习。现在先回学习工作台,不要重复保存新草稿。"
+        else:
+            next_text = "先点页面上方蓝色按钮生成 1 条今日练习,第一次不用展开进阶设置。"
+        return f"""
+  <div class="coach-digest" aria-label="教练拆解摘要">
+    <div class="coach-digest-main">
+      <span class="tag">30 秒摘要</span>
+      <strong>{escape(template_titles.get(template, f"用{template_label}完成一次入门练习"))}</strong>
+      <p>{escape(template_notes.get(template, "先把目标变成一条小数量模拟观察,再用复盘检查自己是否理解。"))}</p>
+    </div>
+    <div class="coach-digest-side">
+      <b>先看这三件事</b>
+      <p>下面是把{escape(coach_label)}长文压缩成的新手读法。</p>
+      <div class="coach-digest-steps">
+        <div><strong>这一关目标</strong><small>{escape(goal)}</small></div>
+        <div><strong>系统会做</strong><small>用{escape(template_label)}生成小数量模拟练习,不自动成交。</small></div>
+        <div><strong>你下一步</strong><small>{escape(next_text)}</small></div>
+      </div>
+    </div>
+  </div>
+"""
+
+    def learning_task_mobile_next_bar_html(self, user, task) -> str:
+        task_id = int(task["id"])
+        summary = self.con.execute(
+            """
+            SELECT
+                (SELECT COUNT(*) FROM practice_signals WHERE user_id=? AND learning_task_id=? AND status='pending') AS pending_count,
+                (SELECT COUNT(*) FROM practice_signals WHERE user_id=? AND learning_task_id=? AND status='executed') AS executed_count,
+                (SELECT COUNT(*) FROM learning_reflections WHERE user_id=? AND learning_task_id=?) AS reflection_count
+            """,
+            (int(user["id"]), task_id, int(user["id"]), task_id, int(user["id"]), task_id),
+        ).fetchone()
+        pending_count = int(summary["pending_count"] or 0) if summary else 0
+        executed_count = int(summary["executed_count"] or 0) if summary else 0
+        reflection_count = int(summary["reflection_count"] or 0) if summary else 0
+        if reflection_count > 0 or str(task["status"] or "") == "completed":
+            step_label = "已完成"
+            action_label = "看学习轨迹"
+            href = "/learn#learning-journey"
+        elif executed_count > 0:
+            step_label = "最后一步"
+            action_label = "去三问复盘"
+            href = "/learn#learning-review"
+        elif pending_count > 0:
+            step_label = "下一步"
+            action_label = "生成观察记录"
+            href = "/learn#today-practice"
+        else:
+            step_label = "下一步"
+            action_label = "生成今日练习"
+            href = "#task-next-action"
+        return f"""
+<div class="mobile-next-spacer" aria-hidden="true"></div>
+<div class="mobile-next-bar" role="navigation" aria-label="手机学习任务下一步提示">
+  <div><span>{escape(step_label)}</span><b>{escape(action_label)}</b></div>
+  <a class="btn blue" href="{escape(href, quote=True)}">继续</a>
+</div>
+"""
+
+    def learning_task_bridge_html(self, user, task) -> str:
+        task_id = int(task["id"])
+        summary = self.con.execute(
+            """
+            SELECT
+                (SELECT COUNT(*) FROM learning_tasks WHERE user_id=? AND id < ?) AS previous_task_count,
+                (SELECT COUNT(*) FROM learning_tasks WHERE user_id=? AND id <= ?) AS task_sequence,
+                (SELECT COUNT(*) FROM learning_reflections WHERE user_id=?) AS reflection_count
+            """,
+            (int(user["id"]), task_id, int(user["id"]), task_id, int(user["id"])),
+        ).fetchone()
+        previous_task_count = int(summary["previous_task_count"] or 0)
+        reflection_count = int(summary["reflection_count"] or 0)
+        if previous_task_count <= 0 or reflection_count <= 0:
+            return ""
+        previous = self.con.execute(
+            """
+            SELECT id, goal, template
+            FROM learning_tasks
+            WHERE user_id=? AND id < ?
+            ORDER BY id DESC
+            LIMIT 1
+            """,
+            (int(user["id"]), task_id),
+        ).fetchone()
+        if previous is None:
+            return ""
+        task_sequence = int(summary["task_sequence"] or previous_task_count + 1)
+        previous_template = services.LEARNING_TEMPLATES.get(previous["template"], previous["template"])
+        current_template = services.LEARNING_TEMPLATES.get(task["template"], task["template"])
+        if str(previous["template"]) == str(task["template"]):
+            angle_text = f"上一关和这一关都是 {current_template},这次重点是换一个目标,看你能不能自己说清楚依据。"
+        else:
+            angle_text = f"上一关: {previous_template}; 这一关: {current_template}。先比较两种练习的观察角度,不要急着看涨跌。"
+        if str(task["template"]) == "risk_review":
+            practice_text = "风险复盘不直接等于买入卖出。生成今日练习时,系统会用一条小数量观察作为复盘材料。"
+        else:
+            practice_text = "这次仍然只生成小数量模拟练习。保存后先回学习工作台点“生成观察记录”,再写三问复盘。"
+        points = (
+            ("对比什么", angle_text),
+            ("这次怎么练", practice_text),
+            ("完成标准", "不是赚多少钱,而是能写出这次和上次想练什么、规则有没有守住、下次改什么。"),
+        )
+        point_html = "".join(
+            f'<div class="bridge-point"><span>{escape(title)}</span><p>{escape(text)}</p></div>'
+            for title, text in points
+        )
+        compare_html = ""
+        if str(previous["template"]) == "reversal" and str(task["template"]) == "momentum":
+            compare_html = """
+  <div class="bridge-compare">
+    <h3>为什么这次换成动量观察?</h3>
+    <div class="bridge-compare-grid">
+      <div><b>上一关练的是反转</b><p>看“跌多了会不会修复一点”,重点是不要把短期反弹当成确定预测。</p></div>
+      <div><b>这一关练的是动量</b><p>看“强势会不会延续”,重点是记录依据,同时避免追涨冲动。</p></div>
+      <div><b>只比较 3 件事</b><p>候选怎么来、数量边界是否一样、复盘时哪里需要修正。</p></div>
+    </div>
+  </div>
+"""
+        return f"""
+<section class="card task-bridge">
+  <div class="task-bridge-head">
+    <div>
+      <span class="tag">NEXT QUEST</span>
+      <strong>这是你的第 {task_sequence} 个学习任务</strong>
+      <p>你已经有 {reflection_count} 条复盘记录。现在要做的不是从头学,而是把上一关的经验带到这一关。</p>
+    </div>
+    <div class="task-bridge-score">+1 关</div>
+  </div>
+  <div class="bridge-points">{point_html}</div>
+  {compare_html}
+</section>
+"""
+
+    def learning_task_next_action_html(self, user, task) -> str:
+        task_id = int(task["id"])
+        task_template = services.normalize_learning_template(task["template"] or "reversal")
+        coach_label = self.learning_task_coach_label(task)
+        row = self.con.execute(
+            """
+            SELECT
+                COUNT(DISTINCT s.id) AS signal_count,
+                SUM(CASE WHEN s.status='pending' THEN 1 ELSE 0 END) AS pending_count,
+                SUM(CASE WHEN s.status='executed' THEN 1 ELSE 0 END) AS executed_count,
+                COUNT(DISTINCT r.id) AS reflection_count
+            FROM learning_tasks t
+            LEFT JOIN practice_signals s ON s.learning_task_id=t.id AND s.user_id=t.user_id
+            LEFT JOIN learning_reflections r ON r.practice_signal_id=s.id AND r.user_id=t.user_id
+            WHERE t.id=? AND t.user_id=?
+            """,
+            (task_id, int(user["id"])),
+        ).fetchone()
+        signal_count = int(row["signal_count"] or 0)
+        pending_count = int(row["pending_count"] or 0)
+        executed_count = int(row["executed_count"] or 0)
+        reflection_count = int(row["reflection_count"] or 0)
+        if reflection_count > 0:
+            loop_completed = 6
+            loop_hint = "已完成:理解概念、选择目标、获得教练拆解、生成练习、生成观察记录、保存复盘。第一次闭环已经完成。"
+            title = "这一关已经完成复盘"
+            text = "你已经留下学习记录。下一步可以回到学习轨迹,选择下一关继续练。"
+            action_html = '<a class="btn blue" href="/learn#learning-journey">回到学习轨迹</a>'
+            action_note = "这一关已经完成,点这里查看自己的学习记录。"
+            points = (
+                ("已完成", "目标、练习、观察和复盘都已经串起来。"),
+                ("可以回看", "教练拆解仍在下面,以后复盘时可以再回来对照。"),
+                ("下一步", "从学习轨迹或下一关推荐继续。"),
+            )
+        elif executed_count > 0:
+            loop_completed = 5
+            loop_hint = "已完成:理解概念、选择目标、获得教练拆解、生成练习、生成观察记录。还差 1 步:保存三问复盘。"
+            title = "下一步:保存三问复盘"
+            text = "你已经生成观察记录。现在不要先看赚亏,先回学习工作台保存复盘。"
+            action_html = '<a class="btn blue" href="/learn#learning-review">去复盘</a>'
+            action_note = "只需要保存三句话复盘,不用判断短期赚亏。"
+            points = (
+                ("只答三问", "假设是什么、有没有按计划执行、下次修正什么。"),
+                ("不用写长", "每问一句话也可以。"),
+                ("完成后", "你的学习轨迹会变成已复盘。"),
+            )
+        elif pending_count > 0:
+            loop_completed = 4
+            loop_hint = "已完成:理解概念、选择目标、获得教练拆解、生成练习。还差 2 步:生成观察记录、保存复盘。"
+            title = "今日练习已生成"
+            text = "下一步回到学习工作台,确认观察材料、练习规模和依据后点“生成观察记录”。"
+            action_html = '<a class="btn blue" href="/learn#today-practice">回学习页生成观察记录</a>'
+            action_note = "回学习页确认后才会生成模拟观察记录,这里不会自动执行。"
+            points = (
+                ("还没生成记录", "当前只是待观察计划,没有自动执行。"),
+                ("先确认", "看懂观察材料、练习规模和依据再生成。"),
+                ("生成观察记录后", "系统会带你用这条记录完成三问复盘。"),
+            )
+        elif signal_count > 0:
+            loop_completed = 3
+            loop_hint = "已完成:理解概念、选择目标、获得教练拆解。这个任务有练习记录,先回看状态再决定是否继续。"
+            title = "这个任务已经有练习记录"
+            text = "可以回学习工作台查看当前状态,或者在下面继续预览新的草稿。"
+            action_html = '<a class="btn blue" href="/learn#learning-journey">查看学习轨迹</a>'
+            action_note = "先看学习轨迹,确认当前练习卡在哪一步。"
+            points = (
+                ("有记录", "这个任务已经关联过模拟练习。"),
+                ("先回看", "确认当前练习在哪一步。"),
+                ("再补充", "需要时再从下面生成更多草稿。"),
+            )
+        else:
+            loop_completed = 3
+            loop_hint = "已完成:理解概念、选择目标、获得教练拆解。还差 3 步:生成练习、生成观察记录、保存复盘。"
+            if task_template == "risk_review":
+                title = "下一步只做一件事:一键生成风险练习"
+                text = "先不要研究复杂指标。点蓝色按钮后会回到学习工作台,只用它练习写清楚数量、回撤、停止条件。"
+                button_label = "一键生成风险练习"
+                action_note = "第一次只按这个按钮,不用展开进阶设置;会回到学习工作台继续,不会自动成交。"
+                points = (
+                    ("数量边界", "每个对象只用小数量,不临时加仓。"),
+                    ("回撤边界", "先写下亏损扩大时要观察什么。"),
+                    ("停止条件", "看不懂依据或开始情绪化操作,就停止练习。"),
+                )
+            else:
+                title = "刚完成 3/6:点蓝色按钮进入下一步"
+                text = f"你已经选了目标,也拿到了{coach_label}拆解。现在不用读完所有说明,先一键生成今日练习。"
+                button_label = "一键生成今日练习"
+                action_note = "第一次只按这个按钮,不用看完下面长文,不用展开进阶草稿;会回到学习工作台继续,不会自动成交。"
+                points = (
+                    ("已完成 1", "你已经从蓝色推荐按钮或入门问题选了一个学习目标。"),
+                    ("已完成 2", f"系统已经给出{coach_label}拆解,不是空白开始。"),
+                    ("下一步", "点击按钮只会保存待观察练习,并回到学习工作台继续。"),
+                )
+            action_html = (
+                f'<form method="post" action="/learn/tasks/{task_id}/quick-save">'
+                f"{csrf_input(user)}"
+                f'<button class="blue" type="submit">{escape(button_label)}</button>'
+                "</form>"
+            )
+        points_html = "".join(
+            f"<div><b>{escape(title_text)}</b><p>{escape(body_text)}</p></div>"
+            for title_text, body_text in points
+        )
+        if reflection_count > 0:
+            shortcut_title = "10 秒回看这一关"
+            shortcut_text = "这一关已经完成。现在不用继续点交易相关按钮,先回学习轨迹看自己留下的三句话;今天可以停在这里。"
+            shortcut_steps = (
+                ("已完成", "目标、练习、观察记录、复盘都已经串起来。"),
+                ("今天可停", "第一圈已经达标,不需要马上开新题。"),
+                ("下次再来", "从学习轨迹里的“下次改什么”继续。"),
+            )
+        elif executed_count > 0:
+            shortcut_title = "10 秒读懂这一页"
+            shortcut_text = "预计 30 秒完成。现在不用判断赚亏,也不用读完教练全文。只回学习页保存三问复盘,看到 6/6 就完成。"
+            shortcut_steps = (
+                ("不用看涨跌", "这一步练的是复盘动作,不是预测对错。"),
+                ("只答三问", "想练什么、有没有按规则做、下次改哪一点。"),
+                ("完成标志", "保存后会出现 6/6 和学习徽章。"),
+            )
+        elif pending_count > 0:
+            shortcut_title = "10 秒读懂这一页"
+            shortcut_text = "预计 60 秒完成。今日练习已经生成。不要再保存新草稿,先回学习页确认最上面那条练习并生成观察记录。"
+            shortcut_steps = (
+                ("不用展开进阶设置", "第一次只用系统生成的 1 条小练习。"),
+                ("回学习页", "确认观察材料、练习规模和依据。"),
+                ("下一屏", "生成观察记录后会进入三问复盘。"),
+            )
+        elif signal_count > 0:
+            shortcut_title = "10 秒读懂这一页"
+            shortcut_text = "预计 30 秒定位当前步骤。这个任务已经有练习记录。先回学习轨迹确认当前卡在哪一步,不要重复新建目标。"
+            shortcut_steps = (
+                ("先看轨迹", "确认它是待观察、已观察还是已复盘。"),
+                ("再决定", "缺哪一步就补哪一步。"),
+                ("别分散", "第一圈完成前不要同时开太多题。"),
+            )
+        else:
+            shortcut_title = "10 秒读懂这一页"
+            shortcut_text = "预计 30 秒完成。第一遍不用读完整教练拆解,也不用展开进阶草稿。只确认蓝色按钮会生成今日练习,然后回到学习页继续。"
+            shortcut_steps = (
+                ("只点蓝色按钮", "一键生成今日练习。"),
+                ("不会自动成交", "只是保存一条待观察练习。"),
+                ("下一屏", "回到学习工作台看“今日练习”。"),
+            )
+        shortcut_html = "".join(
+            f"<div><strong>{escape(step_title)}</strong><small>{escape(step_text)}</small></div>"
+            for step_title, step_text in shortcut_steps
+        )
+        if reflection_count > 0:
+            flow_state = ("done", "done", "done")
+        elif executed_count > 0:
+            flow_state = ("done", "done", "current")
+        elif pending_count > 0 or signal_count > 0:
+            flow_state = ("done", "current", "todo")
+        else:
+            flow_state = ("current", "todo", "todo")
+        flow_steps = (
+            ("1", "生成练习", "只保存待观察计划,不自动成交。"),
+            ("2", "生成观察记录", "回学习工作台确认后,生成一条模拟观察记录。"),
+            ("3", "保存复盘", "用示例复盘或三句话完成闭环。"),
+        )
+        flow_html = "".join(
+            '<div class="task-flow-step {klass}">'
+            "<span>{status} · {number}/3</span>"
+            "<b>{title}</b>"
+            "<p>{text}</p>"
+            "</div>".format(
+                klass=escape(klass),
+                status="DONE" if klass == "done" else "NOW" if klass == "current" else "TODO",
+                number=escape(number),
+                title=escape(step_title),
+                text=escape(step_text),
+            )
+            for klass, (number, step_title, step_text) in zip(flow_state, flow_steps, strict=True)
+        )
+        return f"""
+<section class="card task-action-card" id="task-next-action">
+  <div class="task-action-head task-first-action-head">
+    <div>
+      <span class="tag">NEXT ACTION</span>
+      <strong>{escape(title)}</strong>
+      <p>{escape(text)}</p>
+    </div>
+    <div class="next-action-cta">
+      {action_html}
+      <p class="muted">{escape(action_note)}</p>
+    </div>
+  </div>
+  <div class="task-loop-hint"><b>第一次闭环进度: {loop_completed}/6</b><span>{escape(loop_hint)}</span></div>
+  <div class="task-shortcut" id="task-shortcut"><b>{escape(shortcut_title)}</b><span>{escape(shortcut_text)}</span><div class="task-shortcut-grid">{shortcut_html}</div></div>
+  <div class="task-flow" aria-label="接下来 3 步">{flow_html}</div>
+  <div class="task-action-points">{points_html}</div>
+</section>
+"""
+
+    def learning_risk_boundary_html(self, task) -> str:
+        if services.normalize_learning_template(task["template"] or "reversal") != "risk_review":
+            return ""
+        return """
+<section class="card risk-boundary-card" id="risk-boundary">
+  <div class="risk-boundary-head">
+    <div>
+      <span class="tag">RISK BOUNDARY</span>
+      <h2>第三关只看 3 个风险边界</h2>
+      <p>风险不是抽象词。第一次只写清楚数量、回撤、停止条件。</p>
+    </div>
+  </div>
+  <div class="risk-boundary-grid">
+    <div><b>数量边界</b><p>每个对象只用小数量,不要临时加仓。</p></div>
+    <div><b>回撤边界</b><p>先写下如果模拟亏损扩大,你要观察什么,不是马上追涨杀跌。</p></div>
+    <div><b>停止条件</b><p>如果看不懂依据、连续偏离原本想练的规则或情绪化操作,就停止这次练习。</p></div>
+  </div>
+  <div class="risk-boundary-check">
+    <strong>生成练习前先记住</strong>
+    <p>系统仍会用一条小数量观察作为材料;这一关的重点是给它补上风险边界。</p>
+  </div>
+</section>
+"""
 
     def render_learning_task_page(
         self,
@@ -4035,60 +6864,92 @@ class AppHandler(BaseHTTPRequestHandler):
         preview_params: dict | None = None,
     ):
         preview_params = preview_params or {}
-        template = services.normalize_learning_template(preview_params.get("template") or task["template"])
+        template = services.normalize_learning_template(preview_params.get("template") or self.learning_task_practice_template(task))
         qty = escape(str(preview_params.get("qty") or "100"))
         limit = escape(str(preview_params.get("limit") or "3"))
         strategy_name = escape(str(preview_params.get("strategy_name") or f"学习任务 {int(task['id'])} · {services.LEARNING_TEMPLATES[template]}"))
-        rationale_note = escape(str(preview_params.get("rationale_note") or "按 AI 教练建议做小仓位观察,记录假设、风险和复盘问题。"))
+        rationale_note = escape(str(preview_params.get("rationale_note") or "按 AI 教练建议做小仓位观察,记录想练什么、风险边界和复盘问题。"))
         coach_text = render_markdown(task["coach_text"] or "AI 教练暂无输出。")
         saved_count = services.learning_task_signal_count(self.con, user["id"], int(task["id"]))
+        coach_digest_html = self.learning_task_digest_html(task, saved_count)
+        task_status_label = {
+            "draft": "待生成今日练习",
+            "active": "学习中",
+            "completed": "已完成",
+        }.get(str(task["status"] or ""), str(task["status"] or "学习中"))
+        bridge_html = self.learning_task_bridge_html(user, task)
+        next_action_html = self.learning_task_next_action_html(user, task)
+        risk_boundary_html = self.learning_risk_boundary_html(task)
+        mobile_next_bar_html = self.learning_task_mobile_next_bar_html(user, task)
         preview_html = ""
         if preview_error:
             preview_html = f'<div class="msg err">{escape(preview_error)}</div>'
         elif preview_rows is not None:
-            rows_html = self.learning_preview_rows_html(preview_rows) or '<tr><td colspan="5" class="muted">暂无候选</td></tr>'
+            rows_html = self.learning_preview_rows_html(preview_rows) or labeled_empty_row("暂无候选", 5)
             preview_html = f"""
-<div class="msg">以下只是草稿预览,尚未写入模拟盘。确认后会保存为待执行演练计划。</div>
-<table><thead><tr><th>代码</th><th>名称</th><th>方向</th><th>数量</th><th>依据</th></tr></thead><tbody>{rows_html}</tbody></table>
+<div class="msg">以下只是草稿预览,尚未写入模拟盘。确认后会保存到学习工作台的今日练习;“观察动作”不是买卖指令。</div>
+<table class="learning-mobile-table"><thead><tr><th>代码</th><th>名称</th><th>观察动作</th><th>模拟观察数量</th><th>依据</th></tr></thead><tbody>{rows_html}</tbody></table>
 """
+        advanced_open = " open" if preview_error or preview_rows is not None else ""
         body = f"""
 {self.message_html(query)}
+{bridge_html}
+{next_action_html}
+{risk_boundary_html}
 <section class="card">
-  <h2>学习任务 #{int(task['id'])}</h2>
-  <p><span class="badge">{escape(services.LEARNING_DIFFICULTIES.get(task['difficulty'], task['difficulty']))}</span> <span class="badge">{escape(services.LEARNING_TEMPLATES.get(task['template'], task['template']))}</span> <span class="badge">{escape(task['status'])}</span></p>
+  <h2>这一关的学习目标</h2>
+  <p><span class="badge">{escape(services.LEARNING_DIFFICULTIES.get(task['difficulty'], task['difficulty']))}</span> <span class="badge">{escape(services.LEARNING_TEMPLATES.get(task['template'], task['template']))}</span> <span class="badge">{escape(task_status_label)}</span> <span class="badge">任务编号 {int(task['id'])}</span></p>
   <h3>目标</h3>
   <p>{escape(task['goal'])}</p>
-  <h3>AI 教练拆解</h3>
-  <div class="markdown-body">{coach_text}</div>
-  <p class="muted">已从该任务保存 {saved_count} 条演练计划。保存后仍需到高级模拟盘手动执行。</p>
-</section>
-<section class="card">
-  <h2>演练计划草稿</h2>
-  <form method="post" action="/learn/tasks/{int(task['id'])}/preview">
-    {csrf_input(user)}
-    <div class="formline">
-      <div><label>练习模板</label><select name="template">{self.learning_template_options(template, include_risk=False)}</select></div>
-      <div><label>数量/标的</label><input name="qty" type="number" min="100" step="100" value="{qty}"></div>
-      <div><label>候选数</label><input name="limit" type="number" min="1" max="10" step="1" value="{limit}"></div>
-      <button type="submit">预览草稿</button>
-    </div>
-    <label>策略名称</label>
-    <input name="strategy_name" value="{strategy_name}" maxlength="80">
-    <label>附加记录要求</label>
-    <input name="rationale_note" value="{rationale_note}" maxlength="300">
-  </form>
-  {preview_html}
-  <form method="post" action="/learn/tasks/{int(task['id'])}/save-signals">
-    {csrf_input(user)}
-    <input type="hidden" name="template" value="{escape(template)}">
-    <input type="hidden" name="qty" value="{qty}">
-    <input type="hidden" name="limit" value="{limit}">
-    <input type="hidden" name="strategy_name" value="{strategy_name}">
-    <input type="hidden" name="rationale_note" value="{rationale_note}">
-    <p><button type="submit">确认保存为待执行计划</button> <a class="btn secondary" href="/app">去高级模拟盘</a> <a class="btn secondary" href="/learn">返回学习工作台</a></p>
-  </form>
-</section>
-"""
+		  {coach_digest_html}
+		  <div class="task-action-points">
+		    <div><b>教练拆解怎么看</b><p>第一次不用逐字读完,先找“这次学什么”“边界是什么”“下一步做什么”。</p></div>
+		    <div><b>看不懂也能继续</b><p>先按上方按钮一键生成今日练习,后面的复盘会帮你把内容说清楚。</p></div>
+	    <div><b>始终不是投资建议</b><p>这里讲的是学习方法和模拟流程,不会替你决定现实买卖。</p></div>
+	  </div>
+	  <details class="advanced-practice coach-breakdown">
+	    <summary>可选:展开教练拆解全文<span>第一次先按上方按钮一键生成今日练习;需要理解依据时再展开阅读。</span></summary>
+	    <div class="advanced-practice-body">
+	      <div class="markdown-body">{coach_text}</div>
+	    </div>
+	  </details>
+	  <p class="muted">已从该任务保存 {saved_count} 条练习。保存后会出现在学习工作台的「今日练习」里,由你自己决定是否生成观察记录。</p>
+	</section>
+	<details class="card advanced-practice task-advanced-settings"{advanced_open}>
+	  <summary>可选:进阶草稿设置<span>第一次不用展开;上方“一键生成今日练习”已经够用。这里适合已经看懂流程后,再预览候选、调整数量和保存更多草稿。</span></summary>
+	  <div class="advanced-practice-body">
+	    <div class="msg">
+	      <strong>第一次可以跳过这里:</strong> 上方已经有“一键生成今日练习”按钮。这里只给已经看懂流程的用户预览候选、调整数量和保存更多草稿。
+	    </div>
+	    <p><a class="btn blue" href="#task-next-action">回到上方生成按钮</a> <a class="btn secondary" href="/learn">返回学习工作台</a></p>
+	      <form method="post" action="/learn/tasks/{int(task['id'])}/preview">
+	        {csrf_input(user)}
+	        <div class="formline">
+          <div><label>练习模板</label><select name="template">{self.learning_template_options(template, include_risk=False)}</select></div>
+          <div><label>数量/标的</label><input name="qty" type="number" min="100" step="100" value="{qty}"></div>
+          <div><label>候选数</label><input name="limit" type="number" min="1" max="10" step="1" value="{limit}"></div>
+          <button type="submit">预览草稿</button>
+        </div>
+        <label>策略名称</label>
+        <input name="strategy_name" value="{strategy_name}" maxlength="80">
+        <label>附加记录要求</label>
+        <input name="rationale_note" value="{rationale_note}" maxlength="300">
+      </form>
+	      {preview_html}
+	      <form method="post" action="/learn/tasks/{int(task['id'])}/save-signals">
+	        {csrf_input(user)}
+        <input type="hidden" name="template" value="{escape(template)}">
+        <input type="hidden" name="qty" value="{qty}">
+	        <input type="hidden" name="limit" value="{limit}">
+	        <input type="hidden" name="strategy_name" value="{strategy_name}">
+	        <input type="hidden" name="rationale_note" value="{rationale_note}">
+	        <p class="muted">还没保存草稿时不要跳到高级模拟盘;先保存到今日练习,再回学习页生成观察记录。高级模拟盘入口会在完成 6/6 后出现。</p>
+	        <p><button type="submit">保存当前草稿到今日练习</button> <a class="btn secondary" href="/learn">返回学习工作台</a></p>
+	      </form>
+		  </div>
+		</details>
+        {mobile_next_bar_html}
+		"""
         self.send_html("学习任务", body, user=user)
 
     def render_learning_task(self, user, path, query):
@@ -4124,7 +6985,30 @@ class AppHandler(BaseHTTPRequestHandler):
             detail={"ok": result["ok"], "blocked": result.get("blocked", False), "error": result.get("error", "")},
         )
         if not result["ok"]:
-            self.redirect("/learn?err=" + quote(result["text"]))
+            if result.get("error") == "empty_goal":
+                self.redirect("/learn?err=" + quote(result["text"]))
+                return
+            try:
+                task_id = services.create_learning_task(
+                    self.con,
+                    user["id"],
+                    form.get("goal", ""),
+                    difficulty,
+                    template,
+                    self.fallback_learning_coach_text(form.get("goal", ""), difficulty, template, result["text"]),
+                )
+            except ValueError as exc:
+                self.redirect("/learn?err=" + quote(str(exc)))
+                return
+            self.audit(
+                "learning.task_create_fallback",
+                user=user,
+                target_type="learning_task",
+                target_id=task_id,
+                detail={"template": template, "ai_error": result.get("error", "")},
+            )
+            message = "AI 教练暂时不可用,已改用示例教练任务。下一步点击“一键生成今日练习”。"
+            self.redirect(f"/learn/tasks/{task_id}?msg=" + quote(message))
             return
         try:
             task_id = services.create_learning_task(
@@ -4139,7 +7023,89 @@ class AppHandler(BaseHTTPRequestHandler):
             self.redirect("/learn?err=" + quote(str(exc)))
             return
         self.audit("learning.task_create", user=user, target_type="learning_task", target_id=task_id, detail={"template": template})
-        self.redirect(f"/learn/tasks/{task_id}?msg=" + quote("AI 教练已完成目标拆解。"))
+        summary = self.con.execute(
+            """
+            SELECT
+                (SELECT COUNT(*) FROM learning_tasks WHERE user_id=?) AS task_count,
+                (SELECT COUNT(*) FROM learning_reflections WHERE user_id=?) AS reflection_count
+            """,
+            (int(user["id"]), int(user["id"])),
+        ).fetchone()
+        if int(summary["task_count"] or 0) > 1 and int(summary["reflection_count"] or 0) > 0:
+            message = "下一关已创建:先看它和上一关有什么不同。"
+        else:
+            message = "AI 教练已完成目标拆解。下一步点击“一键生成今日练习”。"
+        self.redirect(f"/learn/tasks/{task_id}?msg=" + quote(message))
+
+    def handle_learning_reflection_save(self, user, form):
+        if not self.require_user_write_limit(user, "learning_reflection.save", 30, 600, "/learn"):
+            return
+        try:
+            signal_id = int(form.get("practice_signal_id", "0") or "0")
+            reflection_id = services.save_learning_reflection(
+                self.con,
+                user["id"],
+                signal_id,
+                form.get("hypothesis", ""),
+                form.get("execution_check", ""),
+                form.get("adjustment", ""),
+            )
+        except Exception as exc:  # noqa: BLE001 - keep beginner-facing validation inline
+            self.redirect(self.path_with_notice("/learn#learning-review", "err", str(exc)))
+            return
+        self.audit(
+            "learning.reflection_save",
+            user=user,
+            target_type="learning_reflection",
+            target_id=reflection_id,
+            detail={"practice_signal_id": signal_id},
+        )
+        self.redirect(self.path_with_notice("/learn#learning-review", "msg", "第一次学习闭环完成:复盘已保存,你已经解锁 6/6。"))
+
+    def handle_learning_reflection_quick_save(self, user, form):
+        if not self.require_user_write_limit(user, "learning_reflection.quick_save", 30, 600, "/learn"):
+            return
+        try:
+            signal_id = int(form.get("practice_signal_id", "0") or "0")
+            signal = next(
+                (row for row in services.practice_signals(self.con, user["id"], status="executed", limit=50) if int(row["id"]) == signal_id),
+                None,
+            )
+            if signal is None:
+                raise ValueError("请先生成观察记录,再保存复盘。")
+            title = signal["name"] or signal["code"]
+            task = services.learning_task(self.con, user["id"], int(signal["learning_task_id"] or 0)) if signal["learning_task_id"] is not None else None
+            current_template = services.LEARNING_TEMPLATES.get(str(task["template"] or ""), str(task["template"] or "这一关")) if task is not None else "这一关"
+            previous = self.learning_previous_reflection_row(user, int(signal["learning_task_id"] or 0)) if signal["learning_task_id"] is not None else None
+            if previous is not None:
+                previous_template = services.LEARNING_TEMPLATES.get(str(previous["template"] or ""), str(previous["template"] or "上一关"))
+                previous_adjustment = " ".join(str(previous["adjustment"] or "上一关提醒我要先比较依据、数量和风险边界。").split())[:140]
+                hypothesis = f"示例:我这次想练的是把 {current_template} 和上一关 {previous_template} 做对照,看看不同观察角度怎样产生候选。"
+                execution_check = f"示例:我仍然只用 {int(signal['qty'])} 的模拟数量,先检查数量、对象和风险边界是否能和上一关保持可比较。"
+                adjustment = f"示例:上次提醒自己“{previous_adjustment}”。这次我要看它是否帮助我避免只看涨跌,而是比较候选来源和边界。"
+            else:
+                hypothesis = f"示例:我这次想练的是把 {title} 当作观察材料,学习一个想法怎样被记录,不是预测它一定上涨。"
+                execution_check = f"示例:我按计划只观察 {int(signal['qty'])} 的模拟数量,没有把它当作现实买卖建议。"
+                adjustment = "示例:下次我先比较依据、数量和风险边界,再决定是否生成观察记录。"
+            reflection_id = services.save_learning_reflection(
+                self.con,
+                user["id"],
+                signal_id,
+                hypothesis,
+                execution_check,
+                adjustment,
+            )
+        except Exception as exc:  # noqa: BLE001 - beginner-facing validation
+            self.redirect(self.path_with_notice("/learn#learning-review", "err", str(exc)))
+            return
+        self.audit(
+            "learning.reflection_quick_save",
+            user=user,
+            target_type="learning_reflection",
+            target_id=reflection_id,
+            detail={"practice_signal_id": signal_id},
+        )
+        self.redirect(self.path_with_notice("/learn#learning-review", "msg", "第一次学习闭环完成:示例复盘已保存,你已经解锁 6/6。"))
 
     def handle_learning_task_preview(self, user, path, form):
         try:
@@ -4171,6 +7137,40 @@ class AppHandler(BaseHTTPRequestHandler):
             return
         self.render_learning_task_page(user, task, parse_qs(""), preview_rows=rows, preview_params=params)
 
+    def handle_learning_task_quick_save(self, user, path):
+        if not self.require_user_write_limit(user, "learning_task.quick_save", 20, 600, "/learn"):
+            return
+        task_id = 0
+        try:
+            task_id = self.learning_task_id_from_path(path)
+            task = services.learning_task(self.con, user["id"], task_id)
+            if task is None:
+                self.not_found()
+                return
+            template = self.learning_task_practice_template(task)
+            count = services.create_practice_signals_from_learning_task(
+                self.con,
+                user["id"],
+                task_id,
+                f"学习任务 {task_id} · {services.LEARNING_TEMPLATES[template]}",
+                template,
+                qty="100",
+                limit=1,
+                rationale_note="新手一键生成:先保存 1 条模拟练习到今日练习,再生成观察记录并复盘。",
+            )
+        except Exception as exc:  # noqa: BLE001 - beginner-facing validation
+            target = f"/learn/tasks/{task_id}" if task_id else "/learn"
+            self.redirect(target + "?err=" + quote(str(exc)))
+            return
+        self.audit(
+            "learning.quick_signal_saved",
+            user=user,
+            target_type="learning_task",
+            target_id=task_id,
+            detail={"count": count, "template": template},
+        )
+        self.redirect("/learn?msg=" + quote("已生成今日练习。下一步点击“生成观察记录”。") + "#today-practice")
+
     def handle_learning_task_save_signals(self, user, path, form):
         task_id = 0
         try:
@@ -4190,7 +7190,7 @@ class AppHandler(BaseHTTPRequestHandler):
             self.redirect(target + "?err=" + quote(str(exc)))
             return
         self.audit("learning.signals_saved", user=user, target_type="learning_task", target_id=task_id, detail={"count": count, "template": form.get("template", "")})
-        self.redirect(f"/learn/tasks/{task_id}?msg=" + quote(f"已保存 {count} 条待执行演练计划。请到高级模拟盘确认是否执行。"))
+        self.redirect("/learn?msg=" + quote(f"已保存 {count} 条练习。现在可以在今日练习里生成观察记录。") + "#today-practice")
 
     def _load_preview_data(self):
         """Load the offline /preview + /lessons artifact (path overridable via OWQ_PREVIEW_JSON)."""
@@ -4529,7 +7529,7 @@ class AppHandler(BaseHTTPRequestHandler):
 <section class="card">
   <h2>术语表 · 把每个名词和数字都讲清楚</h2>
   <p class="muted">这一页解释你在模拟盘、基础数据、研究引擎里会遇到的名词与指标。判读口吻偏保守:好看的数字往往是数据缺陷,不是真本事。产品里任何带下划虚线的词也可以直接点开看同样的解释。</p>
-  <p><a class="btn secondary" href="/app">进入模拟盘</a> <a class="btn secondary" href="/lessons">量化三大坑</a> <a class="btn secondary" href="/research">研究引擎</a></p>
+  <p><a class="btn blue" href="/learn/demo">先体验学习闭环</a> <a class="btn secondary" href="/lessons">量化三大坑</a> <a class="btn secondary" href="/app">高级模拟盘(看完术语后再看)</a></p>
 </section>
 <section class="card">
   <h2>账户里的数字</h2>
@@ -4549,19 +7549,19 @@ class AppHandler(BaseHTTPRequestHandler):
 
     def _preview_ctas(self) -> str:
         if self.current_user():
-            # Already logged in: don't show a "sign up" CTA — point into the product.
+            # Already logged in: keep the beginner learning loop as the primary product entry.
             return (
                 '<section class="card"><div class="card-title"><span>继续</span></div>'
-                '<p><a class="btn blue" href="/app">进入模拟盘</a> '
-                '<a class="btn secondary" href="/learn">继续学习</a> '
+                '<p><a class="btn blue" href="/learn">进入学习工作台</a> '
+                '<a class="btn secondary" href="/app">高级模拟盘(完成第一圈后再看)</a> '
                 '<a class="btn secondary" href="/research">研究引擎</a> '
                 '<a class="btn secondary" href="/showcase/public">公开排行榜</a></p></section>'
             )
         return (
-            '<section class="card"><div class="card-title"><span>想自己上手?</span></div>'
-            '<p><a class="btn blue" href="/register">免费注册,拿 10 万模拟本金</a> '
+            '<section class="card"><div class="card-title"><span>想自己上手学习?</span></div>'
+            '<p><a class="btn blue" href="/register">免费注册,进入学习工作台</a> '
+            '<a class="btn secondary" href="/learn/demo">先体验 3 分钟学习闭环</a> '
             '<a class="btn secondary" href="/lessons">量化三大坑(免登录)</a> '
-            '<a class="btn secondary" href="/research">研究引擎</a> '
             '<a class="btn secondary" href="/showcase/public">看公开排行榜</a></p></section>'
         )
 
@@ -4656,33 +7656,64 @@ class AppHandler(BaseHTTPRequestHandler):
         signals = services.practice_signals(self.con, user["id"], limit=8)
         holdings = snap["holdings"]
         hold_rows = "".join(
-            f"<tr><td>{escape(r['code'])}</td><td>{escape(r['name'])}</td><td>{r['qty']}</td><td>{r['available_qty']}</td>"
-            f"<td>{money(r['avg_price'])}</td><td>{money(r['price'])}</td>"
-            f"<td>{money(r['market_value'])}</td><td>{money(r['pnl'])}</td></tr>"
+            labeled_table_row(
+                [
+                    ("代码", escape(r["code"])),
+                    ("名称", escape(r["name"])),
+                    ("数量", str(r["qty"])),
+                    ("可卖", str(r["available_qty"])),
+                    ("成本", money(r["avg_price"])),
+                    ("现价", money(r["price"])),
+                    ("市值", money(r["market_value"])),
+                    ("盈亏", money(r["pnl"])),
+                ]
+            )
             for r in holdings
-        ) or '<tr><td colspan="8" class="muted">暂无持仓</td></tr>'
+        ) or labeled_empty_row("暂无持仓", 8)
         market_options = "".join(
             f"<option value=\"{escape(r['code'])}\">{escape(r['name'])} · {escape(r['code'])} · {money(r['price'])}</option>"
             for r in market
         )
         market_rows = "".join(
-            f"<tr><td>{escape(r['code'])}</td><td>{escape(r['name'])}</td><td>{money(r['price'])}</td>"
-            f"<td>{pct((r['price']/r['prev_close']-1)*100)}</td></tr>"
+            labeled_table_row(
+                [
+                    ("代码", escape(r["code"])),
+                    ("名称", escape(r["name"])),
+                    ("价格", money(r["price"])),
+                    ("涨跌", pct((r["price"] / r["prev_close"] - 1) * 100)),
+                ]
+            )
             for r in market
         )
         order_rows = "".join(
-            f"<tr><td>{escape(o['created_at'])}</td><td>{escape(o['code'])}</td><td>{side_cn(o['side'])}</td>"
-            f"<td>{o['qty']}</td><td>{money(o['price'])}</td><td>{money(o['fee'])}</td></tr>"
+            labeled_table_row(
+                [
+                    ("时间", escape(o["created_at"])),
+                    ("代码", escape(o["code"])),
+                    ("方向", side_cn(o["side"])),
+                    ("数量", str(o["qty"])),
+                    ("价格", money(o["price"])),
+                    ("费用", money(o["fee"])),
+                ]
+            )
             for o in orders
-        ) or '<tr><td colspan="6" class="muted">暂无交易</td></tr>'
+        ) or labeled_empty_row("暂无交易", 6)
         signal_rows = "".join(
-            f"<tr><td>{escape(s['created_at'])}</td><td>{escape(s['strategy_name'])}</td>"
-            f"<td>{escape(s['code'])}</td><td>{side_cn(s['side'])}</td><td>{s['qty']}</td>"
-            f"<td>{money(s['price']) if s['price'] is not None else '-'}</td>"
-            f"<td>{escape(s['rationale'] or '-')}</td><td>{signal_status_cn(s['status'])}</td>"
-            f"<td>{self.practice_signal_actions(s, user)}</td></tr>"
+            labeled_table_row(
+                [
+                    ("时间", escape(s["created_at"])),
+                    ("策略", escape(s["strategy_name"])),
+                    ("代码", escape(s["code"])),
+                    ("方向", side_cn(s["side"])),
+                    ("数量", str(s["qty"])),
+                    ("现价", money(s["price"]) if s["price"] is not None else "-"),
+                    ("依据", escape(s["rationale"] or "-")),
+                    ("状态", signal_status_cn(s["status"])),
+                    ("操作", self.practice_signal_actions(s, user)),
+                ]
+            )
             for s in signals
-        ) or '<tr><td colspan="9" class="muted">暂无演练计划</td></tr>'
+        ) or labeled_empty_row("暂无演练计划", 9)
         ret_class = "ok" if snap["return_pct"] >= 0 else "bad"
         wr = services.weekly_review(self.con, user["id"])
         if wr:
@@ -4705,35 +7736,74 @@ class AppHandler(BaseHTTPRequestHandler):
 """
         else:
             weekly_html = ""
-        learning_pending = self.con.execute(
+        learning_status = self.con.execute(
             """
-            SELECT COUNT(*) AS count
-            FROM practice_signals
-            WHERE user_id=? AND status='pending' AND learning_task_id IS NOT NULL
+            SELECT
+                COUNT(CASE WHEN s.status='pending' THEN 1 END) AS pending_count,
+                COUNT(CASE WHEN s.status='executed' AND r.id IS NULL THEN 1 END) AS unreviewed_count
+            FROM practice_signals s
+            LEFT JOIN learning_reflections r ON r.practice_signal_id=s.id AND r.user_id=s.user_id
+            WHERE s.user_id=? AND s.learning_task_id IS NOT NULL
             """,
             (int(user["id"]),),
         ).fetchone()
-        learning_notice = (
-            f'<div class="msg">你有 {int(learning_pending["count"])} 条来自学习任务的待执行计划。它们只是草稿保存结果,执行前请确认数量、依据和风险记录。</div>'
-            if learning_pending and int(learning_pending["count"])
-            else ""
-        )
+        learning_summary = self.con.execute(
+            """
+            SELECT
+                (SELECT COUNT(*) FROM learning_tasks WHERE user_id=?) AS task_count,
+                (SELECT COUNT(*) FROM learning_reflections WHERE user_id=?) AS reflection_count
+            """,
+            (int(user["id"]), int(user["id"])),
+        ).fetchone()
+        learning_task_count = int(learning_summary["task_count"] or 0) if learning_summary else 0
+        learning_reflection_count = int(learning_summary["reflection_count"] or 0) if learning_summary else 0
+        learning_notice = ""
+        if learning_status and int(learning_status["unreviewed_count"] or 0) > 0:
+            count = int(learning_status["unreviewed_count"] or 0)
+            learning_notice = (
+                f'<div class="msg"><strong>还有 {count} 条学习观察没复盘。</strong> '
+                '第一次闭环的最后一步在学习工作台完成,先回去一键保存示例复盘。 '
+                '<a class="btn blue" href="/learn#learning-review">回学习页复盘</a></div>'
+            )
+        elif learning_status and int(learning_status["pending_count"] or 0) > 0:
+            count = int(learning_status["pending_count"] or 0)
+            learning_notice = (
+                f'<div class="msg">你有 {count} 条来自学习任务的待执行计划。'
+                '它们只是草稿保存结果,执行前请确认数量、依据和风险记录。 '
+                '<a class="btn blue" href="/learn#today-practice">回学习页生成观察记录</a></div>'
+            )
         practice_open = "open" if signals else ""
         holdings_locked = any(int(r['available_qty']) < int(r['qty']) for r in holdings)
         is_new_user = not orders and not holdings and not signals
+        if learning_task_count > 0:
+            beginner_title = "你已经有学习任务,先回学习页生成练习"
+            beginner_text = "这里是高级模拟盘,数字和表单会比较多。第一次更建议回学习页,把已有教练拆解变成 1 条今日练习。"
+            beginner_href = "/learn#continue-learning-task"
+            beginner_label = "回学习页生成今日练习"
+        else:
+            beginner_title = "你现在在高级模拟盘,第一次建议先回学习工作台"
+            beginner_text = "新手不需要先在这里手动选股票下单。先用学习工作台选目标、看拆解、生成练习,再回来看账户和交易细节会更容易。"
+            beginner_href = "/learn#learn-presets"
+            beginner_label = "回学习工作台选第一个目标"
         firstrun_html = (
-            """
-<section class="card" style="border-color:#9bd0ff;background:#f2f9ff">
-  <div class="card-title"><span>新手上路 · 4 步走通模拟盘</span><span class="muted">下完第一笔交易后这张卡会自动消失</span></div>
-  <ol class="guide-list" style="margin:0">
-    <li><strong>看懂上面的数字</strong>:总资产 / 现金 / 收益率,点带虚线的词看解释;更多名词见 <a href="/glossary">术语表</a>。</li>
-    <li><strong>下第一笔模拟单</strong>:在下面「模拟交易」里选一只标的、买入 100 股、点提交(现在是 6 只演示标的)。</li>
-    <li><strong>解锁 T+1</strong>:买入当天「可卖」是 0,点持仓下方的「进入下一交易日」就能卖出。</li>
-    <li><strong>(可选)上真数据或用 AI</strong>:到 <a href="/market">基础数据</a> 换成真实行情,或到 <a href="/account/ai">AI 教练</a> 配 key 让 AI 帮你复盘。</li>
-  </ol>
+            f"""
+<section class="card task-action-card" id="app-learning-first">
+  <div class="task-action-head">
+    <div>
+      <span class="tag">BEGINNER PATH</span>
+      <strong>{escape(beginner_title)}</strong>
+      <p>{escape(beginner_text)}</p>
+    </div>
+    <a class="btn blue" href="{escape(beginner_href, quote=True)}">{escape(beginner_label)}</a>
+  </div>
+  <div class="task-action-points">
+    <div><b>先不手动下单</b><p>第一次不要从“买什么”开始,先从“我想学什么”开始。</p></div>
+    <div><b>学习页会带路</b><p>它会把目标、教练拆解、今日练习和三问复盘串成一步一步的流程。</p></div>
+	    <div><b>这里稍后再看</b><p>生成观察记录后,这里会显示账户、持仓、成交和更细的高级操作。</p></div>
+  </div>
 </section>
 """
-            if is_new_user
+            if is_new_user and learning_reflection_count == 0
             else ""
         )
         if holdings:
@@ -4819,22 +7889,22 @@ class AppHandler(BaseHTTPRequestHandler):
     <input type="hidden" name="limit" value="20">
     <p><button type="submit">执行全部待执行计划</button></p>
   </form>
-  <table><thead><tr><th>时间</th><th>策略</th><th>代码</th><th>方向</th><th>数量</th><th>现价</th><th>依据</th><th>状态</th><th>操作</th></tr></thead><tbody>{signal_rows}</tbody></table>
+  <table class="mobile-card-table"><thead><tr><th>时间</th><th>策略</th><th>代码</th><th>方向</th><th>数量</th><th>现价</th><th>依据</th><th>状态</th><th>操作</th></tr></thead><tbody>{signal_rows}</tbody></table>
 </details>
 <div class="grid">
   <section class="card">
     <h2>持仓</h2>
-    <table><thead><tr><th>代码</th><th>名称</th><th>数量</th><th>{metric_label('available_qty','可卖')}</th><th>{metric_label('avg_cost','成本')}</th><th>现价</th><th>{metric_label('market_value','市值')}</th><th>{metric_label('pnl','盈亏')}</th></tr></thead><tbody>{hold_rows}</tbody></table>
+    <table class="mobile-card-table"><thead><tr><th>代码</th><th>名称</th><th>数量</th><th>{metric_label('available_qty','可卖')}</th><th>{metric_label('avg_cost','成本')}</th><th>现价</th><th>{metric_label('market_value','市值')}</th><th>{metric_label('pnl','盈亏')}</th></tr></thead><tbody>{hold_rows}</tbody></table>
     {t1_hint}
   </section>
   <section class="card">
     <h2>基础行情</h2>
-    <table><thead><tr><th>代码</th><th>名称</th><th>价格</th><th>涨跌</th></tr></thead><tbody>{market_rows}</tbody></table>
+    <table class="mobile-card-table"><thead><tr><th>代码</th><th>名称</th><th>价格</th><th>涨跌</th></tr></thead><tbody>{market_rows}</tbody></table>
   </section>
 </div>
 <section class="card">
   <h2>最近成交</h2>
-  <table><thead><tr><th>时间</th><th>代码</th><th>方向</th><th>数量</th><th>价格</th><th>{metric_label('fee','费用')}</th></tr></thead><tbody>{order_rows}</tbody></table>
+  <table class="mobile-card-table"><thead><tr><th>时间</th><th>代码</th><th>方向</th><th>数量</th><th>价格</th><th>{metric_label('fee','费用')}</th></tr></thead><tbody>{order_rows}</tbody></table>
 </section>
 """
         self.send_html("模拟盘", body, user=user)
@@ -4843,26 +7913,45 @@ class AppHandler(BaseHTTPRequestHandler):
         if signal["status"] != "pending":
             return "-"
         signal_id = int(signal["id"])
+        is_learning_signal = signal["learning_task_id"] is not None
+        execute_next = '<input type="hidden" name="next" value="/learn#learning-review">' if is_learning_signal else ""
+        cancel_next = '<input type="hidden" name="next" value="/learn#today-practice">' if is_learning_signal else ""
         return (
             f'<form method="post" action="/practice-signals/{signal_id}/execute" style="display:inline">'
-            f'{csrf_input(user)}<button type="submit">执行</button></form> '
+            f'{csrf_input(user)}{execute_next}<button type="submit">执行</button></form> '
             f'<form method="post" action="/practice-signals/{signal_id}/cancel" style="display:inline">'
-            f'{csrf_input(user)}<button class="secondary" type="submit">取消</button></form>'
+            f'{csrf_input(user)}{cancel_next}<button class="secondary" type="submit">取消</button></form>'
         )
 
     def render_market(self, user, query):
         market = services.market_rows(self.con)
         summary = services.market_source_summary(self.con)
         summary_rows = "".join(
-            f"<tr><td>{escape(r['source'])}</td><td>{r['rows']}</td><td>{r['codes']}</td>"
-            f"<td>{escape(r['date_min'] or '-')}</td><td>{escape(r['date_max'] or '-')}</td>"
-            f"<td>{escape(r['updated_at'] or '-')}</td></tr>"
+            labeled_table_row(
+                [
+                    ("来源", escape(r["source"])),
+                    ("行数", str(r["rows"])),
+                    ("标的数", str(r["codes"])),
+                    ("最早日期", escape(r["date_min"] or "-")),
+                    ("最新日期", escape(r["date_max"] or "-")),
+                    ("更新时间", escape(r["updated_at"] or "-")),
+                ]
+            )
             for r in summary
-        ) or '<tr><td colspan="6" class="muted">暂无行情</td></tr>'
+        ) or labeled_empty_row("暂无行情", 6)
         rows = "".join(
-            f"<tr><td>{escape(r['code'])}</td><td>{escape(r['name'])}</td><td>{money(r['prev_close'])}</td>"
-            f"<td>{money(r['price'])}</td><td>{pct((r['price']/r['prev_close']-1)*100)}</td>"
-            f"<td>{escape(r['source'])}</td><td>{escape(r['as_of'] or '-')}</td><td>{escape(r['updated_at'])}</td></tr>"
+            labeled_table_row(
+                [
+                    ("代码", escape(r["code"])),
+                    ("名称", escape(r["name"])),
+                    ("昨收", money(r["prev_close"])),
+                    ("现价", money(r["price"])),
+                    ("涨跌", pct((r["price"] / r["prev_close"] - 1) * 100)),
+                    ("来源", escape(r["source"])),
+                    ("日期", escape(r["as_of"] or "-")),
+                    ("更新时间", escape(r["updated_at"])),
+                ]
+            )
             for r in market
         )
         is_demo_only = all((r["source"] == "demo") for r in summary) if summary else True
@@ -4893,11 +7982,11 @@ class AppHandler(BaseHTTPRequestHandler):
 </section>
 <section class="card">
   <h2>来源覆盖</h2>
-  <table><thead><tr><th>来源</th><th>行数</th><th>标的数</th><th>最早日期</th><th>最新日期</th><th>更新时间</th></tr></thead><tbody>{summary_rows}</tbody></table>
+  <table class="mobile-card-table"><thead><tr><th>来源</th><th>行数</th><th>标的数</th><th>最早日期</th><th>最新日期</th><th>更新时间</th></tr></thead><tbody>{summary_rows}</tbody></table>
 </section>
 <section class="card">
   <h2>行情列表</h2>
-  <table><thead><tr><th>代码</th><th>名称</th><th>昨收</th><th>现价</th><th>涨跌</th><th>来源</th><th>日期</th><th>更新时间</th></tr></thead><tbody>{rows}</tbody></table>
+  <table class="mobile-card-table"><thead><tr><th>代码</th><th>名称</th><th>昨收</th><th>现价</th><th>涨跌</th><th>来源</th><th>日期</th><th>更新时间</th></tr></thead><tbody>{rows}</tbody></table>
 </section>
 """
         self.send_html("基础数据", body, user=user)
@@ -4905,37 +7994,58 @@ class AppHandler(BaseHTTPRequestHandler):
     def render_portfolio_lab(self, user, query):
         summary = services.market_source_summary(self.con)
         summary_rows = "".join(
-            f"<tr><td>{escape(r['source'])}</td><td>{r['rows']}</td><td>{r['codes']}</td>"
-            f"<td>{escape(r['date_max'] or '-')}</td></tr>"
+            labeled_table_row(
+                [
+                    ("来源", escape(r["source"])),
+                    ("行数", str(r["rows"])),
+                    ("标的数", str(r["codes"])),
+                    ("最新日期", escape(r["date_max"] or "-")),
+                ]
+            )
             for r in summary
-        ) or '<tr><td colspan="4" class="muted">暂无行情,请先到基础数据同步。</td></tr>'
+        ) or labeled_empty_row("暂无行情,请先到基础数据同步。", 4)
         def candidate_rows(mode: str) -> str:
             try:
                 rows = services.market_signal_basket_rows(self.con, mode=mode, qty=100, limit=10, real_only=True)
             except Exception as exc:  # noqa: BLE001
-                return f'<tr><td colspan="6" class="muted">{escape(str(exc))}</td></tr>'
+                return labeled_empty_row(str(exc), 6)
             return "".join(
-                f"<tr><td>{escape(r['code'])}</td><td>{escape(r['name'])}</td><td>{side_cn(r['side'])}</td>"
-                f"<td>{r['qty']}</td><td>{pct(r['change_pct'])}</td><td>{escape(r['rationale'])}</td></tr>"
+                labeled_table_row(
+                    [
+                        ("代码", escape(r["code"])),
+                        ("名称", escape(r["name"])),
+                        ("方向", side_cn(r["side"])),
+                        ("数量", str(r["qty"])),
+                        ("涨跌", pct(r["change_pct"])),
+                        ("依据", escape(r["rationale"])),
+                    ]
+                )
                 for r in rows
             )
         try:
             pred = services.prediction_basket_rows(self.con, qty=100, limit=10)
             pred_rows = "".join(
-                f"<tr><td>{escape(r['code'])}</td><td>{escape(r['name'])}</td><td>{pct(r['prediction'] * 100)}</td>"
-                f"<td>{money(r['last_close'])}</td><td>{escape(r['rationale'])}</td></tr>"
+                labeled_table_row(
+                    [
+                        ("代码", escape(r["code"])),
+                        ("名称", escape(r["name"])),
+                        ("预测", pct(r["prediction"] * 100)),
+                        ("收盘", money(r["last_close"])),
+                        ("依据", escape(r["rationale"])),
+                    ]
+                )
                 for r in pred
             )
             pred_note = ""
         except Exception as exc:  # noqa: BLE001
-            pred_rows = f'<tr><td colspan="5" class="muted">{escape(str(exc))}</td></tr>'
+            pred_rows = labeled_empty_row(str(exc), 5)
             pred_note = "请先运行研究报告命令生成 reports/predictions.csv。"
         body = f"""
 {self.message_html(query)}
 <section class="card">
   <h2>组合设计</h2>
   <p>这里直接使用系统已同步的真实行情和研究预测结果生成模拟盘演练计划。用户不需要自己准备 CSV。</p>
-  <table><thead><tr><th>来源</th><th>行数</th><th>标的数</th><th>最新日期</th></tr></thead><tbody>{summary_rows}</tbody></table>
+  <table class="mobile-card-table"><thead><tr><th>来源</th><th>行数</th><th>标的数</th><th>最新日期</th></tr></thead><tbody>{summary_rows}</tbody></table>
 </section>
 <section class="card">
   <h2>真实行情篮子</h2>
@@ -4951,9 +8061,9 @@ class AppHandler(BaseHTTPRequestHandler):
     <p><button type="submit">生成演练计划</button></p>
   </form>
   <h3>反转候选</h3>
-  <table><thead><tr><th>代码</th><th>名称</th><th>方向</th><th>数量</th><th>涨跌</th><th>依据</th></tr></thead><tbody>{candidate_rows("reversal")}</tbody></table>
+  <table class="mobile-card-table"><thead><tr><th>代码</th><th>名称</th><th>方向</th><th>数量</th><th>涨跌</th><th>依据</th></tr></thead><tbody>{candidate_rows("reversal")}</tbody></table>
   <h3>动量候选</h3>
-  <table><thead><tr><th>代码</th><th>名称</th><th>方向</th><th>数量</th><th>涨跌</th><th>依据</th></tr></thead><tbody>{candidate_rows("momentum")}</tbody></table>
+  <table class="mobile-card-table"><thead><tr><th>代码</th><th>名称</th><th>方向</th><th>数量</th><th>涨跌</th><th>依据</th></tr></thead><tbody>{candidate_rows("momentum")}</tbody></table>
 </section>
 <section class="card">
   <h2>模型预测篮子</h2>
@@ -4967,7 +8077,7 @@ class AppHandler(BaseHTTPRequestHandler):
     </div>
     <p><button type="submit">导入预测候选</button></p>
   </form>
-  <table><thead><tr><th>代码</th><th>名称</th><th>预测</th><th>收盘</th><th>依据</th></tr></thead><tbody>{pred_rows}</tbody></table>
+  <table class="mobile-card-table"><thead><tr><th>代码</th><th>名称</th><th>预测</th><th>收盘</th><th>依据</th></tr></thead><tbody>{pred_rows}</tbody></table>
 </section>
 """
         self.send_html("组合设计", body, user=user)
@@ -5109,31 +8219,70 @@ class AppHandler(BaseHTTPRequestHandler):
         else:
             msg = f"已执行 {executed} 条待执行计划。"
         self.audit("practice_signal.execute_pending", user=user, target_type="practice_signal", detail={"executed": executed, "failed": failed})
+        learning_executed = 0
+        executed_ids = [int(row["signal_id"]) for row in result["executed"]]
+        if executed_ids:
+            placeholders = ",".join("?" for _ in executed_ids)
+            learning_executed = int(
+                self.con.execute(
+                    f"""
+                    SELECT COUNT(*)
+                    FROM practice_signals
+                    WHERE user_id=? AND learning_task_id IS NOT NULL AND id IN ({placeholders})
+                    """,
+                    [int(user["id"]), *executed_ids],
+                ).fetchone()[0]
+            )
+        if learning_executed > 0:
+            msg = f"{msg} 其中 {learning_executed} 条来自学习任务,先回学习页完成复盘。"
+            self.redirect(self.path_with_notice("/learn#learning-review", "msg", msg))
+            return
         self.redirect("/app?msg=" + quote(msg))
 
-    def handle_practice_signal_execute(self, user, path):
-        if not self.require_user_write_limit(user, "practice_signal.execute", 60, 60, "/app"):
+    def handle_practice_signal_execute(self, user, path, form):
+        next_path = self.safe_next_path(form.get("next"), default="/app")
+        if not self.require_user_write_limit(user, "practice_signal.execute", 60, 60, next_path):
             return
         try:
             signal_id = int(path.split("/")[2])
+            signal = self.con.execute(
+                "SELECT learning_task_id FROM practice_signals WHERE id=? AND user_id=?",
+                (signal_id, int(user["id"])),
+            ).fetchone()
+            learning_task_id = signal["learning_task_id"] if signal is not None else None
             services.execute_practice_signal(self.con, user["id"], signal_id)
         except Exception as exc:  # noqa: BLE001
-            self.redirect("/app?err=" + quote(str(exc)))
+            self.redirect(self.path_with_notice(next_path, "err", str(exc)))
             return
+        if learning_task_id is not None and next_path == "/app":
+            next_path = "/learn#learning-review"
         self.audit("practice_signal.execute", user=user, target_type="practice_signal", target_id=signal_id)
-        self.redirect("/app?msg=" + quote("演练计划已执行并生成成交。"))
+        msg = (
+            "模拟观察记录已生成:系统只记录了一次模拟观察,不是现实交易。先在下面一键完成 6/6 并保存示例复盘。"
+            if learning_task_id is not None
+            else "演练计划已执行:系统已生成一笔模拟成交。"
+        )
+        self.redirect(self.path_with_notice(next_path, "msg", msg))
 
-    def handle_practice_signal_cancel(self, user, path):
-        if not self.require_user_write_limit(user, "practice_signal.cancel", 60, 60, "/app"):
+    def handle_practice_signal_cancel(self, user, path, form):
+        next_path = self.safe_next_path(form.get("next"), default="/app")
+        if not self.require_user_write_limit(user, "practice_signal.cancel", 60, 60, next_path):
             return
         try:
             signal_id = int(path.split("/")[2])
+            signal = self.con.execute(
+                "SELECT learning_task_id FROM practice_signals WHERE id=? AND user_id=?",
+                (signal_id, int(user["id"])),
+            ).fetchone()
+            learning_task_id = signal["learning_task_id"] if signal is not None else None
             services.cancel_practice_signal(self.con, user["id"], signal_id)
         except Exception as exc:  # noqa: BLE001
-            self.redirect("/app?err=" + quote(str(exc)))
+            self.redirect(self.path_with_notice(next_path, "err", str(exc)))
             return
+        if learning_task_id is not None and next_path == "/app":
+            next_path = "/learn#learning-loop"
         self.audit("practice_signal.cancel", user=user, target_type="practice_signal", target_id=signal_id)
-        self.redirect("/app?msg=" + quote("演练计划已取消。"))
+        self.redirect(self.path_with_notice(next_path, "msg", "已暂时放下这条练习,可以继续选择其他任务。"))
 
     def handle_market_sync(self, user, form):
         if not self.require_user_write_limit(user, "market.sync", 5, 300, "/market"):
@@ -5206,13 +8355,15 @@ class AppHandler(BaseHTTPRequestHandler):
 <section class="card">
   <h2>账户信息</h2>
   <div class="identity">{avatar_html(user)}<strong>{escape(user['nickname'])}</strong></div>
-  <table>
-    <tr><th>昵称</th><td>{escape(user['nickname'])}</td></tr>
-    <tr><th>{identity_label}</th><td>{escape(identity_value)}</td></tr>
-    <tr><th>模拟账户</th><td>{snap['account']['id']}</td></tr>
-    <tr><th>初始资金</th><td>{money(snap['account']['initial_cash'])}</td></tr>
-    <tr><th>当前权益</th><td>{money(snap['equity'])}</td></tr>
-    <tr><th>收益率</th><td>{pct(snap['return_pct'])}</td></tr>
+  <table class="mobile-card-table">
+    <tbody>
+      <tr><td data-label="字段"><strong>昵称</strong></td><td data-label="内容">{escape(user['nickname'])}</td></tr>
+      <tr><td data-label="字段"><strong>{identity_label}</strong></td><td data-label="内容">{escape(identity_value)}</td></tr>
+      <tr><td data-label="字段"><strong>模拟账户</strong></td><td data-label="内容">{snap['account']['id']}</td></tr>
+      <tr><td data-label="字段"><strong>初始资金</strong></td><td data-label="内容">{money(snap['account']['initial_cash'])}</td></tr>
+      <tr><td data-label="字段"><strong>当前权益</strong></td><td data-label="内容">{money(snap['equity'])}</td></tr>
+      <tr><td data-label="字段"><strong>收益率</strong></td><td data-label="内容">{pct(snap['return_pct'])}</td></tr>
+    </tbody>
   </table>
 </section>
 <section class="card">
@@ -5241,7 +8392,7 @@ class AppHandler(BaseHTTPRequestHandler):
 </section>
 <section class="card">
   <h2>资产快照</h2>
-  <table><thead><tr><th>时间</th><th>总资产</th><th>现金</th><th>持仓市值</th><th>收益率</th></tr></thead><tbody>{history_rows(history)}</tbody></table>
+  <table class="mobile-card-table"><thead><tr><th>时间</th><th>总资产</th><th>现金</th><th>持仓市值</th><th>收益率</th></tr></thead><tbody>{history_rows(history)}</tbody></table>
 </section>
 <section class="card">
   <h2>数据导出</h2>
@@ -5293,10 +8444,12 @@ class AppHandler(BaseHTTPRequestHandler):
   <h2>确认服务条款</h2>
   <p>继续使用模拟盘、组合设计、公开赛和论坛前,请确认你已经阅读并同意当前版本的服务条款、隐私说明和风险提示。</p>
   <p>{latest_text}</p>
-  <table>
-    <tr><th>当前服务条款版本</th><td>{LEGAL_VERSION}</td><td><a href="/terms">查看服务条款</a></td></tr>
-    <tr><th>当前隐私说明版本</th><td>{LEGAL_VERSION}</td><td><a href="/privacy">查看隐私说明</a></td></tr>
-    <tr><th>当前风险提示版本</th><td>{LEGAL_VERSION}</td><td><a href="/risk">查看风险提示</a></td></tr>
+  <table class="mobile-card-table">
+    <tbody>
+      <tr><td data-label="项目"><strong>当前服务条款版本</strong></td><td data-label="版本">{LEGAL_VERSION}</td><td data-label="链接"><a href="/terms">查看服务条款</a></td></tr>
+      <tr><td data-label="项目"><strong>当前隐私说明版本</strong></td><td data-label="版本">{LEGAL_VERSION}</td><td data-label="链接"><a href="/privacy">查看隐私说明</a></td></tr>
+      <tr><td data-label="项目"><strong>当前风险提示版本</strong></td><td data-label="版本">{LEGAL_VERSION}</td><td data-label="链接"><a href="/risk">查看风险提示</a></td></tr>
+    </tbody>
   </table>
   <form method="post" action="/account/consent">
     {csrf_input(user)}
@@ -5376,9 +8529,10 @@ class AppHandler(BaseHTTPRequestHandler):
 
     AI_BANNER = (
         '<section class="card" style="border-color:#f0c36d;background:#fff8e6">'
-        '<p class="muted" style="margin:0">AI 教练仅用于<strong>量化方法学习、引导与模拟盘复盘</strong>,'
-        '不提供针对具体标的的买卖建议或收益预测,不构成投资建议。每位用户使用自己配置的 DeepSeek API key,'
-        'key 加密存储、仅调用时解密;复盘只读取你<strong>本人</strong>的模拟盘数据。</p></section>'
+        '<p class="muted" style="margin:0"><strong>AI 教练是可选升级。</strong>它仅用于'
+        '<strong>量化方法学习、引导与模拟盘复盘</strong>,不提供针对具体标的的买卖建议或收益预测,'
+        '不构成投资建议。需要调用大模型时使用你自己配置的 DeepSeek API key,key 加密存储、仅调用时解密;'
+        '复盘只读取你<strong>本人</strong>的模拟盘数据。</p></section>'
     )
 
     def render_account_ai(self, user, query):
@@ -5396,12 +8550,14 @@ class AppHandler(BaseHTTPRequestHandler):
         else:
             enabled = bool(int(row["enabled"]))
             status_html = (
-                f'<table><tr><th>状态</th><td>{"已启用" if enabled else "已停用"}</td></tr>'
-                f'<tr><th>Key</th><td>{escape(row["masked_hint"])}</td></tr>'
-                f'<tr><th>Base URL</th><td>{escape(row["base_url"])}</td></tr>'
-                f'<tr><th>模型</th><td>{escape(row["model"])}</td></tr>'
-                f'<tr><th>今日用量</th><td>{used} / {cap} tokens（每日上限,超出后次日恢复）</td></tr>'
-                f'<tr><th>上次校验</th><td>{escape(row["status"] or "未校验")}</td></tr></table>'
+                '<table class="mobile-card-table"><tbody>'
+                + labeled_table_row([("字段", "<strong>状态</strong>"), ("内容", "已启用" if enabled else "已停用")])
+                + labeled_table_row([("字段", "<strong>Key</strong>"), ("内容", escape(row["masked_hint"]))])
+                + labeled_table_row([("字段", "<strong>Base URL</strong>"), ("内容", escape(row["base_url"]))])
+                + labeled_table_row([("字段", "<strong>模型</strong>"), ("内容", escape(row["model"]))])
+                + labeled_table_row([("字段", "<strong>今日用量</strong>"), ("内容", f"{used} / {cap} tokens（每日上限,超出后次日恢复）")])
+                + labeled_table_row([("字段", "<strong>上次校验</strong>"), ("内容", escape(row["status"] or "未校验"))])
+                + "</tbody></table>"
             )
         disabled_note = (
             '<div class="msg err">服务端已全局关闭 AI 功能(OWQ_AI_DISABLED)。</div>'
@@ -5418,12 +8574,24 @@ class AppHandler(BaseHTTPRequestHandler):
             model_options += f'<option value="{escape(cur_model_raw)}" selected>{escape(cur_model_raw)} (当前保存)</option>'
         toggle_action = "disable" if enabled else "enable"
         toggle_label = "停用 AI" if enabled else "启用 AI"
+        optional_start_html = (
+            """
+  <div class="msg ai-optional-start">
+    <strong>第一次不用配置 key</strong>
+    <p>如果你只是想完成第一圈学习闭环,现在可以直接回学习工作台点蓝色推荐按钮。系统会用内置示例教练,不调用 DeepSeek,不产生 AI 费用。</p>
+    <p><a class="btn blue" href="/learn#learn-presets">回学习工作台继续第一圈</a> <a class="btn secondary" href="/learn/demo">先看 3 分钟示例</a></p>
+  </div>
+"""
+            if row is None
+            else ""
+        )
         body = f"""
 {self.message_html(query)}
 {self.AI_BANNER}
 {disabled_note}
 <section class="card">
   <h2>AI 教练配置</h2>
+  {optional_start_html}
   <details class="msg" style="margin-bottom:12px">
     <summary style="cursor:pointer"><strong>第一次配置？先看这里：什么是 DeepSeek API key</strong></summary>
     <ul class="guide-list" style="margin:8px 0 0">
@@ -5431,7 +8599,7 @@ class AppHandler(BaseHTTPRequestHandler):
       <li><strong>去哪申请</strong>：到 DeepSeek 开放平台 <a href="https://platform.deepseek.com" target="_blank" rel="noopener noreferrer">platform.deepseek.com</a> 注册 → 充值 → 在 API Keys 页创建一个 key，复制过来。</li>
       <li><strong>要花钱吗</strong>：会。调用花的是<strong>你自己 DeepSeek 余额里的钱</strong>（按用量计费，本站不代付），一次复盘通常几分到几毛钱。</li>
       <li><strong>用量上限</strong>：本站每天最多用 {cap} tokens，超出后次日恢复。</li>
-      <li><strong>不想花钱</strong>：AI 是可选的——免费的「量化三大坑」课程、模拟盘下单和复盘都不需要 key。</li>
+      <li><strong>不想花钱</strong>：AI 是可选的——学习工作台的预设示例任务、免费的「量化三大坑」课程、基础模拟练习和复盘都不需要 key。</li>
     </ul>
   </details>
   {status_html}
@@ -5623,30 +8791,45 @@ class AppHandler(BaseHTTPRequestHandler):
         accounts = services.account_overview(self.con)
         consents = services.user_consent_summary(self.con, limit=100)
         consent_rows = "".join(
-            f"<tr><td>{c['user_id']}</td><td>{escape(display_nickname(c))}</td>"
-            f"<td>{escape(c['terms_version'] or '-')}</td><td>{escape(c['privacy_version'] or '-')}</td>"
-            f"<td>{escape(c['risk_version'] or '-')}</td><td>{escape(c['source'] or '-')}</td>"
-            f"<td>{escape(c['consent_at'] or '-')}</td><td>{escape(c['ip_address'] or '-')}</td></tr>"
+            labeled_table_row(
+                [
+                    ("ID", str(c["user_id"])),
+                    ("用户", escape(display_nickname(c))),
+                    ("条款", escape(c["terms_version"] or "-")),
+                    ("隐私", escape(c["privacy_version"] or "-")),
+                    ("风险", escape(c["risk_version"] or "-")),
+                    ("来源", escape(c["source"] or "-")),
+                    ("时间", escape(c["consent_at"] or "-")),
+                    ("IP", escape(c["ip_address"] or "-")),
+                ]
+            )
             for c in consents
-        ) or '<tr><td colspan="8" class="muted">暂无用户</td></tr>'
+        ) or labeled_empty_row("暂无用户", 8)
         reports = services.content_reports(self.con, limit=50)
-        report_rows = "".join(self.admin_report_row(r, user) for r in reports) or '<tr><td colspan="8" class="muted">暂无举报</td></tr>'
+        report_rows = "".join(self.admin_report_row(r, user) for r in reports) or labeled_empty_row("暂无举报", 8)
         support_requests = services.support_requests(self.con, limit=50)
         support_rows = (
             "".join(self.admin_support_request_row(r, user) for r in support_requests)
-            or '<tr><td colspan="9" class="muted">暂无支持请求</td></tr>'
+            or labeled_empty_row("暂无支持请求", 9)
         )
         security_summary = services.security_audit_summary(self.con)
         security_action_rows = "".join(
-            f"<tr><td>{escape(row['action'])}</td><td>{int(row['count'])}</td></tr>"
+            labeled_table_row([("事件类型", escape(row["action"])), ("次数", str(int(row["count"])))])
             for row in security_summary["by_action"]
-        ) or '<tr><td colspan="2" class="muted">近 24 小时暂无安全或异常事件</td></tr>'
+        ) or labeled_empty_row("近 24 小时暂无安全或异常事件", 2)
         security_recent_rows = "".join(
-            f"<tr><td>{escape(e['created_at'])}</td><td>{escape(e['action'])}</td>"
-            f"<td>{escape(audit_actor_name(e))}</td><td>{escape(e['target_type'] or '-')}</td>"
-            f"<td>{escape(e['target_id'] or '-')}</td><td>{escape(e['ip_address'] or '-')}</td></tr>"
+            labeled_table_row(
+                [
+                    ("时间", escape(e["created_at"])),
+                    ("动作", escape(e["action"])),
+                    ("操作者", escape(audit_actor_name(e))),
+                    ("目标类型", escape(e["target_type"] or "-")),
+                    ("目标 ID", escape(e["target_id"] or "-")),
+                    ("IP", escape(e["ip_address"] or "-")),
+                ]
+            )
             for e in security_summary["recent"]
-        ) or '<tr><td colspan="6" class="muted">暂无安全或异常事件</td></tr>'
+        ) or labeled_empty_row("暂无安全或异常事件", 6)
         email_session_summary = services.email_login_session_retention_summary(self.con)
         email_session_retention_text = (
             f"保留 {email_session_summary['detail']}; 当前 {email_session_summary['total']} 条, "
@@ -5663,14 +8846,21 @@ class AppHandler(BaseHTTPRequestHandler):
             else audit_summary["detail"]
         )
         audit_rows = "".join(
-            f"<tr><td>{escape(e['created_at'])}</td><td>{escape(e['action'])}</td>"
-            f"<td>{escape(audit_actor_name(e))}</td>"
-            f"<td>{escape(e['target_type'] or '-')}</td><td>{escape(e['target_id'] or '-')}</td>"
-            f"<td>{escape(e['detail'])}</td><td>{escape(e['ip_address'] or '-')}</td></tr>"
+            labeled_table_row(
+                [
+                    ("时间", escape(e["created_at"])),
+                    ("动作", escape(e["action"])),
+                    ("操作者", escape(audit_actor_name(e))),
+                    ("目标类型", escape(e["target_type"] or "-")),
+                    ("目标 ID", escape(e["target_id"] or "-")),
+                    ("摘要", escape(e["detail"])),
+                    ("IP", escape(e["ip_address"] or "-")),
+                ]
+            )
             for e in services.audit_events(self.con, limit=50)
-        ) or '<tr><td colspan="7" class="muted">暂无审计事件</td></tr>'
+        ) or labeled_empty_row("暂无审计事件", 7)
         check_rows = "".join(
-            f"<tr><td>{escape(c['name'])}</td><td>{escape(c['status'])}</td><td>{escape(c['detail'])}</td></tr>"
+            labeled_table_row([("项目", escape(c["name"])), ("状态", escape(c["status"])), ("说明", escape(c["detail"]))])
             for c in checks
         )
         release_gate = self.release_gate_html(checks)
@@ -5689,12 +8879,21 @@ class AppHandler(BaseHTTPRequestHandler):
             else "当前启用公开赛未发现演示/开发参赛账户。"
         )
         account_rows = "".join(
-            f"<tr><td>{a['row']['user_id']}</td><td><a href=\"/u/{a['row']['user_id']}\">{escape(display_nickname(a['row']))}</a></td>"
-            f"<td>{a['rank'] or '-'}</td><td>{money(a['row']['equity'])}</td><td>{pct(a['return_pct'])}</td>"
-            f"<td>{a['row']['order_count']}</td><td>{a['row']['post_count']}</td>"
-            f"<td>{escape(a['row']['status'] or 'active')}</td><td>{self.admin_user_status_action(a['row'], user)}</td></tr>"
+            labeled_table_row(
+                [
+                    ("ID", str(a["row"]["user_id"])),
+                    ("用户", f'<a href="/u/{a["row"]["user_id"]}">{escape(display_nickname(a["row"]))}</a>'),
+                    ("排名", str(a["rank"] or "-")),
+                    ("总资产", money(a["row"]["equity"])),
+                    ("收益率", pct(a["return_pct"])),
+                    ("成交", str(a["row"]["order_count"])),
+                    ("帖子", str(a["row"]["post_count"])),
+                    ("状态", escape(a["row"]["status"] or "active")),
+                    ("操作", self.admin_user_status_action(a["row"], user)),
+                ]
+            )
             for a in accounts
-        ) or '<tr><td colspan="9" class="muted">暂无用户</td></tr>'
+        ) or labeled_empty_row("暂无用户", 9)
         body = f"""
 {self.message_html(query)}
 <section class="card">
@@ -5705,7 +8904,7 @@ class AppHandler(BaseHTTPRequestHandler):
 <div class="grid">
   <section class="card">
     <h2>系统自检</h2>
-    <table><thead><tr><th>项目</th><th>状态</th><th>说明</th></tr></thead><tbody>{check_rows}</tbody></table>
+    <table class="mobile-card-table"><thead><tr><th>项目</th><th>状态</th><th>说明</th></tr></thead><tbody>{check_rows}</tbody></table>
   </section>
   <section class="card">
     <h2>比赛配置</h2>
@@ -5762,24 +8961,24 @@ class AppHandler(BaseHTTPRequestHandler):
 <section class="card">
   <h2>用户账户概览</h2>
   <p><a class="btn secondary" href="/admin/accounts.csv">导出用户账户 CSV</a></p>
-  <table><thead><tr><th>ID</th><th>用户</th><th>排名</th><th>总资产</th><th>收益率</th><th>成交</th><th>帖子</th><th>状态</th><th>操作</th></tr></thead><tbody>{account_rows}</tbody></table>
+  <table class="mobile-card-table"><thead><tr><th>ID</th><th>用户</th><th>排名</th><th>总资产</th><th>收益率</th><th>成交</th><th>帖子</th><th>状态</th><th>操作</th></tr></thead><tbody>{account_rows}</tbody></table>
 </section>
 <section class="card">
   <h2>用户同意记录</h2>
   <p>展示每个用户最近一次确认的服务条款、隐私说明和风险提示版本。</p>
-  <table><thead><tr><th>ID</th><th>用户</th><th>条款</th><th>隐私</th><th>风险</th><th>来源</th><th>时间</th><th>IP</th></tr></thead><tbody>{consent_rows}</tbody></table>
+  <table class="mobile-card-table"><thead><tr><th>ID</th><th>用户</th><th>条款</th><th>隐私</th><th>风险</th><th>来源</th><th>时间</th><th>IP</th></tr></thead><tbody>{consent_rows}</tbody></table>
 </section>
 <section class="card">
   <h2>内容举报</h2>
   <p>用户提交的帖子和评论举报。处理后会保留记录,用于社区治理和后续追踪。</p>
   <p><a class="btn secondary" href="/admin/reports.csv">导出内容举报 CSV</a></p>
-  <table><thead><tr><th>时间</th><th>状态</th><th>举报人</th><th>目标</th><th>原因</th><th>处理人</th><th>备注</th><th>操作</th></tr></thead><tbody>{report_rows}</tbody></table>
+  <table class="mobile-card-table"><thead><tr><th>时间</th><th>状态</th><th>举报人</th><th>目标</th><th>原因</th><th>处理人</th><th>备注</th><th>操作</th></tr></thead><tbody>{report_rows}</tbody></table>
 </section>
 <section class="card">
   <h2>支持请求</h2>
   <p>公开联系支持页提交的注册、登录、数据、社区和商务请求。处理记录会留在后台审计链路中。</p>
   <p><a class="btn secondary" href="/admin/support.csv">导出支持请求 CSV</a></p>
-  <table><thead><tr><th>时间</th><th>状态</th><th>类型</th><th>提交人</th><th>邮箱</th><th>主题</th><th>处理人</th><th>备注</th><th>操作</th></tr></thead><tbody>{support_rows}</tbody></table>
+  <table class="mobile-card-table"><thead><tr><th>时间</th><th>状态</th><th>类型</th><th>提交人</th><th>邮箱</th><th>主题</th><th>处理人</th><th>备注</th><th>操作</th></tr></thead><tbody>{support_rows}</tbody></table>
 </section>
 <section class="card">
   <h2>安全和异常事件</h2>
@@ -5787,11 +8986,11 @@ class AppHandler(BaseHTTPRequestHandler):
   <div class="grid">
     <div>
       <h3>近 24 小时按类型</h3>
-      <table><thead><tr><th>事件类型</th><th>次数</th></tr></thead><tbody>{security_action_rows}</tbody></table>
+      <table class="mobile-card-table"><thead><tr><th>事件类型</th><th>次数</th></tr></thead><tbody>{security_action_rows}</tbody></table>
     </div>
     <div>
       <h3>最近事件</h3>
-      <table><thead><tr><th>时间</th><th>动作</th><th>操作者</th><th>目标类型</th><th>目标 ID</th><th>IP</th></tr></thead><tbody>{security_recent_rows}</tbody></table>
+      <table class="mobile-card-table"><thead><tr><th>时间</th><th>动作</th><th>操作者</th><th>目标类型</th><th>目标 ID</th><th>IP</th></tr></thead><tbody>{security_recent_rows}</tbody></table>
     </div>
   </div>
 </section>
@@ -5804,7 +9003,7 @@ class AppHandler(BaseHTTPRequestHandler):
     <button class="secondary" type="submit">清理超期审计日志</button>
     <a class="btn secondary" href="/admin/audit.csv">导出审计日志 CSV</a>
   </form>
-  <table><thead><tr><th>时间</th><th>动作</th><th>操作者</th><th>目标类型</th><th>目标 ID</th><th>摘要</th><th>IP</th></tr></thead><tbody>{audit_rows}</tbody></table>
+  <table class="mobile-card-table"><thead><tr><th>时间</th><th>动作</th><th>操作者</th><th>目标类型</th><th>目标 ID</th><th>摘要</th><th>IP</th></tr></thead><tbody>{audit_rows}</tbody></table>
 </section>
 """
         self.send_html("管理", body, user=user)
@@ -6031,11 +9230,17 @@ class AppHandler(BaseHTTPRequestHandler):
             )
         else:
             action = "-"
-        return (
-            f"<tr><td>{escape(report['created_at'])}</td><td>{escape(report['status'])}</td>"
-            f"<td>{escape(reporter)}</td><td><a href=\"{escape(target_href)}\">{escape(target_label)}</a></td>"
-            f"<td>{escape(report['reason'])}</td><td>{escape(resolver)}</td>"
-            f"<td>{escape(report['resolution_note'] or '-')}</td><td>{action}</td></tr>"
+        return labeled_table_row(
+            [
+                ("时间", escape(report["created_at"])),
+                ("状态", escape(report["status"])),
+                ("举报人", escape(reporter)),
+                ("目标", f'<a href="{escape(target_href)}">{escape(target_label)}</a>'),
+                ("原因", escape(report["reason"])),
+                ("处理人", escape(resolver)),
+                ("备注", escape(report["resolution_note"] or "-")),
+                ("操作", action),
+            ]
         )
 
     def admin_support_request_row(self, request, user) -> str:
@@ -6051,11 +9256,18 @@ class AppHandler(BaseHTTPRequestHandler):
             )
         else:
             action = "-"
-        return (
-            f"<tr><td>{escape(request['created_at'])}</td><td>{escape(request['status'])}</td>"
-            f"<td>{escape(request['category'])}</td><td>{escape(requester)}</td><td>{escape(request['email'])}</td>"
-            f"<td>{escape(request['subject'])}</td><td>{escape(handler)}</td>"
-            f"<td>{escape(request['resolution_note'] or '-')}</td><td>{action}</td></tr>"
+        return labeled_table_row(
+            [
+                ("时间", escape(request["created_at"])),
+                ("状态", escape(request["status"])),
+                ("类型", escape(request["category"])),
+                ("提交人", escape(requester)),
+                ("邮箱", escape(request["email"])),
+                ("主题", escape(request["subject"])),
+                ("处理人", escape(handler)),
+                ("备注", escape(request["resolution_note"] or "-")),
+                ("操作", action),
+            ]
         )
 
     def handle_admin_contest(self, user, form):
@@ -6184,10 +9396,16 @@ class AppHandler(BaseHTTPRequestHandler):
         board = services.leaderboard(self.con)
         contest = services.active_contest(self.con)
         rows = "".join(
-            f"<tr><td>{r['rank']}</td><td><a href=\"/u/{r['row']['user_id']}\">{escape(display_nickname(r['row']))}</a></td><td>{money(r['row']['equity'])}</td>"
-            f"<td>{pct(r['return_pct'])}</td></tr>"
+            labeled_table_row(
+                [
+                    ("排名", str(r["rank"])),
+                    ("用户", f'<a href="/u/{r["row"]["user_id"]}">{escape(display_nickname(r["row"]))}</a>'),
+                    ("总资产", money(r["row"]["equity"])),
+                    ("收益率", pct(r["return_pct"])),
+                ]
+            )
             for r in board
-        ) or '<tr><td colspan="4" class="muted">榜单还空着——到 <a href="/app">模拟盘</a> 下第一笔交易,你就会出现在这里。</td></tr>'
+        ) or '<tr><td data-label="状态" colspan="4" class="muted">榜单还空着——到 <a href="/app">模拟盘</a> 下第一笔交易,你就会出现在这里。</td></tr>'
         share_url = f"{self.base_url()}/showcase/public"
         profile_url = f"{self.base_url()}/u/{user['id']}"
         body = f"""
@@ -6199,7 +9417,7 @@ class AppHandler(BaseHTTPRequestHandler):
 </section>
 <section class="card">
   <h2>排行榜 Showcase</h2>
-  <table><thead><tr><th>排名</th><th>用户</th><th>总资产</th><th>收益率</th></tr></thead><tbody>{rows}</tbody></table>
+  <table class="mobile-card-table"><thead><tr><th>排名</th><th>用户</th><th>总资产</th><th>收益率</th></tr></thead><tbody>{rows}</tbody></table>
   <p class="muted">公开榜单: <a href="/showcase/public">{escape(share_url)}</a></p>
 </section>
 <section class="card">
@@ -6220,10 +9438,16 @@ class AppHandler(BaseHTTPRequestHandler):
         summary = services.landing_summary(self.con)
         prediction = self.public_prediction_status()
         rows = "".join(
-            f"<tr><td>{r['rank']}</td><td><a href=\"/u/{r['row']['user_id']}\">{escape(display_nickname(r['row']))}</a></td>"
-            f"<td>{money(r['row']['equity'])}</td><td>{pct(r['return_pct'])}</td></tr>"
+            labeled_table_row(
+                [
+                    ("排名", str(r["rank"])),
+                    ("用户", f'<a href="/u/{r["row"]["user_id"]}">{escape(display_nickname(r["row"]))}</a>'),
+                    ("总资产", money(r["row"]["equity"])),
+                    ("收益率", pct(r["return_pct"])),
+                ]
+            )
             for r in board
-        ) or '<tr><td colspan="4" class="muted">还没有人上榜——完成注册和第一笔模拟交易,你就是第一个参赛者。</td></tr>'
+        ) or labeled_empty_row("还没有人上榜——完成注册和第一笔模拟交易,你就是第一个参赛者。", 4)
         contest_title = contest['title'] if contest else '模拟盘公开赛'
         description = contest['description'] if contest else '展示参赛者的模拟盘收益表现。'
         participant_count = int(summary.get("participant_count") or 0)
@@ -6263,7 +9487,7 @@ class AppHandler(BaseHTTPRequestHandler):
 <section class="grid">
   <div class="card">
     <h2>公开排行榜</h2>
-    <table><thead><tr><th>排名</th><th>用户</th><th>总资产</th><th>收益率</th></tr></thead><tbody>{rows}</tbody></table>
+    <table class="mobile-card-table"><thead><tr><th>排名</th><th>用户</th><th>总资产</th><th>收益率</th></tr></thead><tbody>{rows}</tbody></table>
   </div>
   <div class="card">
     <h2>赛场讨论</h2>
@@ -6308,15 +9532,33 @@ class AppHandler(BaseHTTPRequestHandler):
         history = profile["history"]
         orders = profile["orders"]
         holding_rows = "".join(
-            f"<tr><td>{escape(r['code'])}</td><td>{escape(r['name'])}</td><td>{r['qty']}</td><td>{r['available_qty']}</td>"
-            f"<td>{money(r['avg_price'])}</td><td>{money(r['price'])}</td><td>{money(r['market_value'])}</td><td>{money(r['pnl'])}</td></tr>"
+            labeled_table_row(
+                [
+                    ("代码", escape(r["code"])),
+                    ("名称", escape(r["name"])),
+                    ("数量", str(r["qty"])),
+                    ("可卖", str(r["available_qty"])),
+                    ("成本", money(r["avg_price"])),
+                    ("现价", money(r["price"])),
+                    ("市值", money(r["market_value"])),
+                    ("盈亏", money(r["pnl"])),
+                ]
+            )
             for r in snap["holdings"]
-        ) or '<tr><td colspan="8" class="muted">暂无持仓</td></tr>'
+        ) or labeled_empty_row("暂无持仓", 8)
         order_rows = "".join(
-            f"<tr><td>{escape(o['created_at'])}</td><td>{escape(o['code'])}</td><td>{side_cn(o['side'])}</td>"
-            f"<td>{o['qty']}</td><td>{money(o['price'])}</td><td>{money(o['fee'])}</td></tr>"
+            labeled_table_row(
+                [
+                    ("时间", escape(o["created_at"])),
+                    ("代码", escape(o["code"])),
+                    ("方向", side_cn(o["side"])),
+                    ("数量", str(o["qty"])),
+                    ("价格", money(o["price"])),
+                    ("费用", money(o["fee"])),
+                ]
+            )
             for o in orders
-        ) or '<tr><td colspan="6" class="muted">暂无成交</td></tr>'
+        ) or labeled_empty_row("暂无成交", 6)
         post_rows = "".join(
             f'<div class="post"><a href="/forum/{p["id"]}"><strong>{escape(p["title"])}</strong></a> '
             f'<span class="tag">{escape(p["strategy_tag"])}</span>'
@@ -6340,25 +9582,27 @@ class AppHandler(BaseHTTPRequestHandler):
 </section>
 <section class="card">
   <h2>战绩概览</h2>
-  <table>
-    <tr><th>总资产</th><td>{money(snap['equity'])}</td></tr>
-    <tr><th>现金</th><td>{money(snap['cash'])}</td></tr>
-    <tr><th>持仓市值</th><td>{money(snap['market_value'])}</td></tr>
+  <table class="mobile-card-table">
+    <tbody>
+      <tr><td data-label="字段"><strong>总资产</strong></td><td data-label="内容">{money(snap['equity'])}</td></tr>
+      <tr><td data-label="字段"><strong>现金</strong></td><td data-label="内容">{money(snap['cash'])}</td></tr>
+      <tr><td data-label="字段"><strong>持仓市值</strong></td><td data-label="内容">{money(snap['market_value'])}</td></tr>
+    </tbody>
   </table>
   <p>{join_primary} <a class="btn secondary" href="/showcase/public">查看公开榜单</a> <a class="btn secondary" href="/u/{user_id}/card.svg">打开战绩卡</a></p>
   <p class="muted">战绩卡: <a href="/u/{user_id}/card.svg">{escape(card_url)}</a></p>
 </section>
 <section class="card">
   <h2>当前持仓</h2>
-  <table><thead><tr><th>代码</th><th>名称</th><th>数量</th><th>可卖</th><th>成本</th><th>现价</th><th>市值</th><th>盈亏</th></tr></thead><tbody>{holding_rows}</tbody></table>
+  <table class="mobile-card-table"><thead><tr><th>代码</th><th>名称</th><th>数量</th><th>可卖</th><th>成本</th><th>现价</th><th>市值</th><th>盈亏</th></tr></thead><tbody>{holding_rows}</tbody></table>
 </section>
 <section class="card">
   <h2>最近成交</h2>
-  <table><thead><tr><th>时间</th><th>代码</th><th>方向</th><th>数量</th><th>价格</th><th>{metric_label('fee','费用')}</th></tr></thead><tbody>{order_rows}</tbody></table>
+  <table class="mobile-card-table"><thead><tr><th>时间</th><th>代码</th><th>方向</th><th>数量</th><th>价格</th><th>{metric_label('fee','费用')}</th></tr></thead><tbody>{order_rows}</tbody></table>
 </section>
 <section class="card">
   <h2>最近资产曲线</h2>
-  <table><thead><tr><th>时间</th><th>总资产</th><th>现金</th><th>持仓市值</th><th>收益率</th></tr></thead><tbody>{history_rows(history)}</tbody></table>
+  <table class="mobile-card-table"><thead><tr><th>时间</th><th>总资产</th><th>现金</th><th>持仓市值</th><th>收益率</th></tr></thead><tbody>{history_rows(history)}</tbody></table>
 </section>
 <section class="card">
   <h2>策略分享</h2>

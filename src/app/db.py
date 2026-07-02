@@ -20,6 +20,7 @@ CORE_BACKUP_TABLES = (
     "orders",
     "learning_tasks",
     "practice_signals",
+    "learning_reflections",
     "equity_snapshots",
     "market_prices",
     "contests",
@@ -109,6 +110,21 @@ CREATE TABLE IF NOT EXISTS practice_signals (
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX IF NOT EXISTS idx_learning_tasks_user_time ON learning_tasks(user_id, created_at);
+
+CREATE TABLE IF NOT EXISTS learning_reflections (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    learning_task_id INTEGER REFERENCES learning_tasks(id) ON DELETE SET NULL,
+    practice_signal_id INTEGER NOT NULL REFERENCES practice_signals(id) ON DELETE CASCADE,
+    order_id INTEGER REFERENCES orders(id) ON DELETE SET NULL,
+    hypothesis TEXT NOT NULL DEFAULT '',
+    execution_check TEXT NOT NULL DEFAULT '',
+    adjustment TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, practice_signal_id)
+);
+CREATE INDEX IF NOT EXISTS idx_learning_reflections_user_time ON learning_reflections(user_id, updated_at);
 
 CREATE TABLE IF NOT EXISTS equity_snapshots (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -372,6 +388,24 @@ def migrate(con: sqlite3.Connection) -> None:
     signal_cols = {row["name"] for row in con.execute("PRAGMA table_info(practice_signals)").fetchall()}
     if "learning_task_id" not in signal_cols:
         con.execute("ALTER TABLE practice_signals ADD COLUMN learning_task_id INTEGER REFERENCES learning_tasks(id) ON DELETE SET NULL")
+    con.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS learning_reflections (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            learning_task_id INTEGER REFERENCES learning_tasks(id) ON DELETE SET NULL,
+            practice_signal_id INTEGER NOT NULL REFERENCES practice_signals(id) ON DELETE CASCADE,
+            order_id INTEGER REFERENCES orders(id) ON DELETE SET NULL,
+            hypothesis TEXT NOT NULL DEFAULT '',
+            execution_check TEXT NOT NULL DEFAULT '',
+            adjustment TEXT NOT NULL DEFAULT '',
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(user_id, practice_signal_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_learning_reflections_user_time ON learning_reflections(user_id, updated_at);
+        """
+    )
     session_cols = {row["name"] for row in con.execute("PRAGMA table_info(wechat_sessions)").fetchall()}
     session_additions = {
         "accepted_terms_version": "ALTER TABLE wechat_sessions ADD COLUMN accepted_terms_version TEXT NOT NULL DEFAULT ''",

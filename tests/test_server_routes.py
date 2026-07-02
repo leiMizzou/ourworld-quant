@@ -15,7 +15,7 @@ import urllib.error
 import unittest
 from http.server import ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import urlencode
+from urllib.parse import unquote, urlencode
 from unittest.mock import patch
 
 from src.app import db, services
@@ -70,9 +70,21 @@ class ServerRoutesTest(unittest.TestCase):
     def start_registration(self, email: str = "route@example.com", headers: dict | None = None):
         status, _, intro = self.request("GET", "/register", headers=headers)
         self.assertEqual(status, 200)
-        self.assertIn("邮箱验证注册", intro)
+        self.assertIn("注册后先完成 3 分钟学习闭环", intro)
+        self.assertIn("第一屏先懂一句话,再点蓝色推荐按钮", intro)
+        self.assertIn("点预设目标", intro)
+        self.assertIn("现在只做一件事:收注册码", intro)
+        self.assertIn("现在填什么</b><p>只填邮箱,再勾选同意条款", intro)
+        self.assertIn("点完去哪</b><p>去邮箱收 8 位注册码", intro)
+        self.assertIn("还不用做什么</b><p>不用配置 AI key,不用看模拟盘,不用自己写提示词", intro)
+        self.assertIn("下一步:输入注册码并设置密码", intro)
+        self.assertIn("3/6、4/6、5/6、6/6", intro)
+        self.assertIn('id="email-register-form"', intro)
         self.assertIn('name="accept_terms"', intro)
         self.assertIn('name="email"', intro)
+        self.assertIn('<div class="mobile-next-bar" role="navigation" aria-label="手机注册下一步提示">', intro)
+        self.assertIn("<span>现在只做一件事</span><b>填写邮箱并发送注册码</b>", intro)
+        self.assertIn('<a class="btn blue" href="#email-register-form">去填写</a>', intro)
 
         post_headers = {"Content-Type": "application/x-www-form-urlencoded"}
         if headers:
@@ -85,6 +97,14 @@ class ServerRoutesTest(unittest.TestCase):
         )
         self.assertEqual(status, 200)
         self.assertIn("测试邮箱验证链接已生成", payload)
+        self.assertIn("现在去邮箱复制 8 位注册码", payload)
+        self.assertIn("不用重新注册,也不用找模拟盘入口", payload)
+        self.assertIn("现在做什么</b><span>去邮箱复制 8 位数字注册码", payload)
+        self.assertIn("回来填哪里</b><span>点击“输入注册码”", payload)
+        self.assertIn("完成后去哪</b><span>设置密码后自动进入学习工作台", payload)
+        self.assertIn('<div class="mobile-next-bar" role="navigation" aria-label="手机邮箱验证下一步提示">', payload)
+        self.assertIn("<span>下一步</span><b>输入邮箱里的 8 位注册码</b>", payload)
+        self.assertIn('<a class="btn blue" href="/auth/email/confirm">去输入</a>', payload)
         match = re.search(r"/auth/email/confirm\?token=([^\"&]+)", payload)
         self.assertIsNotNone(match)
         return match.group(1), payload
@@ -141,7 +161,11 @@ class ServerRoutesTest(unittest.TestCase):
         self.assertIn("本次优化", guide)
         self.assertIn("/guide/demo", guide)
         self.assertIn("邮箱注册", guide)
-        self.assertIn("组合设计", guide)
+        self.assertIn("选择预设学习目标", guide)
+        self.assertIn("生成今日练习", guide)
+        self.assertIn("保存三问复盘", guide)
+        self.assertIn("设置密码后先完成第一次学习闭环", guide)
+        self.assertNotIn("设置密码并进入模拟盘", guide)
 
         missing_voice = Path(self.tmpdir.name) / "missing-guide.mp3"
         with patch.dict(os.environ, {"OWQ_DEMO_VOICE_PATH": str(missing_voice)}, clear=False):
@@ -152,11 +176,18 @@ class ServerRoutesTest(unittest.TestCase):
         self.assertIn("EdgeTTS 语音解说", demo)
         self.assertIn("--generate-demo-voice", demo)
         self.assertIn("demo-frame", demo)
+        self.assertIn("选择预设学习目标", demo)
+        self.assertIn("生成今日练习", demo)
+        self.assertIn("生成观察记录", demo)
+        self.assertIn("保存三问复盘", demo)
+        self.assertIn("第一次学习闭环", demo)
+        self.assertNotIn("模拟交易、组合设计、公开展示和论坛复盘", demo)
 
         status, _, sitemap = self.request("GET", "/sitemap.xml")
         self.assertEqual(status, 200)
         self.assertIn("/guide", sitemap)
         self.assertIn("/guide/demo", sitemap)
+        self.assertIn("/learn/demo", sitemap)
 
     def test_usage_demo_audio_serves_generated_edge_tts_file(self):
         voice_path = Path(self.tmpdir.name) / "guide.mp3"
@@ -186,6 +217,10 @@ class ServerRoutesTest(unittest.TestCase):
         self.assertEqual(out_path.read_bytes(), b"ID3generated")
         self.assertIn("zh-CN-TestNeural", seen["cmd"])
         self.assertIn("--write-media", seen["cmd"])
+        narration = seen["cmd"][seen["cmd"].index("--text") + 1]
+        self.assertIn("AI 量化学习工作台", narration)
+        self.assertIn("生成一条今日练习", narration)
+        self.assertIn("三问复盘", narration)
 
     def test_public_healthz_detail_requires_ops_token(self):
         with patch.dict(os.environ, {"OWQ_PUBLIC_BASE_URL": "https://quant.ourworlds.app", "OWQ_HEALTH_DETAIL_TOKEN": "ops-token"}, clear=False):
@@ -307,12 +342,39 @@ class ServerRoutesTest(unittest.TestCase):
         self.assertEqual(headers.get("Cache-Control"), "no-store")
         self.assertNotIn("X-Robots-Tag", headers)
         self.assertIn("OurWorlds Quant Arena", payload)
-        self.assertIn("A 股模拟盘公开赛", payload)
-        self.assertIn("赛场动态", payload)
-        self.assertIn("当前赛场", payload)
+        self.assertIn("AI quant learning workspace", payload)
+        self.assertIn("先学会一圈，再看模拟盘", payload)
+        self.assertIn("先体验 3 分钟学习闭环", payload)
+        self.assertIn("第一次先不要研究榜单、参数或下单", payload)
+        self.assertIn("学习闭环", payload)
+        self.assertIn("第一次学习闭环", payload)
+        self.assertIn("First learning loop", payload)
+        self.assertIn("3-5 MIN", payload)
+        self.assertIn("理解一个量化概念", payload)
+        self.assertIn("选择一个学习目标", payload)
+        self.assertIn("生成一条模拟练习", payload)
+        self.assertIn("保存三问复盘", payload)
+        self.assertIn("第一圈怎么走", payload)
+        self.assertIn("先看 3 分钟示例,知道 AI 教练会怎样拆解目标", payload)
+        self.assertIn("注册后点蓝色按钮,生成 1 条小数量模拟练习", payload)
+        self.assertIn("最后保存三问复盘,看到 6/6 就完成第一圈", payload)
+        self.assertIn("先完成第一圈，再看赛场", payload)
+        self.assertNotIn("当前赛场", payload)
+        self.assertNotIn("当前榜首收益", payload)
         self.assertIn("策略论坛", payload)
         self.assertNotIn("微信扫码注册", payload)
-        self.assertIn("邮箱验证注册", payload)
+        self.assertIn("注册进入学习工作台", payload)
+        self.assertIn("先进入学习工作台完成第一次学习闭环", payload)
+        self.assertIn("3 分钟学习体验", payload)
+        self.assertIn("免登录看完目标、教练拆解、模拟练习和复盘问题", payload)
+        self.assertLess(
+            payload.index('<a class="btn blue" href="/learn/demo">先体验 3 分钟学习闭环</a>'),
+            payload.index('<a class="btn" href="/register">注册进入学习工作台</a>'),
+        )
+        self.assertLess(
+            payload.index('<a class="link-tile" href="/learn/demo"><strong>3 分钟学习体验</strong>'),
+            payload.index('<a class="link-tile" href="/register"><strong>注册进入学习工作台</strong>'),
+        )
         self.assertIn('/data-status', payload)
 
         status, headers, payload = self.request("HEAD", "/")
@@ -342,6 +404,12 @@ class ServerRoutesTest(unittest.TestCase):
         self.assertIn("申请加入", payload)
         self.assertIn('href="/support"', payload)
         self.assertIn("当前新用户注册暂未开放", payload)
+        self.assertIn("先体验 3 分钟学习闭环", payload)
+        self.assertIn("注册暂未开放时,也可以先免登录看完第一次闭环", payload)
+        self.assertLess(
+            payload.index('<a class="btn blue" href="/learn/demo">先体验 3 分钟学习闭环</a>'),
+            payload.index('<a class="btn" href="/support">申请加入</a>'),
+        )
         self.assertNotIn("邮箱验证注册", payload)
         self.assertNotIn('href="/register">邮箱注册', payload)
 
@@ -393,6 +461,16 @@ class ServerRoutesTest(unittest.TestCase):
         for key in ("return_pct", "sharpe", "max_drawdown"):
             self.assertIn(key, data["metrics"])
             self.assertTrue(data["metrics"][key]["band"])  # conservative guidance present
+
+    def test_glossary_page_guides_to_learning_before_simulator(self):
+        status, _, payload = self.request("GET", "/glossary")
+
+        self.assertEqual(status, 200)
+        self.assertIn("术语表", payload)
+        self.assertIn("先体验学习闭环", payload)
+        self.assertIn("高级模拟盘(看完术语后再看)", payload)
+        self.assertNotIn(">进入模拟盘</a>", payload)
+        self.assertLess(payload.index("先体验学习闭环"), payload.index("高级模拟盘(看完术语后再看)"))
 
     def test_dashboard_metric_labels_have_no_js_fallback(self):
         token = services.create_wechat_session(self.con)
@@ -466,6 +544,100 @@ class ServerRoutesTest(unittest.TestCase):
         self.assertIn('data-metric="sharpe"', payload)
         self.assertIn("总收益被高估", payload)
 
+    def test_learning_demo_is_public_and_runs_without_key(self):
+        status, headers, payload = self.request("GET", "/learn/demo?preset=2")  # no login, no key
+
+        self.assertEqual(status, 200)
+        self.assertNotIn("X-Robots-Tag", headers)
+        self.assertIn("3 分钟体验一次 AI 量化学习闭环", payload)
+        self.assertIn("免 DeepSeek key", payload)
+        self.assertIn("AI 能帮我做什么?", payload)
+        self.assertIn("真实学习页会一路告诉你下一步", payload)
+        self.assertIn("刚完成 3/6", payload)
+        self.assertIn("刚完成 4/6", payload)
+        self.assertIn("刚完成 5/6", payload)
+        self.assertIn("完成 6/6", payload)
+        self.assertIn("第一圈可以停在这里", payload)
+        self.assertIn("示例教练会这样拆解", payload)
+        self.assertIn("系统会生成这样的练习草稿", payload)
+        self.assertIn('<table class="learning-mobile-table">', payload)
+        self.assertIn('data-label="练习对象"', payload)
+        self.assertIn('data-label="这一步学习什么"', payload)
+        self.assertIn("第一次复盘只回答 3 个问题", payload)
+        self.assertIn("不会写入你的模拟盘", payload)
+        self.assertIn("看完后只做下一步", payload)
+        self.assertIn("注册后不会把你丢进复杂模拟盘", payload)
+        self.assertIn("注册后去哪里", payload)
+        self.assertIn("先进入学习工作台,不是高级模拟盘", payload)
+        self.assertIn("第一下点什么", payload)
+        self.assertIn("点“一键开始第一关”,不用自己写提示词", payload)
+        self.assertIn("不用先配置 AI key", payload)
+        self.assertIn("第一圈用示例教练,不调用 DeepSeek", payload)
+        self.assertIn("/register", payload)
+        self.assertIn('<div class="mobile-next-bar" role="navigation" aria-label="手机示例下一步提示">', payload)
+        self.assertIn("<span>看完示例后</span><b>注册后创建自己的练习</b>", payload)
+        self.assertIn('<a class="btn blue" href="/register">注册开始</a>', payload)
+        self.assertNotIn('action="/learn/coach"', payload)
+        self.assertNotIn("配置 AI 教练", payload)
+        self.assertNotIn("看看公开榜单", payload)
+
+        uid = services.confirm_wechat_session(self.con, services.create_wechat_session(self.con), "DemoLoggedIn")
+        cookie = f"owq_session={self.sign_cookie(uid)}"
+        status, _, logged_in = self.request("GET", "/learn/demo?preset=2", headers={"Cookie": cookie})
+        self.assertEqual(status, 200)
+        self.assertIn("回到我的学习工作台", logged_in)
+        self.assertIn("看完后只回学习工作台", logged_in)
+        self.assertIn("你还没完成第一次 6/6 闭环", logged_in)
+        self.assertIn("不要配置 key、不要看榜单、不要进高级模拟盘", logged_in)
+        self.assertIn("第一屏看什么", logged_in)
+        self.assertIn("学习工作台会把下一步放在最上面", logged_in)
+        self.assertIn("第一圈可以用示例教练完成,不调用 DeepSeek", logged_in)
+        self.assertIn("<span>看完示例后</span><b>回到自己的学习工作台</b>", logged_in)
+        self.assertIn('<a class="btn blue" href="/learn">回学习工作台</a>', logged_in)
+        self.assertIn("完成 6/6 后再看高级模拟盘", logged_in)
+        self.assertNotIn('href="/app"', logged_in)
+        self.assertNotIn("高级模拟盘(完成第一圈后再看)", logged_in)
+        self.assertNotIn(">进入模拟盘</a>", logged_in)
+        self.assertNotIn("配置 AI 教练", logged_in)
+        self.assertNotIn("看看公开榜单", logged_in)
+        self.assertLess(logged_in.index("回到我的学习工作台"), logged_in.index("完成 6/6 后再看高级模拟盘"))
+
+        self.con.execute(
+            """
+            INSERT OR REPLACE INTO market_prices(code, name, price, prev_close, source, as_of)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            ("000001.SZ", "平安银行", 10.0, 9.8, "demo", "2026-06-24"),
+        )
+        task_id = services.create_learning_task(
+            self.con,
+            uid,
+            "我想先完成第一圈学习闭环",
+            "starter",
+            "reversal",
+            "示例教练拆解",
+        )
+        services.create_practice_signals_from_learning_task(
+            self.con,
+            uid,
+            task_id,
+            "演示页完成态验证",
+            "reversal",
+            qty="100",
+            limit=1,
+        )
+        signal = services.practice_signals(self.con, uid, status="pending", limit=1)[0]
+        services.execute_practice_signal(self.con, uid, int(signal["id"]))
+        services.save_learning_reflection(self.con, uid, int(signal["id"]), "我想练流程", "我按小数量执行", "下次先看边界")
+
+        status, _, completed = self.request("GET", "/learn/demo?preset=2", headers={"Cookie": cookie})
+        self.assertEqual(status, 200)
+        self.assertIn("看完后可以继续第二关", completed)
+        self.assertIn("你已经完成过一次 6/6 闭环", completed)
+        self.assertIn("高级模拟盘只用于深入查看模拟记录", completed)
+        self.assertIn('<a class="btn secondary" href="/app">高级模拟盘</a>', completed)
+        self.assertLess(completed.index("回到我的学习工作台"), completed.index('<a class="btn secondary" href="/app">高级模拟盘</a>'))
+
     def test_lessons_page_is_public_indexable_and_covers_three_pitfalls(self):
         payload_json = {
             "survivorship": {
@@ -491,14 +663,28 @@ class ServerRoutesTest(unittest.TestCase):
         token = services.create_wechat_session(self.con)
         user_id = services.confirm_wechat_session(self.con, token, "LoggedIn")
         cookie = f"owq_session={self.sign_cookie(user_id)}"
-        # Logged-in user on a PUBLIC page: logged-in nav + enter-product CTA, not a signup pitch.
+        # Logged-in user on a PUBLIC page: logged-in nav + learning-first CTA, not a signup pitch.
         _, _, prev = self.request("GET", "/preview", headers={"Cookie": cookie})
         self.assertIn("退出", prev)            # logged-in nav (logout button) present
-        self.assertIn("进入模拟盘", prev)       # in-body CTA points into the product
+        self.assertIn("进入学习工作台", prev)
+        self.assertIn("高级模拟盘(完成第一圈后再看)", prev)
+        self.assertLess(
+            prev.index('<a class="btn blue" href="/learn">进入学习工作台</a>'),
+            prev.index('<a class="btn secondary" href="/app">高级模拟盘(完成第一圈后再看)</a>'),
+        )
         self.assertNotIn("免费注册,拿 10 万模拟本金", prev)
         # Landing page (bypasses send_html) also reflects login state.
         _, _, home = self.request("GET", "/", headers={"Cookie": cookie})
-        self.assertIn("进入模拟盘", home)
+        self.assertIn("学习工作台", home)
+        self.assertIn("进入学习工作台", home)
+        self.assertIn("继续学习工作台", home)
+        self.assertIn("一键开始第一关", home)
+        self.assertIn("看 3 分钟示例", home)
+        self.assertLess(
+            home.index('<a class="btn blue" href="/learn">进入学习工作台</a>'),
+            home.index('<a class="btn" href="/learn#learn-presets">一键开始第一关</a>'),
+        )
+        self.assertNotIn('<a class="btn" href="/app">高级模拟盘(完成第一圈后再看)</a>', home)
         # A logged-in user hitting /login or /register is redirected into the app, not asked
         # to authenticate again (the "点击之后还要重新登录" complaint).
         for p in ("/login", "/register"):
@@ -507,6 +693,9 @@ class ServerRoutesTest(unittest.TestCase):
         # Logged-out regression: public nav still offers login, and /login renders the form.
         _, _, anon = self.request("GET", "/preview")
         self.assertIn("登录", anon)
+        self.assertIn("免费注册,进入学习工作台", anon)
+        self.assertIn("先体验 3 分钟学习闭环", anon)
+        self.assertNotIn("免费注册,拿 10 万模拟本金", anon)
         self.assertNotIn("退出", anon)
         st_login, _, _ = self.request("GET", "/login")
         self.assertEqual(st_login, 200)  # anonymous still gets the login form
@@ -532,7 +721,7 @@ class ServerRoutesTest(unittest.TestCase):
         with patch.dict(os.environ, {"OWQ_PREVIEW_JSON": str(missing)}, clear=False):
             status, _, payload = self.request("GET", "/preview")
         self.assertEqual(status, 200)  # graceful fallback, still public, still has CTAs
-        self.assertIn("免费注册", payload)
+        self.assertIn("免费注册,进入学习工作台", payload)
 
     def test_showcase_share_card_renders(self):
         token = services.create_wechat_session(self.con)
@@ -772,10 +961,17 @@ class ServerRoutesTest(unittest.TestCase):
 
         status, _, register = self.request("GET", "/register")
         self.assertEqual(status, 200)
-        self.assertIn("邮箱验证注册", register)
+        self.assertIn("注册后先完成 3 分钟学习闭环", register)
+        self.assertIn("没有 DeepSeek key 也能用内置示例教练跑通流程", register)
+        self.assertIn("注册后第一屏先看一句话,再点蓝色推荐按钮", register)
+        self.assertIn("现在只做一件事:收注册码", register)
+        self.assertIn("只填邮箱,再勾选同意条款", register)
+        self.assertIn("手机注册下一步提示", register)
         self.assertIn('name="accept_terms"', register)
         token, register_dev = self.start_registration()
         self.assertIn(f"/auth/email/confirm?token={token}", register_dev)
+        self.assertIn("完成后自动进入学习工作台", register_dev)
+        self.assertIn("第一屏先懂一句话,再点蓝色推荐按钮", register_dev)
 
         status, _, showcase = self.request("GET", "/showcase/public")
         self.assertEqual(status, 200)
@@ -1180,8 +1376,16 @@ class ServerRoutesTest(unittest.TestCase):
         status, _, page = self.request("GET", "/account/ai", headers={"Cookie": cookie})
         self.assertEqual(status, 200)
         self.assertIn("AI 教练", page)
+        self.assertIn("AI 教练是可选升级", page)
         self.assertIn("不构成投资建议", page)  # mandatory education banner
         self.assertIn("尚未配置 API key", page)
+        self.assertIn("第一次不用配置 key", page)
+        self.assertIn("直接回学习工作台点蓝色推荐按钮", page)
+        self.assertIn("不调用 DeepSeek,不产生 AI 费用", page)
+        self.assertIn('href="/learn#learn-presets">回学习工作台继续第一圈</a>', page)
+        self.assertIn('href="/learn/demo">先看 3 分钟示例</a>', page)
+        self.assertIn("学习工作台的预设示例任务", page)
+        self.assertIn("基础模拟练习和复盘都不需要 key", page)
         self.assertIn("deepseek-v4-flash", page)
 
     def test_account_ai_save_key_is_encrypted_and_masked(self):
@@ -1235,14 +1439,584 @@ class ServerRoutesTest(unittest.TestCase):
         status, _, page = self.request("GET", "/learn", headers={"Cookie": cookie})
 
         self.assertEqual(status, 200)
+        self.assertIn('class="nav learn-nav"', page)
+        self.assertIn('<a href="/learn">学习首页</a>', page)
+        self.assertIn('<a href="/learn#learn-presets">一键开始</a>', page)
+        self.assertIn('<a href="/learn/demo">示例体验</a>', page)
+        self.assertNotIn('<a href="/account/ai">AI教练(稍后)</a>', page)
+        self.assertNotIn('<a href="/learn#learn-presets">选目标</a>', page)
+        self.assertNotIn('<a href="/learn#learning-journey">学习轨迹</a>', page)
+        self.assertNotIn('<a href="/app">高级模拟盘</a>', page)
+        self.assertNotIn('href="/app"', page)
+        self.assertNotIn("组合设计", page)
+        self.assertNotIn("研究引擎", page)
+        self.assertNotIn("比赛展示", page)
         self.assertIn("新手 AI 学习工作台", page)
         self.assertIn("量化投资是什么", page)
+        self.assertIn("先记住一句话", page)
+        self.assertIn("量化学习不是让 AI 告诉你买什么", page)
+        self.assertIn("AI 在这里做什么", page)
+        self.assertIn("第一次只做什么", page)
+        self.assertIn("第一步:先懂一句话,再一键开始", page)
+        self.assertIn("30 秒先懂一句话", page)
+        self.assertIn("量化投资不是猜涨跌", page)
+        self.assertIn("AI 在这里像教练", page)
+        self.assertIn("第一圈只求完成", page)
+        self.assertIn("img,svg,video,canvas{max-width:100%;height:auto}", page)
+        self.assertIn("先用 30 秒知道这里不是荐股工具", page)
+        self.assertIn("再点蓝色按钮开始第一次学习闭环", page)
+        self.assertIn("现在只做一件事", page)
+        self.assertIn("先记住一句话:量化投资不是猜涨跌", page)
+        self.assertIn("一键开始第一关", page)
+        self.assertIn(".starter-fast-path form,.starter-fast-path button", page)
+        self.assertIn(".next-action-cta form,.next-action-cta button", page)
+        self.assertIn("@media(max-width:560px){body{font-size:14px;overflow-x:hidden}", page)
+        self.assertIn("body:has(.mobile-next-bar){padding-bottom:calc(86px + env(safe-area-inset-bottom))}", page)
+        self.assertIn(".nav{width:100%;gap:8px;flex-wrap:nowrap;overflow-x:auto", page)
+        self.assertIn("scroll-snap-type:x proximity", page)
+        self.assertIn("mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent)", page)
+        self.assertIn(".card p>.btn,.card p>button{width:100%;margin-top:8px}", page)
+        self.assertIn(".practice-detail-grid", page)
+        self.assertIn("table{min-width:640px}", page)
+        self.assertIn(".learning-mobile-table,.mobile-card-table{min-width:0;border-collapse:separate", page)
+        self.assertIn(".learning-mobile-table td::before,.mobile-card-table td::before{content:attr(data-label)", page)
+        self.assertIn(".mobile-card-table td:empty::after{content:", page)
+        self.assertIn(".return-mission-head,.return-mission-grid{grid-template-columns:1fr}", page)
+        self.assertIn(".return-mission-action .btn,.return-mission-action button,.return-mission-action form{width:100%}", page)
+        self.assertIn(".badge,.pill,.demo-pill{white-space:normal;max-width:100%}", page)
+        self.assertIn("input,select,textarea{font-size:16px}", page)
+        self.assertIn(".starter-choice,.preset-card,.quest-card{min-height:auto;padding:14px}", page)
+        self.assertIn(".loop-step{display:grid;grid-template-columns:auto 1fr;gap:8px", page)
+        self.assertIn(".top,.card,.msg,.advanced-practice,.manual-reflection,.practice-detail{max-width:100%}", page)
+        self.assertIn(".markdown-body code{white-space:normal;overflow-wrap:anywhere}", page)
+        self.assertIn(".voice-command,pre{white-space:pre-wrap;overflow-wrap:anywhere}", page)
+        self.assertIn(".identity{align-items:flex-start;flex-direction:column}", page)
+        self.assertIn(".learning-notice{display:grid;grid-template-columns:1fr auto", page)
+        self.assertIn(".learning-notice .btn{width:100%}", page)
+        self.assertIn(
+            ".mobile-next-bar{bottom:max(10px,env(safe-area-inset-bottom));padding-bottom:max(10px,env(safe-area-inset-bottom))}",
+            page,
+        )
+        self.assertIn(".mobile-next-bar{position:fixed;left:12px;right:12px;bottom:12px", page)
+        self.assertIn(".mobile-next-bar{grid-template-columns:minmax(0,1fr) minmax(88px,auto)}", page)
+        self.assertIn("@media(max-width:380px){.wrap{padding:0 10px 22px}", page)
+        self.assertIn(".mobile-next-bar{left:8px;right:8px;grid-template-columns:1fr}", page)
+        self.assertIn(".mobile-next-spacer{height:calc(128px + env(safe-area-inset-bottom))}", page)
+        self.assertIn('<div class="mobile-next-bar" role="navigation" aria-label="手机下一步提示">', page)
+        self.assertIn("<span>现在只做一件事</span><b>先开始第一关</b>", page)
+        self.assertIn('<a class="btn blue" href="#learn-presets">去开始</a>', page)
+        self.assertIn('class="mobile-next-spacer"', page)
+        self.assertIn('class="loop-promise"', page)
+        self.assertIn("3-5 分钟", page)
+        self.assertIn("只跑通第一次闭环", page)
+        self.assertIn("无 key 也能开始", page)
+        self.assertIn("没有 DeepSeek key 时使用示例教练", page)
+        self.assertIn("不会真实交易", page)
+        self.assertIn("完成有反馈", page)
+        self.assertIn("保存复盘后会解锁 6/6 和第一枚学习徽章", page)
+        self.assertIn('id="beginner-focus"', page)
+        self.assertIn("小白模式:现在只点一个按钮", page)
+        self.assertIn("去一键开始第一关", page)
+        self.assertIn("不用会术语", page)
+        self.assertIn("不会下单", page)
+        self.assertIn('<div class="starter-fast-path">', page)
+        self.assertIn('action="/learn/sample-task"', page)
+        self.assertIn('name="preset" value="0"', page)
+        self.assertNotIn('href="#starter-choice-recommended"', page)
+        self.assertNotIn('id="starter-choice-recommended"', page)
+        self.assertIn('class="starter-selected"', page)
+        self.assertIn("我完全不懂,先从概念开始", page)
+        self.assertIn("推荐第一关", page)
+        self.assertIn("点击后发生什么", page)
+        self.assertIn("安全边界", page)
+        self.assertIn("创建示例教练任务,并直接准备 1 条今日练习", page)
+        self.assertIn("不调用 DeepSeek、不产生 AI 费用", page)
+        self.assertIn("不会扣 AI 费用,不会自动成交,下一步只确认观察材料", page)
+        self.assertNotIn('class="starter-choice recommended"', page)
+        self.assertIn("想换关? 更多新手关卡", page)
+        self.assertIn('<details class="advanced-practice preset-library">', page)
+        self.assertIn("可选:展开新手关卡地图", page)
+        self.assertIn("第一次先不用展开", page)
+        self.assertIn("直接点上面的蓝色按钮", page)
+        self.assertNotIn('<details class="advanced-practice preset-library" open>', page)
+        self.assertNotIn('id="learning-journey"', page)
         self.assertIn("不知道问什么", page)
+        self.assertIn('class="quest-ladder" aria-label="分级学习任务地图"', page)
+        self.assertIn("分级关卡地图", page)
+        self.assertIn("没完成第一圈前先不要跨到第二关", page)
+        self.assertIn("第 1 关 · 先懂概念", page)
+        self.assertIn("完全不懂也从这里开始", page)
+        self.assertIn("适合 0-3 分钟", page)
+        self.assertIn("推荐第一关:完全不懂就点这个", page)
+        self.assertIn("点这里开始第 1 关", page)
+        self.assertIn("第 2 关 · 做一次观察", page)
+        self.assertIn("完成第一关后", page)
+        self.assertIn("建议完成当前 6/6 后再点", page)
+        self.assertIn("完成第一圈后再创建", page)
+        self.assertIn("第 3 关 · 风险和复盘", page)
+        self.assertIn("有复盘后", page)
+        self.assertLess(page.index("第 1 关 · 先懂概念"), page.index("第 2 关 · 做一次观察"))
+        self.assertLess(page.index("第 2 关 · 做一次观察"), page.index("第 3 关 · 风险和复盘"))
         self.assertIn("量化投资到底是什么?", page)
         self.assertIn("AI 能帮我做什么?", page)
-        self.assertIn("配置 DeepSeek API key", page)
+        self.assertIn("点这里创建学习任务", page)
+        self.assertIn("创建示例任务", page)
+        self.assertIn("/learn/sample-task", page)
+        self.assertIn("创建内置示例教练任务", page)
+        self.assertIn("3 分钟示例体验", page)
+        self.assertIn("6/6 前先不要进入高级模拟盘", page)
+        self.assertIn("完成后页面会再给你高级入口", page)
+        self.assertIn("高级模拟盘入口会在完成 6/6 后出现", page)
+        self.assertIn("AI 教练配置(可选,以后再看)", page)
+        self.assertNotIn("高级模拟盘(完成第一圈后再看)", page)
+        self.assertNotIn("高级模拟盘(稍后再看)", page)
+        self.assertNotIn("想直接上手?进入模拟盘", page)
+        self.assertIn("第一圈不用 DeepSeek key", page)
+        self.assertIn("回到蓝色推荐按钮", page)
+        self.assertIn("以后再配置 AI key", page)
+        self.assertIn("示例教练不调用 DeepSeek", page)
+        self.assertNotIn("避免你填完后不能提交", page)
+        self.assertNotIn("<h2>学习记录</h2>", page)
+        self.assertNotIn("还没有学习轨迹", page)
+        self.assertNotIn("查看高级任务记录", page)
+        self.assertNotIn("新手第一次闭环可以先不展开", page)
+        self.assertNotIn("暂无学习任务。先看上面的 30 秒概念,再点蓝色推荐按钮即可开始", page)
+        self.assertNotIn("最近学习任务", page)
+        self.assertNotIn('textarea name="goal"', page)
+        self.assertNotIn("让 AI 拆解目标</button>", page)
         self.assertIn('class="preset-card"', page)
         self.assertIn("/account/ai", page)
+        self.assertLess(page.index('id="learn-presets"'), page.index('id="learning-loop"'))
+        self.assertLess(page.index('id="learn-presets"'), page.index('id="beginner-focus"'))
+        self.assertLess(page.index('id="beginner-focus"'), page.index('id="learning-loop"'))
+        self.assertLess(page.index("现在只做一件事"), page.index("30 秒先懂一句话"))
+        self.assertLess(page.index("一键开始第一关"), page.index("30 秒先懂一句话"))
+        self.assertLess(page.index("第一步:先懂一句话,再一键开始"), page.index("第一次学习闭环"))
+        self.assertLess(page.index("一键开始第一关"), page.index("可选:展开新手关卡地图"))
+
+    def test_learning_welcome_notice_starts_first_task_directly(self):
+        uid = services.confirm_wechat_session(self.con, services.create_wechat_session(self.con), "LearnWelcome")
+        cookie = f"owq_session={self.sign_cookie(uid)}"
+
+        status, _, page = self.request(
+            "GET",
+            "/learn?msg=%E7%99%BB%E5%BD%95%E6%88%90%E5%8A%9F%2C%E5%85%88%E4%BB%8E%E5%AD%A6%E4%B9%A0%E5%B7%A5%E4%BD%9C%E5%8F%B0%E5%BC%80%E5%A7%8B%E3%80%82",
+            headers={"Cookie": cookie},
+        )
+        self.assertEqual(status, 200)
+        self.assertIn('class="msg learning-notice" role="status"', page)
+        self.assertIn("欢迎来到学习工作台", page)
+        self.assertIn('method="post" action="/learn/sample-task"', page)
+        self.assertIn('name="preset" value="0"', page)
+        self.assertIn('name="quick_start" value="1"', page)
+        self.assertIn('class="btn blue" type="submit">一键开始第一关</button>', page)
+        self.assertIn(".learning-notice form,.learning-notice .btn{width:100%}", page)
+        self.assertLess(page.index('class="msg learning-notice"'), page.index('id="learn-presets"'))
+
+        with patch("src.app.ai.client.chat_completion", side_effect=AssertionError("welcome first action should not call AI")):
+            status, headers, _ = self.request(
+                "POST",
+                "/learn/sample-task",
+                body=self.form_body(uid, {"preset": "0", "quick_start": "1"}),
+                headers={"Content-Type": "application/x-www-form-urlencoded", "Cookie": cookie},
+            )
+
+        self.assertEqual(status, 303)
+        self.assertIn("/learn?msg=", headers.get("Location", ""))
+        self.assertIn("#today-practice", headers.get("Location", ""))
+        self.assertIn("第一关已准备好", unquote(headers.get("Location", "")))
+        task = self.con.execute("SELECT * FROM learning_tasks WHERE user_id=?", (uid,)).fetchone()
+        self.assertIsNotNone(task)
+        self.assertIn("示例教练拆解", task["coach_text"])
+        self.assertEqual(task["status"], "signals_saved")
+        signals = services.practice_signals(self.con, uid, status="pending")
+        self.assertEqual(len(signals), 1)
+        self.assertEqual(int(signals[0]["learning_task_id"]), int(task["id"]))
+        self.assertIn("第一关一键开始", signals[0]["rationale"])
+        self.assertEqual(self.con.execute("SELECT COUNT(*) FROM orders").fetchone()[0], 0)
+        self.assertEqual(self.con.execute("SELECT COUNT(*) FROM ai_usage WHERE user_id=?", (uid,)).fetchone()[0], 0)
+        status, _, learn = self.request("GET", headers.get("Location", "").split("#", 1)[0], headers={"Cookie": cookie})
+        self.assertEqual(status, 200)
+        self.assertIn("第一关已准备好", learn)
+        self.assertIn("刚完成 4/6:确认练习后生成观察记录", learn)
+        self.assertIn("确认这 1 条模拟练习", learn)
+        self.assertIn("生成模拟观察记录,去复盘", learn)
+
+    def test_learning_sample_task_creates_task_without_deepseek_key(self):
+        uid = services.confirm_wechat_session(self.con, services.create_wechat_session(self.con), "LearnSample")
+        cookie = f"owq_session={self.sign_cookie(uid)}"
+
+        status, headers, _ = self.request(
+            "POST",
+            "/learn/sample-task",
+            body=self.form_body(uid, {"preset": "3"}),
+            headers={"Content-Type": "application/x-www-form-urlencoded", "Cookie": cookie},
+        )
+
+        self.assertEqual(status, 303)
+        self.assertIn("/learn/tasks/", headers.get("Location", ""))
+        task = self.con.execute("SELECT * FROM learning_tasks WHERE user_id=?", (uid,)).fetchone()
+        self.assertIsNotNone(task)
+        self.assertEqual(task["template"], "reversal")
+        self.assertIn("示例教练拆解", task["coach_text"])
+        self.assertIn("先点击“一键生成今日练习”", task["coach_text"])
+        self.assertNotIn("在下面预览草稿", task["coach_text"])
+        self.assertEqual(self.con.execute("SELECT COUNT(*) FROM ai_usage WHERE user_id=?", (uid,)).fetchone()[0], 0)
+        status, _, detail = self.request("GET", headers.get("Location", ""), headers={"Cookie": cookie})
+        self.assertEqual(status, 200)
+        self.assertIn('class="msg learning-notice" role="status"', detail)
+        self.assertIn("3/6", detail)
+        self.assertIn("目标已经建好", detail)
+        self.assertIn("刚才已经完成选目标和教练拆解", detail)
+        self.assertIn(f'method="post" action="/learn/tasks/{int(task["id"])}/quick-save"', detail)
+        self.assertIn('class="btn blue" type="submit">一键生成今日练习</button>', detail)
+        self.assertLess(detail.index('class="msg learning-notice"'), detail.index('id="task-next-action"'))
+        self.assertIn('class="nav learn-nav"', detail)
+        self.assertIn('<a href="/learn">学习首页</a>', detail)
+        self.assertIn('<a href="/learn#learning-loop">当前进度</a>', detail)
+        self.assertIn('<a href="/learn#learning-journey">学习轨迹</a>', detail)
+        self.assertNotIn('<a href="/account/ai">AI教练(稍后)</a>', detail)
+        self.assertNotIn('<a href="/learn#learn-presets">选目标</a>', detail)
+        self.assertNotIn('<a href="/app">高级模拟盘</a>', detail)
+        self.assertNotIn("组合设计", detail)
+        self.assertNotIn("研究引擎", detail)
+        self.assertNotIn("比赛展示", detail)
+        self.assertIn("这一关的学习目标", detail)
+        self.assertIn("待生成今日练习", detail)
+        self.assertIn(f"任务编号 {int(task['id'])}", detail)
+        self.assertNotIn(f"<h2>学习任务 #{int(task['id'])}</h2>", detail)
+        self.assertNotIn('<span class="badge">draft</span>', detail)
+        self.assertIn("刚完成 3/6:点蓝色按钮进入下一步", detail)
+        self.assertIn("你已经选了目标,也拿到了示例教练拆解", detail)
+        self.assertIn("第一次闭环进度: 3/6", detail)
+        self.assertIn("已完成:理解概念、选择目标、获得教练拆解", detail)
+        self.assertIn("还差 3 步:生成练习、生成观察记录、保存复盘", detail)
+        self.assertIn('id="task-shortcut"', detail)
+        self.assertIn("10 秒读懂这一页", detail)
+        self.assertIn("预计 30 秒完成", detail)
+        self.assertIn("第一遍不用读完整教练拆解", detail)
+        self.assertIn("只点蓝色按钮", detail)
+        self.assertIn("一键生成今日练习", detail)
+        self.assertIn("下一屏", detail)
+        self.assertIn("回到学习工作台看“今日练习”", detail)
+        self.assertIn("不会自动成交", detail)
+        self.assertIn('class="next-action-cta"', detail)
+        self.assertIn('class="task-action-head task-first-action-head"', detail)
+        self.assertIn(
+            ".task-first-action-head .next-action-cta,.review-first-action-head .review-primary-cta{order:-1}",
+            detail,
+        )
+        self.assertIn("第一次只按这个按钮", detail)
+        self.assertIn("不用看完下面长文", detail)
+        self.assertIn("不用展开进阶草稿", detail)
+        self.assertIn("已完成 1", detail)
+        self.assertIn("你已经从蓝色推荐按钮或入门问题选了一个学习目标", detail)
+        self.assertIn("已完成 2", detail)
+        self.assertIn("系统已经给出示例教练拆解", detail)
+        self.assertIn("先点击“一键生成今日练习”", detail)
+        self.assertIn('class="coach-digest"', detail)
+        self.assertIn("30 秒摘要", detail)
+        self.assertIn("用反转观察理解“规则如何变成练习”", detail)
+        self.assertIn("先看这三件事", detail)
+        self.assertIn("下面是把示例教练长文压缩成的新手读法", detail)
+        self.assertIn("这一关目标", detail)
+        self.assertIn("系统会做", detail)
+        self.assertIn("用反转观察生成小数量模拟练习,不自动成交", detail)
+        self.assertIn("你下一步", detail)
+        self.assertIn("先点页面上方蓝色按钮生成 1 条今日练习", detail)
+        self.assertIn('<div class="mobile-next-bar" role="navigation" aria-label="手机学习任务下一步提示">', detail)
+        self.assertIn("<span>下一步</span><b>生成今日练习</b>", detail)
+        self.assertIn('<a class="btn blue" href="#task-next-action">继续</a>', detail)
+        self.assertLess(detail.index("刚完成 3/6"), detail.index("可选:展开教练拆解全文"))
+        self.assertIn("接下来 3 步", detail)
+        self.assertIn("NOW · 1/3", detail)
+        self.assertIn("生成练习", detail)
+        self.assertIn("TODO · 2/3", detail)
+        self.assertIn("生成观察记录", detail)
+        self.assertIn("TODO · 3/3", detail)
+        self.assertIn("保存复盘", detail)
+        self.assertIn("教练拆解怎么看", detail)
+        self.assertIn("第一次不用逐字读完", detail)
+        self.assertIn("看不懂也能继续", detail)
+        self.assertIn("始终不是投资建议", detail)
+        self.assertIn("可选:展开教练拆解全文", detail)
+        self.assertIn("第一次先按上方按钮一键生成今日练习", detail)
+        self.assertIn('<details class="advanced-practice coach-breakdown">', detail)
+        self.assertNotIn("<h3>教练拆解</h3>", detail)
+        self.assertIn("示例教练拆解", detail)
+        self.assertIn("一键生成今日练习", detail)
+        self.assertIn("会回到学习工作台继续", detail)
+        self.assertEqual(detail.count('class="blue" type="submit">一键生成今日练习</button>'), 1)
+        self.assertIn('id="task-next-action"', detail)
+        self.assertLess(detail.index('id="task-shortcut"'), detail.index('class="task-flow"'))
+        self.assertLess(detail.index("刚完成 3/6"), detail.index("可选:展开教练拆解全文"))
+        self.assertIn('<details class="card advanced-practice task-advanced-settings">', detail)
+        self.assertIn("可选:进阶草稿设置", detail)
+        self.assertIn("第一次不用展开;上方“一键生成今日练习”已经够用", detail)
+        self.assertIn("第一次可以跳过这里", detail)
+        self.assertIn("回到上方生成按钮", detail)
+        self.assertNotIn("已经看懂流程? 展开预览和调参数", detail)
+        self.assertNotIn("第一次使用建议先不要展开", detail)
+        self.assertNotIn('<details class="card advanced-practice task-advanced-settings" open>', detail)
+        self.assertIn("保存当前草稿到今日练习", detail)
+        self.assertIn("还没保存草稿时不要跳到高级模拟盘", detail)
+        self.assertIn("高级模拟盘入口会在完成 6/6 后出现", detail)
+        self.assertNotIn('href="/app"', detail)
+        self.assertNotIn(">进入高级模拟盘</a>", detail)
+        status, _, learn = self.request("GET", "/learn", headers={"Cookie": cookie})
+        self.assertEqual(status, 200)
+        self.assertIn("继续当前学习任务", learn)
+        self.assertIn("小白模式:现在只生成今日练习", learn)
+        self.assertIn("去一键生成今日练习", learn)
+        self.assertIn("不用调参数", learn)
+        self.assertIn("会回这里", learn)
+        self.assertIn("预计 30 秒", learn)
+        self.assertIn("只点一次蓝色按钮,不用改参数", learn)
+        self.assertIn("点完去哪", learn)
+        self.assertIn("自动回到学习工作台的今日练习", learn)
+        self.assertIn("不会成交", learn)
+        self.assertIn('class="task-loop-hint resume-checkpoint"', learn)
+        self.assertIn("回访定位:已完成 3/6", learn)
+        self.assertIn("概念、目标和教练拆解已经完成", learn)
+        self.assertIn("现在只差生成今日练习、生成观察记录、保存复盘", learn)
+        self.assertIn("已经完成 3/6", learn)
+        self.assertIn("学习记录", learn)
+        self.assertIn("日常只看上面的「我的学习轨迹」就够了", learn)
+        self.assertIn("查看高级任务记录", learn)
+        self.assertNotIn("<h2>最近学习任务</h2>", learn)
+        self.assertIn("一键生成今日练习", learn)
+        self.assertIn("回看教练拆解", learn)
+        self.assertIn("下一步不用改参数", learn)
+        self.assertIn('class="next-action-cta"', learn)
+        self.assertIn("只会生成待观察练习", learn)
+        self.assertIn("不会自动成交", learn)
+        self.assertIn("然后回到学习工作台继续", learn)
+        self.assertIn("先完成当前第一圈:生成练习、生成观察记录、保存复盘", learn)
+        self.assertIn("可选:完成当前第一圈后再换关", learn)
+        self.assertIn("当前任务完成复盘前,新题会分散注意力", learn)
+        self.assertIn("当前第一圈先不新建任务", learn)
+        self.assertIn("你已经开始第一次学习闭环", learn)
+        self.assertIn("回到当前任务", learn)
+        self.assertIn('<div class="mobile-next-bar" role="navigation" aria-label="手机下一步提示">', learn)
+        self.assertIn("<span>下一步</span><b>回到当前任务</b>", learn)
+        self.assertIn('<a class="btn blue" href="#continue-learning-task">继续</a>', learn)
+        self.assertIn("不要再开新题", learn)
+        self.assertIn("没有 DeepSeek key 也能完成当前第一圈", learn)
+        self.assertNotIn("现在怎么开始</b><p>先点上面的预设卡片", learn)
+        self.assertIn('<details class="advanced-practice preset-library">', learn)
+        self.assertNotIn('<details class="advanced-practice preset-library" open>', learn)
+        self.assertIn(f'/learn/tasks/{int(task["id"])}', learn)
+        self.assertIn(f'/learn/tasks/{int(task["id"])}/quick-save', learn)
+        self.assertLess(learn.index('id="continue-learning-task"'), learn.index('id="learning-loop"'))
+        self.assertLess(learn.index('id="continue-learning-task"'), learn.index('id="beginner-focus"'))
+        self.assertLess(learn.index('id="beginner-focus"'), learn.index('id="learning-loop"'))
+        self.assertLess(learn.index('id="continue-learning-task"'), learn.index('id="learning-journey"'))
+        self.assertLess(learn.index('id="continue-learning-task"'), learn.index("<h2>新手 AI 学习工作台</h2>"))
+        self.assertLess(learn.index('id="continue-learning-task"'), learn.index("可选:完成当前第一圈后再换关"))
+        self.assertNotIn('id="today-practice"', learn)
+
+        status, headers, _ = self.request(
+            "POST",
+            f"/learn/tasks/{int(task['id'])}/quick-save",
+            body=self.form_body(uid, {}),
+            headers={"Content-Type": "application/x-www-form-urlencoded", "Cookie": cookie},
+        )
+
+        self.assertEqual(status, 303)
+        self.assertIn("/learn?msg=", headers.get("Location", ""))
+        self.assertIn("#today-practice", headers.get("Location", ""))
+        status, _, notice_page = self.request("GET", headers.get("Location", "").split("#", 1)[0], headers={"Cookie": cookie})
+        self.assertEqual(status, 200)
+        self.assertIn('class="msg learning-notice" role="status"', notice_page)
+        self.assertIn("4/6", notice_page)
+        self.assertIn("今日练习已经生成", notice_page)
+        self.assertIn("刚才只是保存了待观察练习,还没有成交", notice_page)
+        self.assertIn('href="#today-practice">去生成观察记录</a>', notice_page)
+        signals = services.practice_signals(self.con, uid)
+        self.assertEqual(len(signals), 1)
+        self.assertEqual(signals[0]["status"], "pending")
+        self.assertEqual(int(signals[0]["learning_task_id"]), int(task["id"]))
+        self.assertEqual(self.con.execute("SELECT COUNT(*) FROM orders").fetchone()[0], 0)
+        status, _, pending_detail = self.request("GET", f"/learn/tasks/{int(task['id'])}", headers={"Cookie": cookie})
+        self.assertEqual(status, 200)
+        self.assertIn("第一次闭环进度: 4/6", pending_detail)
+        self.assertIn("预计 60 秒完成", pending_detail)
+        self.assertIn("今日练习已经生成。不要再保存新草稿", pending_detail)
+        self.assertIn("回学习页", pending_detail)
+        self.assertIn("确认观察材料、练习规模和依据", pending_detail)
+        self.assertIn("生成观察记录后会进入三问复盘", pending_detail)
+        self.assertIn("这关已经生成过今日练习。现在先回学习工作台", pending_detail)
+        self.assertIn("<span>下一步</span><b>生成观察记录</b>", pending_detail)
+        self.assertIn('<a class="btn blue" href="/learn#today-practice">继续</a>', pending_detail)
+        status, _, learn = self.request("GET", "/learn", headers={"Cookie": cookie})
+        self.assertEqual(status, 200)
+        self.assertIn("已完成 4/6", learn)
+        self.assertIn("还剩 2 步,先做当前这一步", learn)
+        self.assertNotIn("继续当前学习任务", learn)
+        self.assertIn("今日练习", learn)
+        self.assertIn("小白模式:现在只生成观察记录", learn)
+        self.assertIn("去生成观察记录", learn)
+        self.assertIn("只点一条", learn)
+        self.assertIn("系统会带你保存三问复盘", learn)
+        self.assertIn("预计 60 秒", learn)
+        self.assertIn("只确认 1 条最上面的练习", learn)
+        self.assertIn("点完去哪", learn)
+        self.assertIn("自动跳到三问复盘,完成最后一步", learn)
+        self.assertIn("可选:完成当前第一圈后再换关", learn)
+        self.assertIn("当前第一圈先不新建任务", learn)
+        self.assertIn('<a class="btn blue" href="#first-practice-card">继续</a>', learn)
+        self.assertIn("<span>下一步</span><b>生成观察记录</b>", learn)
+        self.assertIn("看到 6/6 和一条复盘记录", learn)
+        self.assertNotIn("现在怎么开始</b><p>先点上面的预设卡片", learn)
+        self.assertNotIn('<details class="advanced-practice preset-library" open>', learn)
+        self.assertLess(learn.index('id="today-practice"'), learn.index('id="learning-journey"'))
+        self.assertLess(learn.index('id="today-practice"'), learn.index('id="beginner-focus"'))
+        self.assertLess(learn.index('id="beginner-focus"'), learn.index('id="learning-loop"'))
+        self.assertLess(learn.index('id="today-practice"'), learn.index("<h2>新手 AI 学习工作台</h2>"))
+        self.assertLess(learn.index('id="today-practice"'), learn.index("可选:完成当前第一圈后再换关"))
+        self.assertIn("刚完成 4/6:确认练习后生成观察记录", learn)
+        self.assertIn("今日练习已经生成,但还没有生成观察记录", learn)
+        self.assertIn("学习目标和教练拆解已经变成今日练习", learn)
+        self.assertIn("系统还没有生成模拟观察记录", learn)
+        self.assertLess(learn.index("刚完成 4/6"), learn.index("确认这 1 条模拟练习"))
+        self.assertIn("确认这 1 条模拟练习", learn)
+        self.assertIn("推荐先做这一条", learn)
+        self.assertIn('id="first-practice-card"', learn)
+        self.assertIn('class="practice-focus"', learn)
+        self.assertIn("一句话任务", learn)
+        self.assertIn("看依据 -> 生成观察记录 -> 三问复盘", learn)
+        self.assertIn("不是判断它会不会涨", learn)
+        self.assertIn("第一次只点这一条的蓝色按钮", learn)
+        self.assertIn("回看和取消入口都收在可选区", learn)
+        self.assertIn("观察材料", learn)
+        self.assertIn("练习规模", learn)
+        self.assertIn("观察 100", learn)
+        self.assertIn("小数量,只为训练流程", learn)
+        self.assertIn("可选:查看代码和模拟价", learn)
+        self.assertIn("第一次可以先不展开", learn)
+        self.assertNotIn("参考价格", learn)
+        self.assertNotIn("<strong>买入 100</strong>", learn)
+        self.assertIn("第一次只看三件事", learn)
+        self.assertIn("代码和价格已经收进可选详情", learn)
+        self.assertIn("我为什么观察它?", learn)
+        self.assertLess(learn.index("我为什么观察它?"), learn.index('<button class="blue" type="submit">生成模拟观察记录,去复盘</button>'))
+        self.assertIn('class="practice-ready" aria-label="点按钮前只核对三件事"', learn)
+        self.assertIn("点前只核对 3 件事", learn)
+        self.assertIn("<strong>材料</strong><small>知道这是练习样本", learn)
+        self.assertIn("<strong>规模</strong><small>确认数量很小", learn)
+        self.assertIn("<strong>依据</strong><small>能读懂一句理由", learn)
+        self.assertIn("点完会发生什么?", learn)
+        self.assertIn("这不是现实交易", learn)
+        self.assertIn("确认 1", learn)
+        self.assertIn("我能看懂“为什么观察它”的一句话", learn)
+        self.assertIn("确认 2", learn)
+        self.assertIn("不是现实委托", learn)
+        self.assertIn("确认 3", learn)
+        self.assertIn("自动跳到三问复盘", learn)
+        self.assertIn("第一次只建议生成 1 条观察记录", learn)
+        self.assertIn("其他先留着不动", learn)
+        self.assertIn("生成观察记录", learn)
+        self.assertIn('class="actions practice-primary-action"', learn)
+        self.assertIn(".practice-primary-action form,.practice-primary-action button{width:100%}", learn)
+        self.assertIn(".practice-card .actions,.review-done-actions{display:grid;grid-template-columns:1fr}", learn)
+        self.assertIn(".practice-card .actions form,.practice-card .actions button,.review-done-actions form,.review-done-actions button,.review-next-recommend form,.review-next-recommend button{width:100%}", learn)
+        self.assertIn('<button class="blue" type="submit">生成模拟观察记录,去复盘</button>', learn)
+        self.assertIn('class="practice-action-note">只生成模拟学习记录,不是现实交易。</small>', learn)
+        self.assertIn(".practice-action-note{display:block;margin-top:6px", learn)
+        self.assertLess(learn.index('<button class="blue" type="submit">生成模拟观察记录,去复盘</button>'), learn.index("可选:查看代码和模拟价"))
+        self.assertLess(learn.index('<button class="blue" type="submit">生成模拟观察记录,去复盘</button>'), learn.index("<li><b>确认 1</b>"))
+        self.assertIn('<details class="practice-detail practice-optional-actions">', learn)
+        self.assertIn("可选:回看教练或管理这条练习", learn)
+        self.assertIn("暂不练这条", learn)
+        self.assertNotIn('type="submit">暂不练习</button>', learn)
+        self.assertIn("系统只会生成一条模拟观察记录", learn)
+        self.assertIn("先回答三问并保存复盘,看到 6/6 后再看高级页面", learn)
+        self.assertNotIn("再决定是否进入高级模拟盘看细节", learn)
+        self.assertNotIn("确认,开始模拟观察", learn)
+        self.assertNotIn("系统只会生成模拟成交", learn)
+        self.assertLess(learn.index('id="today-practice"'), learn.index('id="learning-loop"'))
+        self.assertNotIn("我看懂了,开始观察", learn)
+        self.assertNotIn("先点一个就能开始", learn)
+        status, _, detail = self.request("GET", f"/learn/tasks/{int(task['id'])}", headers={"Cookie": cookie})
+        self.assertEqual(status, 200)
+        self.assertIn("今日练习已生成", detail)
+        self.assertIn("第一次闭环进度: 4/6", detail)
+        self.assertIn("还差 2 步:生成观察记录、保存复盘", detail)
+        self.assertIn("回学习页生成观察记录", detail)
+        self.assertIn("回学习页确认后才会生成模拟观察记录", detail)
+        self.assertIn("还没生成记录", detail)
+        self.assertIn("DONE · 1/3", detail)
+        self.assertIn("NOW · 2/3", detail)
+
+    def test_learning_cancelled_practice_returns_to_generate_step(self):
+        uid = services.confirm_wechat_session(self.con, services.create_wechat_session(self.con), "LearnCancelPractice")
+        cookie = f"owq_session={self.sign_cookie(uid)}"
+        task_id = services.create_learning_task(self.con, uid, "学习反转观察", "beginner", "reversal", "教练说明")
+        count = services.create_practice_signals_from_learning_task(
+            self.con,
+            uid,
+            task_id,
+            "学习反转",
+            "reversal",
+            qty="100",
+            limit=1,
+            rationale_note="记录风险",
+        )
+        self.assertEqual(count, 1)
+        signal = services.practice_signals(self.con, uid, status="pending")[0]
+
+        status, headers, _ = self.request(
+            "POST",
+            f"/practice-signals/{int(signal['id'])}/cancel",
+            body=self.form_body(uid, {"next": "/learn#today-practice"}),
+            headers={"Content-Type": "application/x-www-form-urlencoded", "Cookie": cookie},
+        )
+
+        self.assertEqual(status, 303)
+        self.assertIn("/learn?msg=", headers.get("Location", ""))
+        cancelled = services.practice_signals(self.con, uid)[0]
+        self.assertEqual(cancelled["status"], "cancelled")
+        status, _, learn = self.request("GET", "/learn", headers={"Cookie": cookie})
+        self.assertEqual(status, 200)
+        self.assertIn("已完成 3/6", learn)
+        self.assertIn("还剩 3 步,先做当前这一步", learn)
+        self.assertIn("下一步:生成一个练习", learn)
+        self.assertIn("一键生成今日练习", learn)
+        self.assertIn("待生成练习", learn)
+        self.assertIn("练习 0", learn)
+        self.assertNotIn('id="today-practice"', learn)
+        self.assertNotIn("下一步:保存第一次复盘", learn)
+
+    def test_learning_first_button_with_key_uses_sample_task_without_ai_call(self):
+        uid = services.confirm_wechat_session(self.con, services.create_wechat_session(self.con), "LearnKeyFast")
+        cookie = f"owq_session={self.sign_cookie(uid)}"
+        from src.app.ai import service as ai_service
+        ai_service.save_key(
+            self.con,
+            uid,
+            SECRET,
+            "sk-routekey1234567890",
+            "https://api.deepseek.com",
+            "deepseek-v4-flash",
+        )
+
+        with patch("src.app.ai.client.chat_completion", side_effect=AssertionError("first loop should not call AI")):
+            status, headers, _ = self.request(
+                "POST",
+                "/learn/sample-task",
+                body=self.form_body(uid, {"preset": "0", "quick_start": "1"}),
+                headers={"Content-Type": "application/x-www-form-urlencoded", "Cookie": cookie},
+            )
+
+        self.assertEqual(status, 303)
+        self.assertIn("/learn?msg=", headers.get("Location", ""))
+        self.assertIn("#today-practice", headers.get("Location", ""))
+        task = self.con.execute("SELECT * FROM learning_tasks WHERE user_id=?", (uid,)).fetchone()
+        self.assertIsNotNone(task)
+        self.assertIn("示例教练拆解", task["coach_text"])
+        self.assertEqual(task["status"], "signals_saved")
+        self.assertEqual(len(services.practice_signals(self.con, uid, status="pending")), 1)
+        self.assertEqual(self.con.execute("SELECT COUNT(*) FROM ai_usage WHERE user_id=?", (uid,)).fetchone()[0], 0)
 
     def test_learning_coach_creates_task_with_mock_deepseek(self):
         uid = services.confirm_wechat_session(self.con, services.create_wechat_session(self.con), "LearnCoach")
@@ -1250,7 +2024,37 @@ class ServerRoutesTest(unittest.TestCase):
         from src.app.ai import service as ai_service
         ai_service.save_key(self.con, uid, SECRET, "sk-routekey1234567890",
                             "https://api.deepseek.com", "deepseek-v4-flash")
-        answer = {"text": "目标拆解\n1. 先理解数据。\n2. 再做模拟盘草稿。", "usage": {"total_tokens": 18}, "model": "deepseek-v4-flash"}
+        status, _, learn = self.request("GET", "/learn", headers={"Cookie": cookie})
+        self.assertEqual(status, 200)
+        self.assertIn("AI key 已配置,第一圈仍建议用推荐任务", learn)
+        self.assertNotIn('<a href="/account/ai">AI教练</a>', learn)
+        self.assertNotIn('<a href="/account/ai">AI教练(稍后)</a>', learn)
+        self.assertIn("AI 教练已配置,但第一圈蓝色按钮仍先用内置示例教练", learn)
+        self.assertIn("更快完成闭环", learn)
+        self.assertIn("第一次先不要自己写提示词", learn)
+        self.assertIn("可选:自己写学习目标", learn)
+        self.assertIn('<details class="advanced-practice custom-ai-goal">', learn)
+        self.assertNotIn('<details class="advanced-practice custom-ai-goal" open>', learn)
+        self.assertNotIn("创建自定义 AI 学习任务", learn)
+        self.assertIn("点击后发生什么", learn)
+        self.assertIn("创建示例教练任务,并直接准备 1 条今日练习", learn)
+        self.assertIn("安全边界", learn)
+        self.assertIn("现在只做一件事", learn)
+        self.assertIn("一键开始第一关", learn)
+        self.assertIn('action="/learn/sample-task"', learn)
+        self.assertIn('name="preset" value="0"', learn)
+        self.assertIn('action="/learn/coach"', learn)
+        self.assertIn("推荐第一关", learn)
+        self.assertIn("点这里创建学习任务", learn)
+        self.assertIn('textarea name="goal"', learn)
+        self.assertIn("让 AI 拆解目标</button>", learn)
+        self.assertLess(learn.index("一键开始第一关"), learn.index("可选:自己写学习目标"))
+        self.assertLess(learn.index('action="/learn/sample-task"'), learn.index("可选:自己写学习目标"))
+        answer = {
+            "text": "### 目标拆解\n1. 先理解数据。\n2. 再做模拟盘草稿。\n\n|概念|用途|\n|---|---|\n|数据|练习材料|\n\n> 先做模拟,不要当成买卖建议。",
+            "usage": {"total_tokens": 18},
+            "model": "deepseek-v4-flash",
+        }
 
         with patch("src.app.ai.client.chat_completion", return_value=answer):
             status, headers, _ = self.request(
@@ -1262,6 +2066,8 @@ class ServerRoutesTest(unittest.TestCase):
 
         self.assertEqual(status, 303)
         self.assertIn("/learn/tasks/", headers.get("Location", ""))
+        self.assertIn("AI 教练已完成目标拆解", unquote(headers.get("Location", "")))
+        self.assertIn("下一步点击“一键生成今日练习”", unquote(headers.get("Location", "")))
         task = self.con.execute("SELECT * FROM learning_tasks WHERE user_id=?", (uid,)).fetchone()
         self.assertIsNotNone(task)
         self.assertEqual(task["template"], "reversal")
@@ -1273,7 +2079,53 @@ class ServerRoutesTest(unittest.TestCase):
         status, _, detail = self.request("GET", f"/learn/tasks/{task_id}", headers={"Cookie": cookie})
         self.assertEqual(status, 200)
         self.assertIn("markdown-body", detail)
+        self.assertIn("<h3>目标拆解</h3>", detail)
         self.assertIn("<ol>", detail)
+        self.assertIn('class="markdown-table"', detail)
+        self.assertIn('class="learning-mobile-table markdown-mobile-table"', detail)
+        self.assertIn("<th>概念</th>", detail)
+        self.assertIn('data-label="用途">练习材料</td>', detail)
+        self.assertIn("<blockquote>先做模拟,不要当成买卖建议。</blockquote>", detail)
+        self.assertIn("30 秒摘要", detail)
+        self.assertIn("下面是把AI 教练长文压缩成的新手读法", detail)
+        self.assertIn("你已经选了目标,也拿到了AI 教练拆解", detail)
+        self.assertIn("系统已经给出AI 教练拆解", detail)
+        self.assertNotIn("你已经选了目标,也拿到了示例教练拆解", detail)
+
+    def test_learning_coach_provider_failure_falls_back_to_sample_task(self):
+        uid = services.confirm_wechat_session(self.con, services.create_wechat_session(self.con), "LearnCoachFallback")
+        cookie = f"owq_session={self.sign_cookie(uid)}"
+        from src.app.ai import client as ai_client
+        from src.app.ai import service as ai_service
+        ai_service.save_key(self.con, uid, SECRET, "sk-routekey1234567890",
+                            "https://api.deepseek.com", "deepseek-v4-flash")
+
+        with patch("src.app.ai.client.chat_completion", side_effect=ai_client.ProviderError("network", category="network")):
+            status, headers, _ = self.request(
+                "POST",
+                "/learn/coach",
+                body=self.form_body(uid, {"goal": "我想学习低风险量化练习", "difficulty": "beginner", "template": "reversal"}),
+                headers={"Content-Type": "application/x-www-form-urlencoded", "Cookie": cookie},
+            )
+
+        self.assertEqual(status, 303)
+        self.assertIn("/learn/tasks/", headers.get("Location", ""))
+        self.assertIn("AI%20%E6%95%99%E7%BB%83%E6%9A%82%E6%97%B6%E4%B8%8D%E5%8F%AF%E7%94%A8", headers.get("Location", ""))
+        task = self.con.execute("SELECT * FROM learning_tasks WHERE user_id=?", (uid,)).fetchone()
+        self.assertIsNotNone(task)
+        self.assertEqual(task["template"], "reversal")
+        self.assertIn("AI 教练暂时不可用,先用示例教练继续", task["coach_text"])
+        self.assertIn("示例教练拆解", task["coach_text"])
+        usage = self.con.execute("SELECT status FROM ai_usage WHERE user_id=?", (uid,)).fetchone()
+        self.assertEqual(usage["status"], "error:network")
+
+        status, _, detail = self.request("GET", f"/learn/tasks/{int(task['id'])}", headers={"Cookie": cookie})
+        self.assertEqual(status, 200)
+        self.assertIn("AI 教练暂时不可用,先用示例教练继续", detail)
+        self.assertIn("你已经选了目标,也拿到了示例教练拆解", detail)
+        self.assertIn("刚完成 3/6:点蓝色按钮进入下一步", detail)
+        self.assertIn("一键生成今日练习", detail)
+        self.assertIn("第一次只按这个按钮", detail)
 
     def test_learning_coach_blocks_model_stock_tip(self):
         uid = services.confirm_wechat_session(self.con, services.create_wechat_session(self.con), "LearnTip")
@@ -1298,6 +2150,45 @@ class ServerRoutesTest(unittest.TestCase):
         self.assertIn("触发了合规过滤", page)
         self.assertNotIn("目标价 15", page)
 
+    def test_learn_page_shows_beginner_loop_progress_for_new_user(self):
+        uid = services.confirm_wechat_session(self.con, services.create_wechat_session(self.con), "LearnProgressNew")
+        cookie = f"owq_session={self.sign_cookie(uid)}"
+
+        status, _, learn = self.request("GET", "/learn", headers={"Cookie": cookie})
+
+        self.assertEqual(status, 200)
+        self.assertIn("第一次学习闭环", learn)
+        self.assertIn("已完成 0/6", learn)
+        self.assertIn("预计 3-5 分钟跑完第一次闭环", learn)
+        self.assertIn("NOW · 1/6", learn)
+        self.assertIn("下一步:先记住一句话,再点按钮", learn)
+        self.assertIn("量化学习不是让 AI 告诉你买什么", learn)
+        self.assertIn("AI 在这里做什么", learn)
+        self.assertIn("第一次只做什么", learn)
+        self.assertIn("看完,点蓝色推荐按钮", learn)
+        self.assertIn("第一步:先懂一句话,再一键开始", learn)
+        self.assertIn("30 秒先懂一句话", learn)
+        self.assertIn("量化投资不是猜涨跌", learn)
+        self.assertIn("AI 在这里像教练", learn)
+        self.assertIn("现在只做一件事", learn)
+        self.assertIn("先记住一句话:量化投资不是猜涨跌", learn)
+        self.assertIn(".starter-fast-path form,.starter-fast-path button", learn)
+        self.assertIn('action="/learn/sample-task"', learn)
+        self.assertIn('name="preset" value="0"', learn)
+        self.assertIn('name="quick_start" value="1"', learn)
+        self.assertIn("创建示例教练任务,并直接准备 1 条今日练习", learn)
+        self.assertIn("下一步只确认观察材料", learn)
+        self.assertNotIn('href="#starter-choice-recommended"', learn)
+        self.assertIn('<details class="advanced-practice preset-library">', learn)
+        self.assertIn("可选:展开新手关卡地图", learn)
+        self.assertIn("第 1 关 · 先懂概念", learn)
+        self.assertIn("第 2 关 · 做一次观察", learn)
+        self.assertIn("第 3 关 · 风险和复盘", learn)
+        self.assertLess(learn.index("一键开始第一关"), learn.index("30 秒先懂一句话"))
+        self.assertLess(learn.index("一键开始第一关"), learn.index("可选:展开新手关卡地图"))
+        self.assertIn("推荐第一关", learn)
+        self.assertLess(learn.index('id="learn-presets"'), learn.index('id="learning-loop"'))
+
     def test_learning_task_preview_does_not_write_trading_state(self):
         uid = services.confirm_wechat_session(self.con, services.create_wechat_session(self.con), "LearnPreview")
         cookie = f"owq_session={self.sign_cookie(uid)}"
@@ -1313,6 +2204,24 @@ class ServerRoutesTest(unittest.TestCase):
 
         self.assertEqual(status, 200)
         self.assertIn("草稿预览", page)
+        self.assertIn('<details class="card advanced-practice task-advanced-settings" open>', page)
+        self.assertIn("观察动作", page)
+        self.assertIn('<table class="learning-mobile-table">', page)
+        self.assertIn('data-label="代码"', page)
+        self.assertIn('data-label="依据"', page)
+        self.assertIn("模拟观察数量", page)
+        self.assertIn("观察 100", page)
+        self.assertIn("不是买卖指令", page)
+        self.assertIn("这只是模拟观察依据,不是买卖建议", page)
+        self.assertNotIn("duckdb:none:tushare", page)
+        self.assertNotIn("来源 duckdb", page)
+        self.assertNotIn("<th>方向</th>", page)
+        self.assertNotIn("<th>数量</th>", page)
+        self.assertNotIn("<td>买入</td>", page)
+        self.assertIn("保存当前草稿到今日练习", page)
+        self.assertIn("还没保存草稿时不要跳到高级模拟盘", page)
+        self.assertIn("高级模拟盘入口会在完成 6/6 后出现", page)
+        self.assertNotIn('href="/app"', page)
         self.assertEqual(self.con.execute("SELECT COUNT(*) FROM practice_signals WHERE user_id=?", (uid,)).fetchone()[0], 0)
         self.assertEqual(self.con.execute("SELECT COUNT(*) FROM orders").fetchone()[0], 0)
         self.assertEqual(services.portfolio_snapshot(self.con, uid)["cash"], before_cash)
@@ -1325,20 +2234,617 @@ class ServerRoutesTest(unittest.TestCase):
         status, headers, _ = self.request(
             "POST",
             f"/learn/tasks/{task_id}/save-signals",
-            body=self.form_body(uid, {"template": "momentum", "qty": "100", "limit": "2", "strategy_name": "学习动量", "rationale_note": "记录假设"}),
+            body=self.form_body(uid, {"template": "momentum", "qty": "100", "limit": "2", "strategy_name": "学习动量", "rationale_note": "记录想练什么"}),
             headers={"Content-Type": "application/x-www-form-urlencoded", "Cookie": cookie},
         )
 
         self.assertEqual(status, 303)
-        self.assertIn(f"/learn/tasks/{task_id}", headers.get("Location", ""))
+        self.assertIn("/learn?msg=", headers.get("Location", ""))
+        self.assertIn("#today-practice", headers.get("Location", ""))
         signals = services.practice_signals(self.con, uid)
         self.assertEqual(len(signals), 2)
         self.assertTrue(all(s["status"] == "pending" for s in signals))
         self.assertTrue(all(int(s["learning_task_id"]) == task_id for s in signals))
         self.assertEqual(self.con.execute("SELECT COUNT(*) FROM orders").fetchone()[0], 0)
+        status, _, learn = self.request("GET", "/learn", headers={"Cookie": cookie})
+        self.assertEqual(status, 200)
+        self.assertIn("今日练习", learn)
+        self.assertIn("刚完成 4/6:确认练习后生成观察记录", learn)
+        self.assertIn("今日练习已经生成,但还没有生成观察记录", learn)
+        self.assertIn("确认这 1 条模拟练习", learn)
+        self.assertIn('id="first-practice-card"', learn)
+        self.assertIn("一句话任务", learn)
+        self.assertIn("点前只核对 3 件事", learn)
+        self.assertIn("推荐先做这一条", learn)
+        self.assertIn("第一次只点这一条的蓝色按钮", learn)
+        self.assertIn("回看和取消入口都收在可选区", learn)
+        self.assertIn("备用练习", learn)
+        self.assertIn("这是备用练习", learn)
+        self.assertIn("第一次闭环可以先留着不动", learn)
+        self.assertIn("练习规模", learn)
+        self.assertIn("观察 100", learn)
+        self.assertIn("小数量,只为训练流程", learn)
+        self.assertIn("学习重点", learn)
+        self.assertIn("进入三问复盘", learn)
+        self.assertIn("可选:查看代码和模拟价", learn)
+        self.assertIn("第一次可以先不展开", learn)
+        self.assertNotIn("参考价格", learn)
+        self.assertIn("这只是模拟观察依据,不是买卖建议", learn)
+        self.assertLess(learn.index("我为什么观察它?"), learn.index('<button class="blue" type="submit">生成模拟观察记录,去复盘</button>'))
+        self.assertNotIn("duckdb:none:tushare", learn)
+        self.assertNotIn("来源 duckdb", learn)
+        self.assertNotIn("<strong>买入 100</strong>", learn)
+        self.assertIn("第一次只看三件事", learn)
+        self.assertIn("代码和价格已经收进可选详情", learn)
+        self.assertIn("第一次只建议生成 1 条观察记录", learn)
+        self.assertIn("点蓝色按钮后会自动跳到三问复盘", learn)
+        self.assertIn("生成观察记录", learn)
+        self.assertIn("其他先留着不动", learn)
+        self.assertIn("可选:回看教练或管理这条练习", learn)
+        self.assertIn("暂不练这条", learn)
+        self.assertNotIn('type="submit">暂不练习</button>', learn)
+        self.assertIn("来自你的学习任务", learn)
+        self.assertIn("已完成 4/6", learn)
+        self.assertIn("下一步:生成观察记录", learn)
+        self.assertIn("去今日练习", learn)
+        self.assertLess(learn.index('id="today-practice"'), learn.index('id="learning-loop"'))
         status, _, app = self.request("GET", "/app", headers={"Cookie": cookie})
         self.assertEqual(status, 200)
         self.assertIn("来自学习任务", app)
+
+    def test_learning_today_practice_can_execute_from_learn_page(self):
+        uid = services.confirm_wechat_session(self.con, services.create_wechat_session(self.con), "LearnExecute")
+        cookie = f"owq_session={self.sign_cookie(uid)}"
+        task_id = services.create_learning_task(self.con, uid, "学习反转观察", "beginner", "reversal", "教练说明")
+        count = services.create_practice_signals_from_learning_task(
+            self.con,
+            uid,
+            task_id,
+            "学习反转",
+            "reversal",
+            qty="100",
+            limit=1,
+            rationale_note="记录风险",
+        )
+        self.assertEqual(count, 1)
+        signal = services.practice_signals(self.con, uid, status="pending")[0]
+
+        status, headers, _ = self.request(
+            "POST",
+            f"/practice-signals/{int(signal['id'])}/execute",
+            body=self.form_body(uid, {"next": "/learn#learning-review"}),
+            headers={"Content-Type": "application/x-www-form-urlencoded", "Cookie": cookie},
+        )
+
+        self.assertEqual(status, 303)
+        location = headers.get("Location", "")
+        self.assertIn("/learn?msg=", location)
+        self.assertIn("#learning-review", location)
+        decoded_location = unquote(location)
+        self.assertIn("模拟观察记录已生成", decoded_location)
+        self.assertIn("不是现实交易", decoded_location)
+        self.assertNotIn("系统已生成一笔模拟成交", decoded_location)
+        status, _, notice_page = self.request("GET", location.split("#", 1)[0], headers={"Cookie": cookie})
+        self.assertEqual(status, 200)
+        self.assertIn('class="msg learning-notice" role="status"', notice_page)
+        self.assertIn("5/6", notice_page)
+        self.assertIn("观察记录已经生成", notice_page)
+        self.assertIn("现在不用判断赚亏,先一键完成 6/6 并保存示例复盘", notice_page)
+        self.assertIn("系统只记录了一次模拟观察,不是现实交易", notice_page)
+        self.assertNotIn("系统已生成一笔模拟成交", notice_page)
+        self.assertIn('href="#learning-review">完成 6/6</a>', notice_page)
+        self.assertEqual(self.con.execute("SELECT COUNT(*) FROM orders").fetchone()[0], 1)
+        executed = services.practice_signals(self.con, uid)[0]
+        self.assertEqual(executed["status"], "executed")
+        status, _, learn = self.request("GET", "/learn", headers={"Cookie": cookie})
+        self.assertEqual(status, 200)
+        self.assertNotIn('type="submit">开始观察', learn)
+        self.assertIn("观察复盘", learn)
+        self.assertEqual(learn.count("<h2>观察复盘</h2>"), 1)
+        self.assertNotIn("复盘已经保存。你已经完成 6/6", learn)
+        self.assertLess(learn.index('id="learning-review"'), learn.index('id="learning-journey"'))
+        self.assertLess(learn.index('id="learning-review"'), learn.index("<h2>新手 AI 学习工作台</h2>"))
+        self.assertIn("你已经生成了一条模拟观察记录", learn)
+        self.assertIn("小白模式:最后 30 秒完成 6/6", learn)
+        self.assertIn("去完成 6/6", learn)
+        self.assertIn("完成标志", learn)
+        self.assertIn("页面显示 6/6 和学习徽章", learn)
+        self.assertIn("刚完成 5/6:最后一步保存复盘", learn)
+        self.assertIn("模拟观察记录已经生成。现在不用判断赚亏", learn)
+        self.assertIn("目标、教练拆解、今日练习和观察记录已经串起来", learn)
+        self.assertIn("保存“想练什么、有没有按规则做、下次改哪里”三句话,就解锁 6/6", learn)
+        self.assertIn("预计 30 秒", learn)
+        self.assertIn("直接点一键完成 6/6 也可以", learn)
+        self.assertIn("完成标志", learn)
+        self.assertIn("页面出现 6/6 和第一枚学习徽章", learn)
+        self.assertIn("可以停下", learn)
+        self.assertIn('class="review-unlock" aria-label="保存复盘后会看到什么"', learn)
+        self.assertIn("点完马上看到", learn)
+        self.assertIn("已完成 6/6、第一枚学习徽章和学习轨迹", learn)
+        self.assertIn("不用会分析", learn)
+        self.assertIn("示例复盘会先帮你留下三句大白话", learn)
+        self.assertIn("今天可停", learn)
+        self.assertIn("第一圈已经达标,不必马上进高级模拟盘", learn)
+        self.assertIn('class="review-template-note"', learn)
+        self.assertIn("系统会先保存这三句话", learn)
+        self.assertIn("我想练什么、有没有按小数量规则做、下次先改哪一点", learn)
+        self.assertIn("之后可以改成自己的话", learn)
+        self.assertLess(learn.index("最后 30 秒"), learn.index("刚完成 5/6"))
+        self.assertIn("先完成第一次复盘", learn)
+        self.assertIn("已生成观察记录", learn)
+        self.assertIn("第一次复盘不用判断涨跌", learn)
+        self.assertIn("不需要 AI key", learn)
+        self.assertIn("第一次复盘不用写专业分析", learn)
+        self.assertIn("点击后就完成 6/6", learn)
+        self.assertIn("最后 30 秒:点一下完成 6/6", learn)
+        self.assertIn("先点“一键完成 6/6 并保存示例复盘”留下示例记录", learn)
+        self.assertNotIn("先点右侧按钮", learn)
+        self.assertIn('class="review-primary-cta"', learn)
+        self.assertIn('class="review-focus-head review-first-action-head"', learn)
+        self.assertIn(".review-first-action-head .review-primary-cta{order:-1}", learn)
+        self.assertIn("点这个按钮就完成 6/6", learn)
+        self.assertIn("不调用 AI", learn)
+        self.assertIn("一键完成 6/6 并保存示例复盘", learn)
+        self.assertLess(learn.index("一键完成 6/6 并保存示例复盘"), learn.index("刚完成 5/6"))
+        self.assertLess(learn.index("一键完成 6/6 并保存示例复盘"), learn.index("想自己写? 展开手写三句话"))
+        self.assertIn("想自己写? 展开手写三句话", learn)
+        self.assertIn("第一次可以直接点上面的示例复盘", learn)
+        self.assertIn('<details class="manual-reflection">', learn)
+        self.assertNotIn('<details class="manual-reflection" open>', learn)
+        self.assertIn("只写三句大白话就够了", learn)
+        self.assertIn("观察材料", learn)
+        self.assertIn("练习规模", learn)
+        self.assertIn("观察 100", learn)
+        self.assertIn("可选:查看代码和模拟记录价", learn)
+        self.assertIn("复盘先写三句大白话", learn)
+        self.assertIn("模拟记录价", learn)
+        self.assertNotIn("模拟生成价", learn)
+        self.assertIn("这只是模拟观察依据,不是买卖建议", learn)
+        self.assertNotIn("duckdb:none:tushare", learn)
+        self.assertNotIn("来源 duckdb", learn)
+        self.assertIn("复盘焦点", learn)
+        self.assertIn("先写三问", learn)
+        self.assertIn("先不判断涨跌", learn)
+        self.assertNotIn("模拟动作", learn)
+        self.assertNotIn("<strong>买入 100</strong>", learn)
+        self.assertNotIn("价格变化", learn)
+        self.assertIn("我这次到底想练什么", learn)
+        self.assertIn("我有没有按小数量和边界规则做", learn)
+        self.assertIn("下次我先改哪一个小动作", learn)
+        self.assertIn("1. 我这次想练什么", learn)
+        self.assertIn("2. 我有没有按小数量规则做", learn)
+        self.assertIn("3. 下次先改哪一点", learn)
+        self.assertNotIn("1. 我的观察假设", learn)
+        self.assertNotIn("2. 我是否按计划执行", learn)
+        self.assertIn('<details class="advanced-practice review-optional-actions">', learn)
+        self.assertIn("可选:AI 复盘和高级入口", learn)
+        self.assertIn("第一次先不用展开;先点上方蓝色复盘按钮", learn)
+        self.assertIn("AI 复盘和高级模拟盘都不是完成第一圈的前置条件", learn)
+        self.assertNotIn("查看高级模拟盘细节", learn)
+        self.assertNotIn('href="/app"', learn)
+        self.assertIn("可选:配置 AI 教练复盘", learn)
+        self.assertIn("配置 AI 教练复盘", learn)
+        self.assertIn("保存我的复盘", learn)
+        self.assertIn("已完成 5/6", learn)
+        self.assertIn("还剩 1 步,先做当前这一步", learn)
+        self.assertIn("下一步:保存第一次复盘", learn)
+        self.assertIn("去完成 6/6", learn)
+        self.assertIn("<span>下一步</span><b>保存复盘</b>", learn)
+        self.assertIn('<a class="btn blue" href="#learning-review">继续</a>', learn)
+        self.assertLess(learn.index('id="learning-review"'), learn.index('id="learning-loop"'))
+        self.assertLess(learn.index('id="learning-review"'), learn.index('id="beginner-focus"'))
+        self.assertLess(learn.index('id="beginner-focus"'), learn.index('id="learning-loop"'))
+        status, _, detail = self.request("GET", f"/learn/tasks/{task_id}", headers={"Cookie": cookie})
+        self.assertEqual(status, 200)
+        self.assertIn("第一次闭环进度: 5/6", detail)
+        self.assertIn("还差 1 步:保存三问复盘", detail)
+        self.assertIn("预计 30 秒完成", detail)
+        self.assertIn("现在不用判断赚亏,也不用读完教练全文", detail)
+        self.assertIn("只回学习页保存三问复盘", detail)
+        self.assertIn("不用看涨跌", detail)
+        self.assertIn("保存后会出现 6/6 和学习徽章", detail)
+
+        status, headers, _ = self.request(
+            "POST",
+            "/learn/reflections/quick-save",
+            body=self.form_body(uid, {"practice_signal_id": str(int(signal["id"]))}),
+            headers={"Content-Type": "application/x-www-form-urlencoded", "Cookie": cookie},
+        )
+
+        self.assertEqual(status, 303)
+        self.assertIn("/learn?msg=", headers.get("Location", ""))
+        self.assertIn("#learning-review", headers.get("Location", ""))
+        self.assertIn("6/6", headers.get("Location", ""))
+        status, _, notice_page = self.request("GET", headers.get("Location", "").split("#", 1)[0], headers={"Cookie": cookie})
+        self.assertEqual(status, 200)
+        self.assertIn('class="msg learning-notice" role="status"', notice_page)
+        self.assertIn("6/6", notice_page)
+        self.assertIn("第一次学习闭环完成", notice_page)
+        self.assertIn("今天可以停在这里", notice_page)
+        self.assertIn('href="#learning-journey">查看学习轨迹</a>', notice_page)
+        reflection = services.learning_reflection_for_signal(self.con, uid, int(signal["id"]))
+        self.assertIn("示例:我这次想练的是", reflection["hypothesis"])
+        status, _, learn = self.request("GET", "/learn", headers={"Cookie": cookie})
+        self.assertEqual(status, 200)
+        self.assertIn("第一次学习闭环完成", learn)
+        self.assertIn('<a href="/learn#learning-loop">当前进度</a>', learn)
+        self.assertIn('<a href="/learn#learning-journey">学习轨迹</a>', learn)
+        self.assertIn('<a href="/app">高级模拟盘</a>', learn)
+        self.assertIn("学习成果", learn)
+        self.assertEqual(learn.count("<h2>学习成果</h2>"), 1)
+        self.assertIn("复盘已经保存。你已经完成 6/6", learn)
+        self.assertNotIn("你已经生成了一条模拟观察记录。第一次复盘不用判断涨跌", learn)
+        self.assertIn("你已经解锁 6/6", learn)
+        self.assertIn("第一枚学习徽章已解锁", learn)
+        self.assertNotIn('<div class="mobile-next-bar" role="navigation" aria-label="手机下一步提示">', learn)
+        self.assertNotIn('class="mobile-next-spacer"', learn)
+        self.assertIn("第一枚学习徽章:把想法变成可复盘练习", learn)
+        self.assertIn("提出目标、生成练习、生成观察记录、保存复盘", learn)
+        self.assertIn("查看我的学习轨迹", learn)
+        self.assertIn("已保存复盘", learn)
+        self.assertIn("第一次复盘已保存", learn)
+        self.assertIn("已完成复盘", learn)
+        self.assertNotIn("已生成观察记录", learn)
+        self.assertNotIn("先完成第一次复盘", learn)
+        self.assertIn("练习规模", learn)
+        self.assertIn("观察 100", learn)
+        self.assertIn("复盘焦点", learn)
+        self.assertNotIn("<strong>买入 100</strong>", learn)
+        self.assertNotIn("价格变化", learn)
+        self.assertIn("示例:我这次想练的是", learn)
+        self.assertIn("想修改自己的三句话? 展开手写复盘", learn)
+        self.assertIn("你刚完成了第一次学习闭环", learn)
+        self.assertIn("今天的第一圈已经达标,现在可以停在这里", learn)
+        self.assertLess(learn.index("你刚完成了第一次学习闭环"), learn.index("观察材料"))
+        self.assertLess(learn.index("你刚完成了第一次学习闭环"), learn.index("模拟记录价"))
+        self.assertLess(learn.index("今天的第一圈已经达标"), learn.index("查看 6/6 成就"))
+        self.assertIn("你完成了什么", learn)
+        self.assertIn("复盘不是猜对错", learn)
+        self.assertIn("想练什么、有没有按规则做、下次改哪一点", learn)
+        self.assertIn("查看 6/6 成就", learn)
+        self.assertIn('<details class="advanced-practice review-next-recommend">', learn)
+        self.assertIn("可选:展开第二关建议", learn)
+        self.assertIn("今天可以先停在这里;想巩固时再打开", learn)
+        self.assertIn('id="next-visit-mission"', learn)
+        self.assertIn("下次回来只做 3 分钟第二关", learn)
+        self.assertIn("下次回来不要重新研究菜单", learn)
+        self.assertIn("同样的小数量,换一个观察角度", learn)
+        self.assertIn("可选任务,不影响今天已经完成的 6/6", learn)
+        self.assertIn("回来先点哪里", learn)
+        self.assertIn("学习轨迹会多一条对照记录", learn)
+        self.assertLess(learn.index("现在可以停在这里"), learn.index("下次回来只做 3 分钟第二关"))
+        mission_idx = learn.index('id="next-visit-mission"')
+        self.assertLess(mission_idx, learn.index("<summary>可选:展开第二关建议", mission_idx))
+        self.assertNotIn('<details class="advanced-practice review-next-recommend" open>', learn)
+        self.assertIn("可选第二关: 做一次动量观察", learn)
+        self.assertIn("今天第一圈已经达标,不用马上继续", learn)
+        self.assertIn("可选:创建第二关", learn)
+        self.assertNotIn("开始推荐下一关", learn)
+        self.assertIn("第一圈已完成,AI key 是可选升级", learn)
+        self.assertIn("配置 AI key 只是为了写自定义目标和 AI 复盘", learn)
+        self.assertIn("不配置 key 也能继续使用示例教练和模拟练习", learn)
+        self.assertIn("配置 AI 教练(可选)", learn)
+        self.assertNotIn("现在怎么开始</b><p>先点上面的预设卡片", learn)
+        self.assertNotIn("第一圈不用 DeepSeek key", learn)
+        self.assertIn('name="preset" value="4"', learn)
+        self.assertIn("已完成 6/6", learn)
+        self.assertIn("第一次闭环已完成", learn)
+        self.assertNotIn("刚完成 5/6:最后一步保存复盘", learn)
+        status, _, detail = self.request("GET", f"/learn/tasks/{task_id}", headers={"Cookie": cookie})
+        self.assertEqual(status, 200)
+        self.assertIn("第一次闭环进度: 6/6", detail)
+        self.assertIn("第一次闭环已经完成", detail)
+        self.assertIn("10 秒回看这一关", detail)
+        self.assertIn("这一关已经完成。现在不用继续点交易相关按钮", detail)
+        self.assertIn("今天可以停在这里", detail)
+        self.assertIn("第一圈已经达标,不需要马上开新题", detail)
+
+        status, headers, _ = self.request(
+            "POST",
+            "/learn/reflections",
+            body=self.form_body(
+                uid,
+                {
+                    "practice_signal_id": str(int(signal["id"])),
+                    "hypothesis": "我想验证反转观察只是一条学习假设。",
+                    "execution_check": "数量按计划执行,没有临时加仓。",
+                    "adjustment": "下次先比较两个候选再观察。",
+                },
+            ),
+            headers={"Content-Type": "application/x-www-form-urlencoded", "Cookie": cookie},
+        )
+
+        self.assertEqual(status, 303)
+        self.assertIn("/learn?msg=", headers.get("Location", ""))
+        self.assertIn("#learning-review", headers.get("Location", ""))
+        self.assertIn("6/6", headers.get("Location", ""))
+        reflection = services.learning_reflection_for_signal(self.con, uid, int(signal["id"]))
+        self.assertEqual(reflection["hypothesis"], "我想验证反转观察只是一条学习假设。")
+        status, _, learn = self.request("GET", "/learn", headers={"Cookie": cookie})
+        self.assertEqual(status, 200)
+        self.assertIn("已保存复盘", learn)
+        self.assertIn("第一次复盘已保存", learn)
+        self.assertIn("已完成复盘", learn)
+        self.assertNotIn("已生成观察记录", learn)
+        self.assertNotIn("先完成第一次复盘", learn)
+        self.assertIn("我想验证反转观察只是一条学习假设", learn)
+        self.assertIn("学习成果", learn)
+        self.assertIn("复盘已经保存。你已经完成 6/6", learn)
+        self.assertNotIn("你已经开始了一次模拟观察。第一次复盘不用判断涨跌", learn)
+        self.assertIn("更新复盘", learn)
+        self.assertIn("已完成 6/6", learn)
+        self.assertNotIn("刚完成 5/6:最后一步保存复盘", learn)
+        self.assertIn("今天的第一圈已经达标,现在可以停在这里", learn)
+
+        self.assertIn("第一次学习闭环完成", learn)
+        self.assertIn("第一圈已经达标", learn)
+        self.assertIn("现在可以停在这里", learn)
+        self.assertIn("查看我的学习轨迹", learn)
+        self.assertIn("<summary>可选:展开第二关建议", learn)
+        self.assertIn("今天不用继续;想巩固时再打开", learn)
+        self.assertIn('id="next-visit-mission"', learn)
+        self.assertIn("下次回来只做 3 分钟第二关", learn)
+        self.assertIn("回来先点哪里", learn)
+        self.assertIn("这次只比什么", learn)
+        self.assertIn("继续给你什么反馈", learn)
+        self.assertLess(learn.index("现在可以停在这里"), learn.index("下次回来只做 3 分钟第二关"))
+        mission_idx = learn.index('id="next-visit-mission"')
+        self.assertLess(mission_idx, learn.index("<summary>可选:展开第二关建议", mission_idx))
+        self.assertLess(learn.index("查看 6/6 成就"), learn.index("<summary>可选:展开第二关建议", mission_idx))
+        self.assertIn("你刚解锁的不是收益,而是一种学习能力", learn)
+        self.assertIn("会提问题", learn)
+        self.assertIn("会留证据", learn)
+        self.assertIn("会做修正", learn)
+        self.assertIn("可选:开始第二关", learn)
+        self.assertIn("为什么是第二关?", learn)
+        self.assertIn("这次重点看什么?", learn)
+        self.assertIn("第一圈已完成,可以先停在这里", learn)
+        self.assertIn("想巩固时再开第二关动量对照", learn)
+        self.assertNotIn("开始第二关动量对照实验", learn)
+        self.assertIn("第二关怎么比较?", learn)
+        self.assertIn("上一关是什么?", learn)
+        self.assertIn("下一关比什么?", learn)
+        self.assertIn("带走一句话", learn)
+        self.assertIn("你已经掌握的 3 个动作", learn)
+        self.assertIn("下一关不是从零开始", learn)
+        self.assertIn("把问题变成目标", learn)
+        self.assertIn("把目标变成模拟练习", learn)
+        self.assertIn("把结果变成复盘", learn)
+        self.assertIn("我的学习轨迹", learn)
+        self.assertIn("学习轨迹摘要", learn)
+        self.assertIn("下次回来先看这里", learn)
+        self.assertIn("journey-summary-takeaway", learn)
+        self.assertIn("下一步建议", learn)
+        self.assertIn("可选:查看第二关建议", learn)
+        self.assertIn('href="#learning-loop">可选:查看第二关建议</a>', learn)
+        self.assertIn("已完成复盘", learn)
+        self.assertIn("练过的模板", learn)
+        self.assertIn("累计练习计划", learn)
+        self.assertIn("第 1 关", learn)
+        self.assertIn("已复盘", learn)
+        self.assertIn("回看拆解", learn)
+        self.assertIn("这一关下次想改", learn)
+        self.assertIn("下次先比较两个候选再观察", learn)
+        self.assertIn("下一关推荐", learn)
+        self.assertIn("可选第二关: 换一种策略练习", learn)
+        self.assertIn("第三关: 先补风险边界", learn)
+        self.assertIn("第四关: 学会复盘模拟盘", learn)
+        self.assertIn("创建示例任务", learn)
+        self.assertIn('action="/learn/next-task/quick-start"', learn)
+        self.assertIn("一键开始第二关并生成练习", learn)
+        self.assertIn('name="preset" value="4"', learn)
+
+        before_ai_usage = self.con.execute("SELECT COUNT(*) FROM ai_usage WHERE user_id=?", (uid,)).fetchone()[0]
+        status, headers, _ = self.request(
+            "POST",
+            "/learn/next-task/quick-start",
+            body=self.form_body(uid, {"preset": "4"}),
+            headers={"Content-Type": "application/x-www-form-urlencoded", "Cookie": cookie},
+        )
+        self.assertEqual(status, 303)
+        next_location = headers.get("Location", "")
+        self.assertIn("/learn?msg=", next_location)
+        self.assertIn("#today-practice", next_location)
+        self.assertIn("第二关已准备好", unquote(next_location))
+        self.assertEqual(self.con.execute("SELECT COUNT(*) FROM ai_usage WHERE user_id=?", (uid,)).fetchone()[0], before_ai_usage)
+        latest_task = self.con.execute("SELECT * FROM learning_tasks WHERE user_id=? ORDER BY id DESC LIMIT 1", (uid,)).fetchone()
+        self.assertEqual(latest_task["template"], "momentum")
+        second_signal = next(
+            s for s in services.practice_signals(self.con, uid, status="pending")
+            if int(s["learning_task_id"]) == int(latest_task["id"])
+        )
+        status, _, learn = self.request("GET", next_location.split("#", 1)[0], headers={"Cookie": cookie})
+        self.assertEqual(status, 200)
+        self.assertIn("我的学习轨迹", learn)
+        self.assertIn("学习轨迹摘要", learn)
+        self.assertIn("第二关已准备好", learn)
+        self.assertIn("刚完成 4/6:确认练习后生成观察记录", learn)
+        self.assertIn("今日练习已经生成", learn)
+        self.assertNotIn("把最新目标生成今日练习", learn)
+        self.assertNotIn(f'href="/learn/tasks/{int(latest_task["id"])}">生成今日练习</a>', learn)
+        self.assertIn("第 2 关", learn)
+        self.assertIn("待观察", learn)
+        self.assertIn("生成观察记录", learn)
+        self.assertIn("下一关已经创建", learn)
+        self.assertIn("可选:继续第二关", learn)
+        self.assertNotIn("回访继续:第 2 关待生成练习", learn)
+        self.assertIn("推荐先做这一条", learn)
+        self.assertIn("确认这 1 条模拟练习", learn)
+        self.assertIn("生成模拟观察记录,去复盘", learn)
+        self.assertIn("不会自动成交", learn)
+        self.assertLess(learn.index('id="today-practice"'), learn.index('id="learning-loop"'))
+        self.assertIn("复盘后的“下次改什么”会留在这里", learn)
+        self.assertIn("这一关下次想改", learn)
+        status, headers, _ = self.request(
+            "POST",
+            f"/practice-signals/{int(second_signal['id'])}/execute",
+            body=self.form_body(uid, {"next": "/learn#learning-review"}),
+            headers={"Content-Type": "application/x-www-form-urlencoded", "Cookie": cookie},
+        )
+        self.assertEqual(status, 303)
+        status, _, learn = self.request("GET", "/learn", headers={"Cookie": cookie})
+        self.assertEqual(status, 200)
+        self.assertIn("先完成待复盘的观察", learn)
+        self.assertIn("第二关对照复盘:先比较,再保存", learn)
+        self.assertIn("一键保存对照复盘", learn)
+        self.assertIn("点这个按钮会保存示例复盘", learn)
+        self.assertIn("不会产生现实交易", learn)
+        self.assertIn('class="review-unlock" aria-label="保存对照复盘后会看到什么"', learn)
+        self.assertIn("这一关变成已复盘,学习轨迹会多一条对照记录", learn)
+        self.assertIn("只比较观察角度、数量边界和上次想改的小动作", learn)
+        self.assertIn("示例复盘只是先占位,之后可以展开改成自己的话", learn)
+        self.assertIn("系统会先保存这三句话", learn)
+        self.assertIn("这次复盘要和上一关比较", learn)
+        self.assertIn("上一关: 反转观察; 这一关: 动量观察", learn)
+        self.assertIn("只比较三件事:候选来源、数量边界、上次想改的小动作有没有用上", learn)
+        self.assertIn("候选怎么来?", learn)
+        self.assertIn("边界是否一样?", learn)
+        self.assertIn("上次想改的小动作", learn)
+        self.assertIn("下次先比较两个候选再观察", learn)
+        self.assertIn("完成第二关对照复盘", learn)
+        self.assertIn("第二关先做对照复盘", learn)
+        self.assertIn("先用对照示例复盘", learn)
+        self.assertIn("想自己写对照? 展开三问", learn)
+        self.assertIn("这一关和上一关的观察角度哪里不同", learn)
+        self.assertIn("上次想改的小动作这次有没有用上", learn)
+
+        status, headers, _ = self.request(
+            "POST",
+            "/learn/reflections/quick-save",
+            body=self.form_body(uid, {"practice_signal_id": str(int(second_signal["id"]))}),
+            headers={"Content-Type": "application/x-www-form-urlencoded", "Cookie": cookie},
+        )
+        self.assertEqual(status, 303)
+        self.assertIn("#learning-review", headers.get("Location", ""))
+        second_reflection = services.learning_reflection_for_signal(self.con, uid, int(second_signal["id"]))
+        self.assertIn("和上一关 反转观察 做对照", second_reflection["hypothesis"])
+        self.assertIn("上次提醒自己", second_reflection["adjustment"])
+        self.assertIn("比较候选来源和边界", second_reflection["adjustment"])
+        status, _, learn = self.request("GET", "/learn", headers={"Cookie": cookie})
+        self.assertEqual(status, 200)
+        self.assertIn("策略视角对照已解锁", learn)
+        self.assertIn("2 VIEW", learn)
+        self.assertIn("第一种视角: 反转观察", learn)
+        self.assertIn("第二种视角: 动量观察", learn)
+        self.assertIn("进入第三关风险边界", learn)
+        self.assertIn("学习才不会只停留在看涨跌", learn)
+        self.assertIn("下次回来只做 3 分钟风险边界", learn)
+        self.assertIn("一键开始第三关风险练习", learn)
+        self.assertIn('action="/learn/next-task/quick-start"', learn)
+        self.assertIn('name="preset" value="6"', learn)
+        self.assertIn("可选:展开第三关建议", learn)
+        self.assertIn("可选第三关: 先补风险边界", learn)
+        self.assertNotIn("一键开始第二关并生成练习", learn)
+
+        before_third_ai_usage = self.con.execute("SELECT COUNT(*) FROM ai_usage WHERE user_id=?", (uid,)).fetchone()[0]
+        status, headers, _ = self.request(
+            "POST",
+            "/learn/next-task/quick-start",
+            body=self.form_body(uid, {"preset": "6"}),
+            headers={"Content-Type": "application/x-www-form-urlencoded", "Cookie": cookie},
+        )
+        self.assertEqual(status, 303)
+        third_location = headers.get("Location", "")
+        self.assertIn("/learn?msg=", third_location)
+        self.assertIn("#today-practice", third_location)
+        self.assertIn("第三关风险边界已准备好", unquote(third_location))
+        self.assertEqual(self.con.execute("SELECT COUNT(*) FROM ai_usage WHERE user_id=?", (uid,)).fetchone()[0], before_third_ai_usage)
+        latest_task = self.con.execute("SELECT * FROM learning_tasks WHERE user_id=? ORDER BY id DESC LIMIT 1", (uid,)).fetchone()
+        self.assertEqual(latest_task["template"], "risk_review")
+        third_signal = next(
+            s for s in services.practice_signals(self.con, uid, status="pending")
+            if int(s["learning_task_id"]) == int(latest_task["id"])
+        )
+        self.assertIn("风险边界一键开始", third_signal["rationale"])
+        status, _, risk_learn = self.request("GET", third_location.split("#", 1)[0], headers={"Cookie": cookie})
+        self.assertEqual(status, 200)
+        self.assertIn("第三关风险边界已准备好", risk_learn)
+        self.assertIn("刚完成 4/6:确认练习后生成观察记录", risk_learn)
+        self.assertIn("风险控制复盘", risk_learn)
+        self.assertIn("生成模拟观察记录,去复盘", risk_learn)
+        status, _, risk_task = self.request("GET", f"/learn/tasks/{int(latest_task['id'])}", headers={"Cookie": cookie})
+        self.assertEqual(status, 200)
+        self.assertIn("风险控制复盘", risk_task)
+        self.assertIn("风险复盘不直接等于买入卖出", risk_task)
+        self.assertIn("第三关只看 3 个风险边界", risk_task)
+        self.assertIn("今日练习已生成", risk_task)
+        self.assertIn("回学习页生成观察记录", risk_task)
+        self.assertIn("这关已经生成过今日练习", risk_task)
+        self.assertIn("不用展开进阶设置", risk_task)
+        self.assertIn("数量边界", risk_task)
+        self.assertIn("回撤边界", risk_task)
+        self.assertIn("停止条件", risk_task)
+        self.assertIn("每个对象只用小数量", risk_task)
+        self.assertIn("系统仍会用一条小数量观察作为材料", risk_task)
+
+    def test_app_guides_zero_beginner_back_to_learning_workspace(self):
+        uid = services.confirm_wechat_session(self.con, services.create_wechat_session(self.con), "AppLearnFirst")
+        cookie = f"owq_session={self.sign_cookie(uid)}"
+
+        status, _, app = self.request("GET", "/app", headers={"Cookie": cookie})
+
+        self.assertEqual(status, 200)
+        self.assertIn('id="app-learning-first"', app)
+        self.assertIn("你现在在高级模拟盘,第一次建议先回学习工作台", app)
+        self.assertIn("回学习工作台选第一个目标", app)
+        self.assertIn('/learn#learn-presets', app)
+        self.assertIn("先不手动下单", app)
+        self.assertIn("学习页会带路", app)
+        self.assertIn("模拟交易", app)
+        self.assertIn('<table class="mobile-card-table"><thead><tr><th>代码</th><th>名称</th><th>价格</th><th>涨跌</th></tr></thead>', app)
+        self.assertIn('data-label="价格"', app)
+        self.assertIn('data-label="状态" colspan="8" class="muted">暂无持仓', app)
+
+        task_id = services.create_learning_task(self.con, uid, "学习反转观察", "beginner", "reversal", "教练说明")
+        status, _, app = self.request("GET", "/app", headers={"Cookie": cookie})
+
+        self.assertEqual(status, 200)
+        self.assertIn("你已经有学习任务,先回学习页生成练习", app)
+        self.assertIn("回学习页生成今日练习", app)
+        self.assertIn('/learn#continue-learning-task', app)
+        self.assertIn(f"/learn/tasks/{task_id}", self.request("GET", "/learn", headers={"Cookie": cookie})[2])
+
+    def test_learning_signal_execute_from_app_redirects_to_review(self):
+        uid = services.confirm_wechat_session(self.con, services.create_wechat_session(self.con), "LearnExecuteFromApp")
+        cookie = f"owq_session={self.sign_cookie(uid)}"
+        task_id = services.create_learning_task(self.con, uid, "学习反转观察", "beginner", "reversal", "教练说明")
+        count = services.create_practice_signals_from_learning_task(
+            self.con,
+            uid,
+            task_id,
+            "学习反转",
+            "reversal",
+            qty="100",
+            limit=1,
+            rationale_note="记录风险",
+        )
+        self.assertEqual(count, 1)
+        signal = services.practice_signals(self.con, uid, status="pending")[0]
+
+        status, _, app = self.request("GET", "/app", headers={"Cookie": cookie})
+        self.assertEqual(status, 200)
+        self.assertIn("来自学习任务的待执行计划", app)
+        self.assertIn("回学习页生成观察记录", app)
+        self.assertIn('name="next" value="/learn#learning-review"', app)
+
+        status, headers, _ = self.request(
+            "POST",
+            f"/practice-signals/{int(signal['id'])}/execute",
+            body=self.form_body(uid, {}),
+            headers={"Content-Type": "application/x-www-form-urlencoded", "Cookie": cookie},
+        )
+
+        self.assertEqual(status, 303)
+        location = headers.get("Location", "")
+        self.assertIn("/learn?msg=", location)
+        self.assertIn("#learning-review", location)
+        self.assertEqual(self.con.execute("SELECT COUNT(*) FROM orders").fetchone()[0], 1)
+        executed = services.practice_signals(self.con, uid)[0]
+        self.assertEqual(executed["status"], "executed")
+        status, _, app = self.request("GET", "/app", headers={"Cookie": cookie})
+        self.assertEqual(status, 200)
+        self.assertIn("学习观察没复盘", app)
+        self.assertIn("回学习页复盘", app)
 
     def test_public_profile_shows_current_holdings_and_recent_orders(self):
         user_id = services.get_or_create_user(self.con, "dev-profile-openid", "ProfileRoute")
@@ -1378,11 +2884,43 @@ class ServerRoutesTest(unittest.TestCase):
         status, headers, payload = self.request("GET", "/auth/email/confirm", headers={"Cookie": confirm_cookie})
         self.assertEqual(status, 200)
         self.assertIn("设置登录账号", payload)
+        self.assertIn("先进入学习工作台", payload)
+        self.assertIn("第一屏先懂一句话,再点蓝色推荐按钮", payload)
+        self.assertIn("不用配置 DeepSeek key", payload)
+        self.assertIn("设置密码后自动进入学习工作台", payload)
+        self.assertIn("现在填什么</b><span>用户名已自动填好,先输入两遍密码", payload)
+        self.assertIn("点完去哪</b><span>自动登录并进入学习工作台", payload)
+        self.assertIn("用户名</b><p>系统已经按邮箱自动填好", payload)
+        self.assertIn("第一次看不懂规则时,先不要改", payload)
+        self.assertIn("密码怎么写</b><p>至少 10 位,同时包含字母和数字", payload)
+        self.assertIn("英文词 + 数字", payload)
+        self.assertIn("确认密码</b><p>把同一个密码再输入一遍", payload)
+        self.assertIn('aria-describedby="login-name-help"', payload)
+        self.assertIn('aria-describedby="password-help"', payload)
+        self.assertIn("已按邮箱自动生成,一般不用改", payload)
+        self.assertIn("不要直接使用页面里的示例格式", payload)
+        self.assertIn('id="email-password-form"', payload)
+        self.assertIn('<div class="mobile-next-bar" role="navigation" aria-label="手机设置密码下一步提示">', payload)
+        self.assertIn("<span>最后一步</span><b>设置密码后自动进入学习工作台</b>", payload)
+        self.assertIn('<a class="btn blue" href="#email-password-form">去设置</a>', payload)
+        self.assertIn("设置密码并进入学习工作台", payload)
+        self.assertNotIn("自动登录进入模拟盘", payload)
         self.assertIn('method="post" action="/auth/email/confirm"', payload)
         self.assertNotIn(token, payload)
         self.assertNotIn("owq_session=", headers.get("Set-Cookie", ""))
         self.assertEqual(self.con.execute("SELECT COUNT(*) FROM users WHERE email='routelogin@example.com'").fetchone()[0], 0)
         self.assertEqual(services.email_login_session_status(self.con, token)["status"], "pending")
+
+        status, headers, _ = self.request(
+            "POST",
+            "/auth/email/confirm",
+            body=urlencode({"login_name": "route-login", "password": "Password1234", "password_confirm": "Password5678"}),
+            headers={"Content-Type": "application/x-www-form-urlencoded", "Cookie": confirm_cookie},
+        )
+        self.assertEqual(status, 303)
+        self.assertIn("/auth/email/confirm?err=", headers.get("Location", ""))
+        self.assertIn("#email-password-form", headers.get("Location", ""))
+        self.assertEqual(self.con.execute("SELECT COUNT(*) FROM users WHERE email='routelogin@example.com'").fetchone()[0], 0)
 
         status, headers, _ = self.request(
             "POST",
@@ -1402,6 +2940,18 @@ class ServerRoutesTest(unittest.TestCase):
         user = self.con.execute("SELECT id, login_name, password_hash FROM users WHERE email='routelogin@example.com'").fetchone()
         self.assertEqual(user["login_name"], "route-login")
         self.assertTrue(user["password_hash"].startswith("pbkdf2_sha256$"))
+        session_cookie = headers.get("Set-Cookie", "").split(";", 1)[0]
+        status, _, learn_after_register = self.request("GET", headers.get("Location", ""), headers={"Cookie": session_cookie})
+        self.assertEqual(status, 200)
+        self.assertIn('class="msg learning-notice" role="status"', learn_after_register)
+        self.assertIn("0/6", learn_after_register)
+        self.assertIn("欢迎来到学习工作台", learn_after_register)
+        self.assertIn("现在不用找菜单、配置 key 或写提示词", learn_after_register)
+        self.assertIn('method="post" action="/learn/sample-task"', learn_after_register)
+        self.assertIn('name="preset" value="0"', learn_after_register)
+        self.assertIn('name="quick_start" value="1"', learn_after_register)
+        self.assertIn('class="btn blue" type="submit">一键开始第一关</button>', learn_after_register)
+        self.assertLess(learn_after_register.index('class="msg learning-notice"'), learn_after_register.index('id="learn-presets"'))
         consent = services.latest_user_consent(self.con, int(user["id"]))
         self.assertIsNotNone(consent)
         self.assertEqual(consent["terms_version"], "2026-06-24")
@@ -1419,6 +2969,14 @@ class ServerRoutesTest(unittest.TestCase):
         self.assertIn("owq_session=", headers.get("Set-Cookie", ""))
 
         cookie = headers.get("Set-Cookie", "").split(";", 1)[0]
+        status, _, learn_after_login = self.request("GET", headers.get("Location", ""), headers={"Cookie": cookie})
+        self.assertEqual(status, 200)
+        self.assertIn('class="msg learning-notice" role="status"', learn_after_login)
+        self.assertIn("0/6", learn_after_login)
+        self.assertIn("欢迎来到学习工作台", learn_after_login)
+        self.assertIn('method="post" action="/learn/sample-task"', learn_after_login)
+        self.assertIn('name="quick_start" value="1"', learn_after_login)
+        self.assertIn('class="btn blue" type="submit">一键开始第一关</button>', learn_after_login)
         status, _, admin = self.request("GET", "/admin", headers={"Cookie": cookie})
         self.assertEqual(status, 200)
         self.assertIn("用户同意记录", admin)
@@ -1427,6 +2985,16 @@ class ServerRoutesTest(unittest.TestCase):
     def test_email_registration_code_sets_password_without_magic_link(self):
         _, payload = self.start_registration(email="code-route@example.com")
         code = self.extract_dev_code(payload)
+
+        status, _, code_entry = self.request("GET", "/auth/email/confirm")
+        self.assertEqual(status, 200)
+        self.assertIn("先输入邮箱里的 8 位注册码", code_entry)
+        self.assertIn("下一页只需要设置用户名和密码", code_entry)
+        self.assertIn("自动进入学习工作台", code_entry)
+        self.assertIn('id="email-code-form"', code_entry)
+        self.assertIn('<div class="mobile-next-bar" role="navigation" aria-label="手机注册码下一步提示">', code_entry)
+        self.assertIn("<span>下一步</span><b>输入邮箱和 8 位注册码</b>", code_entry)
+        self.assertIn('<a class="btn blue" href="#email-code-form">去输入</a>', code_entry)
 
         status, headers, _ = self.request(
             "POST",
@@ -1443,6 +3011,13 @@ class ServerRoutesTest(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertIn("设置登录账号", confirm)
         self.assertIn("邮箱已确认", confirm)
+        self.assertIn("先进入学习工作台", confirm)
+        self.assertIn("第一屏先懂一句话,再点蓝色推荐按钮", confirm)
+        self.assertIn("不用配置 DeepSeek key", confirm)
+        self.assertIn("设置密码后自动进入学习工作台", confirm)
+        self.assertIn("点蓝色推荐按钮开始第一关", confirm)
+        self.assertIn('id="email-password-form"', confirm)
+        self.assertIn("设置密码并进入学习工作台", confirm)
 
         status, headers, _ = self.request(
             "POST",
@@ -1798,6 +3373,11 @@ class ServerRoutesTest(unittest.TestCase):
 
         self.assertEqual(status, 200)
         self.assertIn("验证邮件已发送", payload)
+        self.assertIn("现在去邮箱复制 8 位注册码", payload)
+        self.assertIn("去邮箱复制 8 位数字注册码", payload)
+        self.assertIn("设置密码后自动进入学习工作台", payload)
+        self.assertIn('<div class="mobile-next-bar" role="navigation" aria-label="手机邮箱验证下一步提示">', payload)
+        self.assertIn('<a class="btn blue" href="/auth/email/confirm">去输入</a>', payload)
         sender.assert_called_once()
         row = self.con.execute("SELECT email, sent_at FROM email_login_sessions WHERE email='send@example.com'").fetchone()
         self.assertIsNotNone(row)
@@ -2211,6 +3791,9 @@ class ServerRoutesTest(unittest.TestCase):
             self.assertIn("邮箱注册暂未开放", register)
             self.assertIn("真实发信服务", register)
             self.assertIn("不会用注册申请创建登录态", register)
+            self.assertIn("进入学习工作台", register)
+            self.assertIn("第一屏先懂一句话,再点蓝色推荐按钮", register)
+            self.assertNotIn("进入模拟盘", register)
             self.assertIn('href="/support"', register)
             self.assertNotIn('name="email"', register)
             self.assertNotIn("发送验证邮件", register)
@@ -2279,7 +3862,22 @@ class ServerRoutesTest(unittest.TestCase):
         status, _, login = self.request("GET", "/login")
 
         self.assertEqual(status, 200)
+        self.assertIn("登录后先进入学习工作台", login)
+        self.assertIn("新用户不用先找模拟盘菜单", login)
+        self.assertIn("懂一句话、点一个目标、完成一次模拟练习和三问复盘", login)
+        self.assertIn("已有模拟记录的用户会自动回到高级模拟盘", login)
+        self.assertIn("登录账号", login)
+        self.assertIn("手机上也只填两项", login)
+        self.assertIn("点第一关", login)
+        self.assertIn("无 DeepSeek key 也能开始", login)
+        self.assertIn("完成 6/6", login)
+        self.assertIn("先看 3 分钟示例", login)
+        self.assertIn("还没有账号?邮箱注册", login)
+        self.assertLess(login.index("登录后先进入学习工作台"), login.index("账号密码登录"))
         self.assertIn("账号密码登录", login)
+        self.assertIn("新用户登录后会先进入学习工作台", login)
+        self.assertIn("登录学习工作台", login)
+        self.assertNotIn("登录模拟盘", login)
         self.assertIn("早期测试账号", login)
         self.assertIn('href="/support"', login)
 
@@ -3333,6 +4931,8 @@ class ServerRoutesTest(unittest.TestCase):
         self.assertIn("用户账户概览", admin)
         self.assertIn('action="/admin/users/', admin)
         self.assertIn("暂停", admin)
+        self.assertIn('<table class="mobile-card-table"><thead><tr><th>ID</th><th>用户</th><th>排名</th>', admin)
+        self.assertIn('data-label="操作"', admin)
 
         status, headers, _ = self.request(
             "POST",

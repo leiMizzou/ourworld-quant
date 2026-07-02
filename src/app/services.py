@@ -1622,8 +1622,22 @@ def market_signal_basket_rows(
 
     order = "ASC" if mode == "reversal" else "DESC"
     where = "WHERE price > 0 AND prev_close > 0"
+    params: list = []
     if real_only:
         where += " AND source <> 'demo'"
+    latest_row = con.execute(
+        f"""
+        SELECT MAX(SUBSTR(COALESCE(as_of, ''), 1, 10)) AS latest_date
+        FROM market_prices
+        {where}
+          AND TRIM(COALESCE(as_of, '')) <> ''
+        """
+    ).fetchone()
+    latest_date = str(latest_row["latest_date"] or "").strip() if latest_row else ""
+    if latest_date:
+        where += " AND SUBSTR(COALESCE(as_of, ''), 1, 10)=?"
+        params.append(latest_date)
+    params.append(limit)
     rows = con.execute(
         f"""
         SELECT code, name, price, prev_close, source, as_of,
@@ -1633,7 +1647,7 @@ def market_signal_basket_rows(
         ORDER BY change_pct {order}, code
         LIMIT ?
         """,
-        (limit,),
+        params,
     ).fetchall()
     if not rows:
         raise ValueError("基础行情为空,请先同步真实行情")
@@ -1994,6 +2008,97 @@ def practice_signals(con: sqlite3.Connection, user_id: int, status: str | None =
     ).fetchall()
 
 
+def _clean_learning_reflection_text(value: str, limit: int = 700) -> str:
+    lines = []
+    for line in str(value or "").replace("\r\n", "\n").replace("\r", "\n").split("\n"):
+        clean = " ".join(line.split())
+        if clean:
+            lines.append(clean)
+    return "\n".join(lines)[:limit]
+
+
+def learning_reflection_for_signal(con: sqlite3.Connection, user_id: int, practice_signal_id: int):
+    return con.execute(
+        """
+        SELECT *
+        FROM learning_reflections
+        WHERE user_id=? AND practice_signal_id=?
+        """,
+        (int(user_id), int(practice_signal_id)),
+    ).fetchone()
+
+
+def learning_reflections_for_signals(
+    con: sqlite3.Connection,
+    user_id: int,
+    practice_signal_ids: list[int],
+) -> dict[int, sqlite3.Row]:
+    ids = [int(value) for value in practice_signal_ids if int(value) > 0]
+    if not ids:
+        return {}
+    placeholders = ",".join("?" for _ in ids)
+    rows = con.execute(
+        f"""
+        SELECT *
+        FROM learning_reflections
+        WHERE user_id=? AND practice_signal_id IN ({placeholders})
+        """,
+        [int(user_id), *ids],
+    ).fetchall()
+    return {int(row["practice_signal_id"]): row for row in rows}
+
+
+def save_learning_reflection(
+    con: sqlite3.Connection,
+    user_id: int,
+    practice_signal_id: int,
+    hypothesis: str,
+    execution_check: str,
+    adjustment: str,
+) -> int:
+    ensure_user_active(get_user(con, user_id))
+    signal = _signal_for_user(con, user_id, practice_signal_id)
+    if signal is None:
+        raise ValueError("观察练习不存在")
+    if signal["status"] != "executed":
+        raise ValueError("请先开始观察,再保存复盘。")
+    if signal["learning_task_id"] is None:
+        raise ValueError("只有来自学习任务的练习可以保存学习复盘。")
+    hypothesis = _clean_learning_reflection_text(hypothesis)
+    execution_check = _clean_learning_reflection_text(execution_check)
+    adjustment = _clean_learning_reflection_text(adjustment)
+    if not (hypothesis or execution_check or adjustment):
+        raise ValueError("请至少填写一个复盘答案。")
+    cur = con.execute(
+        """
+        INSERT INTO learning_reflections(
+            user_id, learning_task_id, practice_signal_id, order_id,
+            hypothesis, execution_check, adjustment
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(user_id, practice_signal_id) DO UPDATE SET
+            learning_task_id=excluded.learning_task_id,
+            order_id=excluded.order_id,
+            hypothesis=excluded.hypothesis,
+            execution_check=excluded.execution_check,
+            adjustment=excluded.adjustment,
+            updated_at=CURRENT_TIMESTAMP
+        """,
+        (
+            int(user_id),
+            int(signal["learning_task_id"]),
+            int(practice_signal_id),
+            int(signal["order_id"]) if signal["order_id"] is not None else None,
+            hypothesis,
+            execution_check,
+            adjustment,
+        ),
+    )
+    con.commit()
+    existing = learning_reflection_for_signal(con, user_id, practice_signal_id)
+    return int(existing["id"] if existing else cur.lastrowid)
+
+
 def _signal_for_user(con: sqlite3.Connection, user_id: int, signal_id: int):
     return con.execute(
         "SELECT * FROM practice_signals WHERE id=? AND user_id=?",
@@ -2169,6 +2274,7 @@ def reset_paper_account(con: sqlite3.Connection, user_id: int) -> None:
     account = account_for_user(con, user_id)
     if account is None:
         raise ValueError("账户不存在")
+    con.execute("DELETE FROM learning_reflections WHERE user_id=?", (user_id,))
     con.execute("DELETE FROM practice_signals WHERE user_id=?", (user_id,))
     con.execute("DELETE FROM holdings WHERE account_id=?", (account["id"],))
     con.execute("DELETE FROM orders WHERE account_id=?", (account["id"],))
@@ -2368,12 +2474,16 @@ def recent_orders(con: sqlite3.Connection, user_id: int, limit: int = 10):
 def post_auth_landing(con: sqlite3.Connection, user_id: int) -> str:
     """Where a just-authenticated user should land.
 
-    Returning users who have actually DONE something (traded or saved a practice plan) land on
-    the dashboard `/app`; brand-new users get the guided `/learn` home. Derived from activity,
-    NOT a stored tier column — so every pre-existing active user is auto-grandfathered onto the
-    dashboard with no schema migration and no risk of silently demoting them. Always a SOFT
-    default: `/learn` links straight to the dashboard, so a beginner is never hard-blocked.
+    Users with learning tasks land on `/learn` so returning beginners can recover their
+    learning journey even after their first simulated observation created an order. Older
+    non-learning active users who have traded or saved ordinary practice plans still land on
+    `/app`. Derived from activity, not a stored tier column.
     """
+    has_learning = con.execute(
+        "SELECT 1 FROM learning_tasks WHERE user_id=? LIMIT 1", (user_id,)
+    ).fetchone()
+    if has_learning:
+        return "/learn"
     account = account_for_user(con, user_id)
     if account is None:
         return "/learn"
@@ -2451,6 +2561,15 @@ def account_data_export(con: sqlite3.Connection, user_id: int) -> dict:
         LEFT JOIN orders o ON o.id=s.order_id
         WHERE s.user_id=?
         ORDER BY s.id
+        """,
+        (int(user_id),),
+    ).fetchall()
+    reflections = con.execute(
+        """
+        SELECT *
+        FROM learning_reflections
+        WHERE user_id=?
+        ORDER BY id
         """,
         (int(user_id),),
     ).fetchall()
@@ -2539,6 +2658,7 @@ def account_data_export(con: sqlite3.Connection, user_id: int) -> dict:
         "equity_snapshots": row_dicts(equity_snapshots(con, user_id)),
         "learning_tasks": row_dicts(learning_tasks(con, user_id, limit=5000)),
         "practice_signals": row_dicts(signals),
+        "learning_reflections": row_dicts(reflections),
         "consents": row_dicts(consents),
         "contests": row_dicts(contests),
         "forum_posts": row_dicts(posts),
@@ -2584,6 +2704,10 @@ def delete_user_account(con: sqlite3.Connection, user_id: int) -> dict:
         ).fetchone()[0],
         "learning_tasks": con.execute(
             "SELECT COUNT(*) FROM learning_tasks WHERE user_id=?",
+            (int(user_id),),
+        ).fetchone()[0],
+        "learning_reflections": con.execute(
+            "SELECT COUNT(*) FROM learning_reflections WHERE user_id=?",
             (int(user_id),),
         ).fetchone()[0],
         "forum_posts": len(post_ids),

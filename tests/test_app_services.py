@@ -628,6 +628,24 @@ class AppServicesTest(unittest.TestCase):
         self.assertTrue(all(s["strategy_name"] == "基础行情动量篮子" for s in signals))
         self.assertTrue(all("动量候选" in s["rationale"] for s in signals))
 
+    def test_market_signal_basket_ignores_stale_extreme_rows(self):
+        user_id = self.register_user()
+        self.con.execute(
+            """
+            INSERT INTO market_prices(code, name, price, prev_close, source, as_of)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            ("000999.SZ", "旧日期极端样本", 1.0, 20.0, "tushare", "2024-01-01"),
+        )
+        self.con.commit()
+
+        reversal = services.market_signal_basket_rows(self.con, mode="reversal", qty=100, limit=3)
+        learning_rows = services.learning_template_rows(self.con, user_id, "reversal", qty=100, limit=3)
+
+        self.assertNotIn("000999.SZ", [row["code"] for row in reversal])
+        self.assertNotIn("000999.SZ", [row["code"] for row in learning_rows])
+        self.assertTrue(all("2024-01-01" not in row["rationale"] for row in learning_rows))
+
     def test_prediction_csv_can_generate_practice_signals(self):
         user_id = self.register_user()
         pred_path = Path(self.tmpdir.name) / "predictions.csv"
@@ -659,7 +677,7 @@ class AppServicesTest(unittest.TestCase):
         user_id = self.register_user()
         # Brand-new user (no orders, no plans) → guided learn home.
         self.assertEqual(services.post_auth_landing(self.con, user_id), "/learn")
-        # After trading, the returning user is grandfathered straight to the dashboard.
+        # After a non-learning trade, the returning user is grandfathered straight to the dashboard.
         services.place_order(self.con, user_id, "000001.SZ", "buy", 100)
         self.assertEqual(services.post_auth_landing(self.con, user_id), "/app")
 
@@ -668,6 +686,35 @@ class AppServicesTest(unittest.TestCase):
         # A user who saved a practice plan (engaged, even without trading) lands on the dashboard.
         services.create_practice_signal(self.con, user_id, "反转观察", "000001.SZ", "buy", 100, "测试")
         self.assertEqual(services.post_auth_landing(self.con, user_id), "/app")
+
+    def test_post_auth_landing_keeps_learning_users_on_workspace(self):
+        user_id = self.register_user()
+        task_id = services.create_learning_task(
+            self.con,
+            user_id,
+            "学习如何做第一次反转观察",
+            "beginner",
+            "reversal",
+            "教练说明",
+        )
+        self.assertEqual(services.post_auth_landing(self.con, user_id), "/learn")
+
+        count = services.create_practice_signals_from_learning_task(
+            self.con,
+            user_id,
+            task_id,
+            "学习反转观察",
+            "reversal",
+            qty=100,
+            limit=1,
+            rationale_note="记录学习轨迹",
+        )
+        self.assertEqual(count, 1)
+        self.assertEqual(services.post_auth_landing(self.con, user_id), "/learn")
+
+        signal = services.practice_signals(self.con, user_id, status="pending")[0]
+        services.execute_practice_signal(self.con, user_id, int(signal["id"]))
+        self.assertEqual(services.post_auth_landing(self.con, user_id), "/learn")
 
     def test_weekly_review_reports_change_and_trade_count(self):
         user_id = self.register_user()
@@ -739,6 +786,62 @@ class AppServicesTest(unittest.TestCase):
         self.assertTrue(all(signal["status"] == "pending" for signal in signals))
         self.assertIn("记录假设和风险", signals[0]["rationale"])
 
+    def test_learning_reflection_can_be_saved_updated_exported_and_reset(self):
+        user_id = self.register_user()
+        task_id = services.create_learning_task(
+            self.con,
+            user_id,
+            "学习如何复盘一次反转观察",
+            "beginner",
+            "reversal",
+            "教练说明",
+        )
+        services.create_practice_signals_from_learning_task(
+            self.con,
+            user_id,
+            task_id,
+            "学习反转观察",
+            "reversal",
+            qty=100,
+            limit=1,
+            rationale_note="记录复盘",
+        )
+        signal = services.practice_signals(self.con, user_id, status="pending")[0]
+
+        with self.assertRaisesRegex(ValueError, "先开始观察"):
+            services.save_learning_reflection(self.con, user_id, int(signal["id"]), "假设", "", "")
+
+        order_id = services.execute_practice_signal(self.con, user_id, int(signal["id"]))
+        reflection_id = services.save_learning_reflection(
+            self.con,
+            user_id,
+            int(signal["id"]),
+            "我想观察短期反转是否只是一个可记录假设。",
+            "数量按计划执行,没有加仓。",
+            "下次先比较两个候选。",
+        )
+        updated_id = services.save_learning_reflection(
+            self.con,
+            user_id,
+            int(signal["id"]),
+            "更新后的假设",
+            "更新后的执行检查",
+            "更新后的修正",
+        )
+
+        self.assertEqual(updated_id, reflection_id)
+        reflection = services.learning_reflection_for_signal(self.con, user_id, int(signal["id"]))
+        self.assertEqual(reflection["learning_task_id"], task_id)
+        self.assertEqual(reflection["order_id"], order_id)
+        self.assertEqual(reflection["hypothesis"], "更新后的假设")
+        exported = services.account_data_export(self.con, user_id)
+        self.assertEqual(len(exported["learning_reflections"]), 1)
+        self.assertEqual(exported["learning_reflections"][0]["adjustment"], "更新后的修正")
+
+        services.reset_paper_account(self.con, user_id)
+
+        self.assertEqual(self.con.execute("SELECT COUNT(*) FROM learning_reflections WHERE user_id=?", (user_id,)).fetchone()[0], 0)
+
     def test_reset_paper_account_clears_trading_state_only(self):
         user_id = self.register_user()
         services.place_order(self.con, user_id, "000001.SZ", "buy", 100)
@@ -775,7 +878,20 @@ class AppServicesTest(unittest.TestCase):
         user_id = services.confirm_email_login_session(self.con, token)
         other_id = services.get_or_create_user(self.con, "dev-delete-other", "保留用户")
         account_id = services.account_for_user(self.con, user_id)["id"]
-        services.create_learning_task(self.con, user_id, "注销前学习任务", "beginner", "reversal", "教练说明")
+        task_id = services.create_learning_task(self.con, user_id, "注销前学习任务", "beginner", "reversal", "教练说明")
+        services.create_practice_signals_from_learning_task(
+            self.con,
+            user_id,
+            task_id,
+            "注销前观察",
+            "reversal",
+            qty=100,
+            limit=1,
+            rationale_note="准备注销",
+        )
+        linked_signal = services.practice_signals(self.con, user_id, status="pending")[0]
+        services.execute_practice_signal(self.con, user_id, int(linked_signal["id"]))
+        services.save_learning_reflection(self.con, user_id, int(linked_signal["id"]), "注销前假设", "注销前执行", "注销前修正")
         services.place_order(self.con, user_id, "000001.SZ", "buy", 100)
         services.create_practice_signal(self.con, user_id, "删除前计划", "000001.SZ", "buy", 100, "")
         services.record_user_consent(self.con, user_id, "2026-06-24", "2026-06-24", "2026-06-24", source="test")
@@ -791,12 +907,14 @@ class AppServicesTest(unittest.TestCase):
 
         self.assertEqual(summary["user_id"], user_id)
         self.assertEqual(summary["account_id"], account_id)
+        self.assertEqual(summary["learning_reflections"], 1)
         self.assertIsNone(services.get_user(self.con, user_id))
         self.assertIsNone(services.account_for_user(self.con, user_id))
         self.assertEqual(self.con.execute("SELECT COUNT(*) FROM accounts WHERE id=?", (account_id,)).fetchone()[0], 0)
         self.assertEqual(self.con.execute("SELECT COUNT(*) FROM orders WHERE account_id=?", (account_id,)).fetchone()[0], 0)
         self.assertEqual(self.con.execute("SELECT COUNT(*) FROM learning_tasks WHERE user_id=?", (user_id,)).fetchone()[0], 0)
         self.assertEqual(self.con.execute("SELECT COUNT(*) FROM practice_signals WHERE user_id=?", (user_id,)).fetchone()[0], 0)
+        self.assertEqual(self.con.execute("SELECT COUNT(*) FROM learning_reflections WHERE user_id=?", (user_id,)).fetchone()[0], 0)
         self.assertEqual(self.con.execute("SELECT COUNT(*) FROM user_consents WHERE user_id=?", (user_id,)).fetchone()[0], 0)
         self.assertEqual(self.con.execute("SELECT COUNT(*) FROM email_login_sessions WHERE email='delete-me@example.com'").fetchone()[0], 0)
         self.assertEqual(self.con.execute("SELECT COUNT(*) FROM forum_posts WHERE user_id=?", (user_id,)).fetchone()[0], 0)
