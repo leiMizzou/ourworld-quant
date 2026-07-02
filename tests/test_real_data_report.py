@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import io
+import tempfile
 import unittest
 from contextlib import redirect_stderr
+from pathlib import Path
 from unittest.mock import patch
 
 import pandas as pd
 
+from src.app import db
 from src.research import real_data_report
 
 
@@ -49,6 +52,40 @@ class RealDataReportTest(unittest.TestCase):
         self.assertEqual(status, 2)
         self.assertIn("样本过小", stderr.getvalue())
         self.assertIn("仅加载到 3 只标的", stderr.getvalue())
+
+    def test_predictions_are_limited_to_app_tradeable_codes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            app_path = Path(tmp) / "app.sqlite"
+            con = db.bootstrap(app_path)
+            try:
+                con.execute("DELETE FROM market_prices")
+                con.executemany(
+                    """
+                    INSERT INTO market_prices(code, name, price, prev_close, source, as_of)
+                    VALUES (?, ?, 10, 9.8, 'csv', date('now'))
+                    """,
+                    [
+                        ("000001.SZ", "平安银行"),
+                        ("000002.SZ", "万科A"),
+                    ],
+                )
+                con.commit()
+            finally:
+                con.close()
+
+            pred = pd.DataFrame(
+                [
+                    {"code": "920001.SH", "prediction": 0.10},
+                    {"code": "000001.SZ", "prediction": 0.05},
+                    {"code": "600000.SH", "prediction": 0.04},
+                    {"code": "000002.SZ", "prediction": 0.03},
+                ]
+            )
+
+            eligible = real_data_report.app_tradeable_codes(app_path)
+            filtered = real_data_report.filter_predictions_for_app_market(pred, eligible, top_n=2)
+
+        self.assertEqual(list(filtered["code"]), ["000001.SZ", "000002.SZ"])
 
 
 if __name__ == "__main__":

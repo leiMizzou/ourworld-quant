@@ -64,7 +64,8 @@ class DeployScriptsTest(unittest.TestCase):
 
         self.assertIn('REPORT_ADJUST="${OWQ_REPORT_ADJUST:-hfq}"', text)
         self.assertIn('REPORT_MIN_CODES="${OWQ_REPORT_MIN_REPRESENTATIVE_CODES:-${OWQ_MARKET_MIN_REAL_CODES:-300}}"', text)
-        self.assertIn('REPORT_SOURCE="${OWQ_REPORT_SOURCE:-akshare}"', text)
+        self.assertIn('REPORT_SOURCE="${OWQ_REPORT_SOURCE:-$DATA_SOURCE}"', text)
+        self.assertIn('SYNC_REPORT_DATA="${OWQ_SYNC_REPORT_DATA:-0}"', text)
         self.assertIn('REPORT_MARKET_LIMIT="${OWQ_REPORT_MARKET_LIMIT:-$(( REPORT_MIN_CODES + 100 ))}"', text)
         self.assertIn('PREDICTIONS_CSV="${OWQ_PREDICTIONS_CSV:-reports/predictions.csv}"', text)
         self.assertIn('UNIVERSE_MODE="${OWQ_MARKET_UNIVERSE_MODE:-representative}"', text)
@@ -82,6 +83,7 @@ class DeployScriptsTest(unittest.TestCase):
         self.assertIn('--predictions-csv "$PREDICTIONS_CSV"', text)
         self.assertIn('--market-include-codes-csv "$PREDICTIONS_CSV"', text)
         self.assertIn("--strict-representative-codes", text)
+        self.assertIn('"$SYNC_REPORT_DATA" == "1"', text)
         self.assertIn('"$REPORT_ADJUST" != "$DATA_ADJUST" || "$REPORT_UNIVERSE_STATUS" != "$DATA_UNIVERSE_STATUS"', text)
         self.assertNotIn('--adjust "${OWQ_REPORT_ADJUST:-$APP_ADJUST}"', text)
 

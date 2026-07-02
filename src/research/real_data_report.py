@@ -255,7 +255,7 @@ def latest_predictions(
     features: dict[str, pd.DataFrame],
     close: pd.DataFrame,
     model: dict,
-    top_n: int,
+    top_n: int | None,
 ) -> pd.DataFrame:
     if "coefs" not in model:
         return pd.DataFrame()
@@ -271,12 +271,40 @@ def latest_predictions(
     out["prediction"] = pred
     out["date"] = latest_date
     out["last_close"] = close.loc[latest_date].reindex(out.index)
-    return (
-        out.reset_index(names="code")
-        .sort_values("prediction", ascending=False)
-        .head(top_n)
-        .reset_index(drop=True)
-    )
+    ranked = out.reset_index(names="code").sort_values("prediction", ascending=False)
+    if top_n is not None:
+        ranked = ranked.head(max(1, int(top_n)))
+    return ranked.reset_index(drop=True)
+
+
+def app_tradeable_codes(path: Path) -> set[str]:
+    if not path.exists():
+        return set()
+    con = sqlite3.connect(path)
+    try:
+        rows = con.execute(
+            """
+            SELECT DISTINCT code
+            FROM market_prices
+            WHERE source <> 'demo' AND price > 0 AND prev_close > 0
+            """
+        ).fetchall()
+    except sqlite3.Error:
+        return set()
+    finally:
+        con.close()
+    return {str(row[0]).strip().upper() for row in rows if str(row[0] or "").strip()}
+
+
+def filter_predictions_for_app_market(pred: pd.DataFrame, eligible_codes: set[str], top_n: int) -> pd.DataFrame:
+    if pred.empty or "code" not in pred.columns:
+        return pred
+    limit = max(1, int(top_n))
+    if not eligible_codes:
+        return pred.head(limit).reset_index(drop=True)
+    codes = pred["code"].astype(str).str.strip().str.upper()
+    filtered = pred.loc[codes.isin(eligible_codes)].copy()
+    return filtered.head(limit).reset_index(drop=True)
 
 
 def factor_reports(features: dict[str, pd.DataFrame], close: pd.DataFrame, rebal: list[pd.Timestamp]) -> list[dict]:
@@ -640,7 +668,6 @@ def main(argv: list[str] | None = None) -> int:
     frame = regression_frame(features, close, rebal)
     feature_names = list(features)
     model = fit_regression(frame, feature_names)
-    predictions = latest_predictions(features, close, model, args.top)
     factors = factor_reports(features, close, rebal)
     bt = backtest_report(panels, long_panel, top_n=min(args.top, close.shape[1]), freq=args.freq)
 
@@ -662,6 +689,9 @@ def main(argv: list[str] | None = None) -> int:
     source_df = source_counts()
     app_path = Path(args.app_db)
     app_df = app_market_counts(app_path)
+    eligible_codes = app_tradeable_codes(app_path)
+    raw_predictions = latest_predictions(features, close, model, None if eligible_codes else args.top)
+    predictions = filter_predictions_for_app_market(raw_predictions, eligible_codes, args.top)
 
     out_path = Path(args.out)
     pred_path = Path(args.predictions_csv)
