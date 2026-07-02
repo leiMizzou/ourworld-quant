@@ -1000,6 +1000,25 @@ class ServerRoutesTest(unittest.TestCase):
         self.assertIn('property="og:type" content="article"', post)
         self.assertIn(f"/u/{user_id}/card.svg", post)
 
+    def test_public_showcase_defaults_to_growth_score_and_keeps_return_view(self):
+        user_id = services.get_or_create_user(self.con, "dev-growth-openid", "GrowthUser")
+        services.join_active_contest(self.con, user_id)
+
+        status, _, page = self.request("GET", "/showcase/public")
+        self.assertEqual(status, 200)
+        self.assertIn("成长分", page)
+        self.assertIn("为什么榜单不按收益率排名?", page)
+        self.assertIn("榜首成长分", page)
+        self.assertIn("复盘质量 50 分", page)
+        self.assertIn('href="/showcase/public?sort=return"', page)
+        self.assertNotIn("榜首收益", page)
+
+        status, _, by_return = self.request("GET", "/showcase/public?sort=return")
+        self.assertEqual(status, 200)
+        self.assertIn("当前按收益率排名", by_return)
+        self.assertIn("主要反映运气和风险敞口", by_return)
+        self.assertIn('href="/showcase/public"', by_return)
+
     def test_public_support_request_can_be_submitted_and_admin_resolved(self):
         status, headers, page = self.request("GET", "/support")
         self.assertEqual(status, 200)

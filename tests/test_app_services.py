@@ -1080,6 +1080,105 @@ class AppServicesTest(unittest.TestCase):
         self.assertEqual(self.con.execute("SELECT COUNT(*) FROM users WHERE wechat_openid LIKE 'demo-%'").fetchone()[0], 3)
         self.assertEqual(len(services.leaderboard(self.con)), 0)
 
+    def _insert_executed_signal_with_reflection(
+        self,
+        user_id: int,
+        created_at: str,
+        hypothesis: str = "假设是低估后的均值回归",
+        execution_check: str = "执行符合计划,没有追价",
+        adjustment: str = "下次把单笔仓位再降一档",
+    ) -> int:
+        cur = self.con.execute(
+            """
+            INSERT INTO practice_signals(user_id, code, side, qty, strategy_name, status)
+            VALUES (?, '000001.SZ', 'buy', 100, '测试练习', 'executed')
+            """,
+            (user_id,),
+        )
+        signal_id = int(cur.lastrowid)
+        self.con.execute(
+            """
+            INSERT INTO learning_reflections(user_id, practice_signal_id, hypothesis, execution_check, adjustment, created_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (user_id, signal_id, hypothesis, execution_check, adjustment, created_at),
+        )
+        self.con.commit()
+        return signal_id
+
+    def test_growth_stats_counts_only_complete_reflections_on_executed_signals(self):
+        user_id = self.register_user()
+        self._insert_executed_signal_with_reflection(user_id, "2026-06-01 10:00:00")
+        # 三问不完整(不足最少字数)的复盘不计分
+        self._insert_executed_signal_with_reflection(
+            user_id, "2026-06-01 11:00:00", hypothesis="短", execution_check="短", adjustment="短"
+        )
+        # 未执行练习上的复盘不计分
+        cur = self.con.execute(
+            "INSERT INTO practice_signals(user_id, code, side, qty, strategy_name, status) VALUES (?, '000001.SZ', 'buy', 100, '待执行', 'pending')",
+            (user_id,),
+        )
+        self.con.execute(
+            "INSERT INTO learning_reflections(user_id, practice_signal_id, hypothesis, execution_check, adjustment) VALUES (?, ?, '假设写得很完整认真', '执行检查也写得很完整', '调整计划也写得很完整')",
+            (user_id, int(cur.lastrowid)),
+        )
+        self.con.commit()
+
+        stats = services.growth_stats_for_user(self.con, user_id)
+        self.assertEqual(stats["reflection_count"], 1)
+        self.assertEqual(stats["reflection_score"], services.GROWTH_REFLECTION_POINTS)
+
+    def test_growth_reflection_weekly_cap_limits_batch_grinding(self):
+        user_id = self.register_user()
+        for hour in range(services.GROWTH_REFLECTION_WEEKLY_CAP + 2):
+            self._insert_executed_signal_with_reflection(user_id, f"2026-06-01 {hour:02d}:30:00")
+        # 另一周的复盘重新开始计数
+        self._insert_executed_signal_with_reflection(user_id, "2026-06-10 09:00:00")
+
+        stats = services.growth_stats_for_user(self.con, user_id)
+        self.assertEqual(stats["reflection_count"], services.GROWTH_REFLECTION_WEEKLY_CAP + 1)
+
+    def test_max_drawdown_pct_tracks_peak_to_trough(self):
+        self.assertIsNone(services.max_drawdown_pct([]))
+        self.assertIsNone(services.max_drawdown_pct([100.0]))
+        self.assertAlmostEqual(services.max_drawdown_pct([100.0, 120.0, 90.0, 110.0]), 25.0)
+        self.assertEqual(services.max_drawdown_pct([100.0, 101.0, 102.0]), 0.0)
+
+    def test_growth_plan_ratio_needs_min_orders_and_counts_planned_trades(self):
+        user_id = self.register_user()
+        stats = services.growth_stats_for_user(self.con, user_id)
+        self.assertIsNone(stats["plan_ratio"])
+        self.assertEqual(stats["plan_score"], 0)
+
+        # 2 笔计划内(练习执行) + 2 笔直接下单 = 4 笔,占比 50%
+        for _ in range(2):
+            signal_id = services.create_practice_signal(self.con, user_id, "计划练习", "000001.SZ", "buy", 100, "")
+            services.execute_practice_signal(self.con, user_id, signal_id)
+        services.place_order(self.con, user_id, "000001.SZ", "buy", 100)
+        services.place_order(self.con, user_id, "000001.SZ", "buy", 100)
+
+        stats = services.growth_stats_for_user(self.con, user_id)
+        self.assertAlmostEqual(stats["plan_ratio"], 0.5)
+        self.assertEqual(stats["plan_score"], round(services.GROWTH_PLAN_RATIO_MAX_SCORE * 0.5))
+
+    def test_growth_leaderboard_ranks_reflection_quality_over_raw_return(self):
+        diligent = self.register_user()
+        token = services.create_wechat_session(self.con)
+        lucky = services.confirm_wechat_session(self.con, token, "高收益用户")
+        # lucky: +50% 收益但零复盘;diligent: 3 条完整复盘、零收益
+        account = services.account_for_user(self.con, lucky)
+        self.con.execute("UPDATE accounts SET cash = initial_cash * 1.5 WHERE id=?", (account["id"],))
+        self.con.commit()
+        for day in (1, 2, 3):
+            self._insert_executed_signal_with_reflection(diligent, f"2026-06-0{day} 10:00:00")
+
+        board = services.growth_leaderboard(self.con)
+        self.assertEqual(int(board[0]["row"]["user_id"]), diligent)
+        self.assertEqual(board[0]["growth_rank"], 1)
+        self.assertGreater(board[0]["growth_score"], board[1]["growth_score"])
+        # 收益排名(rank)仍然保留:lucky 在收益维度是第 1
+        self.assertEqual(board[1]["rank"], 1)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -6131,34 +6131,87 @@ class AppHandler(LearningMixin, BaseHTTPRequestHandler):
             )
         )
 
-    def render_showcase(self, user, query):
-        board = services.leaderboard(self.con)
-        contest = services.active_contest(self.con)
-        rows = "".join(
-            labeled_table_row(
-                [
-                    ("排名", str(r["rank"])),
-                    ("用户", f'<a href="/u/{r["row"]["user_id"]}">{escape(display_nickname(r["row"]))}</a>'),
-                    ("总资产", money(r["row"]["equity"])),
-                    ("收益率", pct(r["return_pct"])),
-                ]
+    def showcase_sort(self, query) -> str:
+        raw = (query.get("sort", ["growth"])[0] or "growth").strip().lower()
+        return raw if raw in {"growth", "return"} else "growth"
+
+    def growth_board_cells(self, r, sort: str) -> list[tuple[str, str]]:
+        rank = r["growth_rank"] if sort == "growth" else r["rank"]
+        plan_ratio = r["plan_ratio"]
+        plan_text = f"计划内 {plan_ratio:.0%}" if plan_ratio is not None else "计划内样本不足"
+        dd = r["max_drawdown_pct"]
+        dd_text = f"回撤 {dd:.1f}%" if dd is not None else "回撤数据不足"
+        return [
+            ("排名", str(rank)),
+            ("用户", f'<a href="/u/{r["row"]["user_id"]}">{escape(display_nickname(r["row"]))}</a>'),
+            ("成长分", f'<strong>{int(r["growth_score"])}</strong>'),
+            ("复盘", f'{int(r["reflection_score"])} 分 · {int(r["reflection_count"])} 条'),
+            ("纪律", f'{int(r["discipline_score"])} 分 <span class="muted">{escape(plan_text)}</span>'),
+            ("收益率", f'{pct(r["return_pct"])} <span class="muted">{escape(dd_text)}</span>'),
+        ]
+
+    def growth_board_table(self, board, sort: str, path: str, empty_message: str) -> str:
+        ordered = board if sort == "growth" else sorted(board, key=lambda r: -r["return_pct"])
+        rows = "".join(labeled_table_row(self.growth_board_cells(r, sort)) for r in ordered) or labeled_empty_row(
+            empty_message, 6
+        )
+        if sort == "growth":
+            toggle = f'当前按 <strong>{metric_label("growth_score", "成长分")}</strong> 排名 · <a href="{path}?sort=return">按收益率看</a>'
+        else:
+            toggle = (
+                f'当前按收益率排名 · <a href="{path}">按成长分看(默认)</a>'
+                '<br><span class="muted">提示:几周到几个月的模拟盘收益率排名主要反映运气和风险敞口,'
+                '不代表学得好——这正是<a href="/lessons">「三大坑」</a>讲的事。</span>'
             )
-            for r in board
-        ) or '<tr><td data-label="状态" colspan="4" class="muted">榜单还空着——到 <a href="/app">模拟盘</a> 下第一笔交易,你就会出现在这里。</td></tr>'
+        header = (
+            f'<tr><th>排名</th><th>用户</th><th>{metric_label("growth_score", "成长分")}</th>'
+            f'<th>复盘</th><th>{metric_label("plan_ratio", "纪律")}</th><th>收益率</th></tr>'
+        )
+        return (
+            f'<p class="muted">{toggle}</p>'
+            f'<table class="mobile-card-table"><thead>{header}</thead><tbody>{rows}</tbody></table>'
+        )
+
+    def growth_score_explainer_html(self) -> str:
+        return f"""
+<section class="card">
+  <h2>为什么榜单不按收益率排名?</h2>
+  <p>短窗口里的收益率排名,主要奖励运气和高风险敞口——榜首往往是仓位最集中的人,不是学得最好的人。
+     所以默认排名用{metric_label("growth_score", "成长分")}(满分 100),计分规则全部公开:</p>
+  <ul>
+    <li><strong>复盘质量 50 分</strong>:在已执行的练习上写完整三问复盘(假设 / 执行检查 / 下次调整,每项至少 {services.GROWTH_REFLECTION_MIN_CHARS} 字),每条 +{services.GROWTH_REFLECTION_POINTS} 分,每周最多计 {services.GROWTH_REFLECTION_WEEKLY_CAP} 条。</li>
+    <li><strong>交易纪律 30 分</strong>:{metric_label("plan_ratio", "计划内交易")}占比(累计满 {services.GROWTH_PLAN_RATIO_MIN_ORDERS} 笔起算,最多 {services.GROWTH_PLAN_RATIO_MAX_SCORE} 分) + 回撤控制(≤5% 得 {services.GROWTH_DRAWDOWN_MAX_SCORE} 分、≤10% 得 7 分、≤20% 得 4 分)。</li>
+    <li><strong>稳健收益 20 分</strong>:正收益且{metric_label("max_drawdown", "最大回撤")}≤10% 得 {services.GROWTH_STEADINESS_MAX_SCORE} 分,正收益得 {services.GROWTH_STEADINESS_MAX_SCORE // 2} 分——收益只能靠「稳」挣分。</li>
+  </ul>
+  <p class="muted">收益率仍然公开展示(带回撤上下文),也可以切换按收益率排序——但那一栏是「上下文」,不是「成绩」。术语见<a href="/glossary">术语表</a>。</p>
+</section>
+"""
+
+    def render_showcase(self, user, query):
+        sort = self.showcase_sort(query)
+        board = services.growth_leaderboard(self.con)
+        contest = services.active_contest(self.con)
+        board_table = self.growth_board_table(
+            board,
+            sort,
+            "/showcase",
+            "榜单还空着——到学习工作台完成一次练习并写下三问复盘,你就会出现在这里。",
+        )
         share_url = f"{self.base_url()}/showcase/public"
         profile_url = f"{self.base_url()}/u/{user['id']}"
         body = f"""
 {self.message_html(query)}
 <section class="card">
   <h2>{escape(contest['title']) if contest else '模拟盘公开赛'}</h2>
-  <p>{escape(contest['description']) if contest else '展示参赛者的模拟盘收益表现。'}</p>
+  <p>{escape(contest['description']) if contest else '展示参赛者的学习和模拟盘表现。'}</p>
   <form method="post" action="/contest/join">{csrf_input(user)}<button type="submit">加入公开赛</button></form>
 </section>
 <section class="card">
   <h2>排行榜 Showcase</h2>
-  <table class="mobile-card-table"><thead><tr><th>排名</th><th>用户</th><th>总资产</th><th>收益率</th></tr></thead><tbody>{rows}</tbody></table>
+  {board_table}
   <p class="muted">公开榜单: <a href="/showcase/public">{escape(share_url)}</a></p>
 </section>
+{self.growth_score_explainer_html()}
 <section class="card">
   <div class="card-title"><span>分享我的战绩</span></div>
   <img src="/u/{int(user['id'])}/card.svg" alt="我的模拟战绩卡" loading="lazy" style="max-width:100%;border:1px solid var(--line);border-radius:10px;margin:6px 0">
@@ -6172,27 +6225,23 @@ class AppHandler(LearningMixin, BaseHTTPRequestHandler):
         self.send_html("比赛展示", body, user=user)
 
     def render_public_showcase(self, query):
-        board = services.leaderboard(self.con)
+        sort = self.showcase_sort(query)
+        board = services.growth_leaderboard(self.con)
         contest = services.active_contest(self.con)
         summary = services.landing_summary(self.con)
         prediction = self.public_prediction_status()
-        rows = "".join(
-            labeled_table_row(
-                [
-                    ("排名", str(r["rank"])),
-                    ("用户", f'<a href="/u/{r["row"]["user_id"]}">{escape(display_nickname(r["row"]))}</a>'),
-                    ("总资产", money(r["row"]["equity"])),
-                    ("收益率", pct(r["return_pct"])),
-                ]
-            )
-            for r in board
-        ) or labeled_empty_row("还没有人上榜——完成注册和第一笔模拟交易,你就是第一个参赛者。", 4)
+        board_table = self.growth_board_table(
+            board,
+            sort,
+            "/showcase/public",
+            "还没有人上榜——完成注册、一次学习练习和三问复盘,你就是第一个上榜者。",
+        )
         contest_title = contest['title'] if contest else '模拟盘公开赛'
-        description = contest['description'] if contest else '展示参赛者的模拟盘收益表现。'
+        description = contest['description'] if contest else '展示参赛者的学习质量与模拟盘表现:按成长分排名,收益率只作上下文。'
         participant_count = int(summary.get("participant_count") or 0)
         order_count = int(summary.get("order_count") or 0)
         discussion_count = int(summary.get("post_count") or 0) + int(summary.get("comment_count") or 0)
-        top_return = pct(board[0]["return_pct"]) if board else "待开赛"
+        top_growth = f'{int(board[0]["growth_score"])} 分' if board else "待开赛"
         market_count = self.landing_market_count_text(summary)
         as_of = self.landing_date_text(summary.get("market_as_of"))
         source = self.landing_source_label(summary)
@@ -6215,7 +6264,7 @@ class AppHandler(LearningMixin, BaseHTTPRequestHandler):
         body = f"""
 <section class="cards">
   <div class="card"><p>参赛账户</p><div class="metric">{participant_count} 人</div><p>{escape(self.public_join_hint())}</p></div>
-  <div class="card"><p>榜首收益</p><div class="metric">{top_return}</div><p>按当前模拟账户权益实时排序</p></div>
+  <div class="card"><p>榜首成长分</p><div class="metric">{top_growth}</div><p>复盘质量 + 交易纪律 + 稳健收益,规则公开</p></div>
   <div class="card"><p>真实行情</p><div class="metric">{escape(market_count)}</div><p>{escape(source)} · {escape(str(as_of))}</p></div>
 </section>
 <section class="card">
@@ -6226,7 +6275,7 @@ class AppHandler(LearningMixin, BaseHTTPRequestHandler):
 <section class="grid">
   <div class="card">
     <h2>公开排行榜</h2>
-    <table class="mobile-card-table"><thead><tr><th>排名</th><th>用户</th><th>总资产</th><th>收益率</th></tr></thead><tbody>{rows}</tbody></table>
+    {board_table}
   </div>
   <div class="card">
     <h2>赛场讨论</h2>
@@ -6234,6 +6283,7 @@ class AppHandler(LearningMixin, BaseHTTPRequestHandler):
     {post_rows}
   </div>
 </section>
+{self.growth_score_explainer_html()}
 <section class="card">
   <h2>数据和组合设计</h2>
   <p>当前模拟盘成交、公开榜单和组合设计共用同一套已同步行情。预测候选状态: {escape(str(prediction["detail"]))}。</p>

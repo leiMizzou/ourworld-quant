@@ -2401,6 +2401,144 @@ def leaderboard(con: sqlite3.Connection):
     return out
 
 
+GROWTH_REFLECTION_MIN_CHARS = 8
+GROWTH_REFLECTION_POINTS = 5
+GROWTH_REFLECTION_WEEKLY_CAP = 5
+GROWTH_REFLECTION_MAX_SCORE = 50
+GROWTH_PLAN_RATIO_MIN_ORDERS = 4
+GROWTH_PLAN_RATIO_MAX_SCORE = 20
+GROWTH_DRAWDOWN_MAX_SCORE = 10
+GROWTH_STEADINESS_MAX_SCORE = 20
+
+
+def _reflection_is_complete(row) -> bool:
+    return all(
+        len(" ".join(str(row[key] or "").split())) >= GROWTH_REFLECTION_MIN_CHARS
+        for key in ("hypothesis", "execution_check", "adjustment")
+    )
+
+
+def _iso_week_key(created_at: str) -> str:
+    try:
+        day = datetime.fromisoformat(str(created_at or "")[:10])
+    except ValueError:
+        return "unknown"
+    year, week, _ = day.isocalendar()
+    return f"{year}-W{week:02d}"
+
+
+def max_drawdown_pct(equities: list[float]) -> float | None:
+    """峰值回撤(%),按快照顺序;不足 2 个快照返回 None(数据不足)。"""
+    if len(equities) < 2:
+        return None
+    peak = equities[0]
+    drawdown = 0.0
+    for value in equities:
+        peak = max(peak, value)
+        if peak > 0:
+            drawdown = max(drawdown, (peak - value) / peak)
+    return drawdown * 100
+
+
+def _drawdown_score(dd: float | None) -> int:
+    if dd is None:
+        return 0
+    if dd <= 5:
+        return GROWTH_DRAWDOWN_MAX_SCORE
+    if dd <= 10:
+        return 7
+    if dd <= 20:
+        return 4
+    return 0
+
+
+def _steadiness_score(return_pct: float, dd: float | None) -> int:
+    if return_pct <= 0:
+        return 0
+    if dd is not None and dd <= 10:
+        return GROWTH_STEADINESS_MAX_SCORE
+    return GROWTH_STEADINESS_MAX_SCORE // 2
+
+
+def growth_stats_for_user(con: sqlite3.Connection, user_id: int) -> dict:
+    """成长分的分项统计。只计已执行练习上的完整三问复盘,每周计分条数封顶。"""
+    reflection_rows = con.execute(
+        """
+        SELECT r.hypothesis, r.execution_check, r.adjustment, r.created_at
+        FROM learning_reflections r
+        JOIN practice_signals ps ON ps.id = r.practice_signal_id
+        WHERE r.user_id=? AND ps.status='executed'
+        ORDER BY r.created_at, r.id
+        """,
+        (user_id,),
+    ).fetchall()
+    weekly_counts: dict[str, int] = {}
+    counted_reflections = 0
+    for row in reflection_rows:
+        if not _reflection_is_complete(row):
+            continue
+        week = _iso_week_key(row["created_at"])
+        if weekly_counts.get(week, 0) >= GROWTH_REFLECTION_WEEKLY_CAP:
+            continue
+        weekly_counts[week] = weekly_counts.get(week, 0) + 1
+        counted_reflections += 1
+    reflection_score = min(GROWTH_REFLECTION_MAX_SCORE, counted_reflections * GROWTH_REFLECTION_POINTS)
+
+    account = account_for_user(con, user_id)
+    total_orders = 0
+    planned_orders = 0
+    equities: list[float] = []
+    if account is not None:
+        total_orders = int(
+            con.execute("SELECT COUNT(*) FROM orders WHERE account_id=?", (account["id"],)).fetchone()[0]
+        )
+        planned_orders = int(
+            con.execute(
+                """
+                SELECT COUNT(DISTINCT o.id)
+                FROM orders o
+                JOIN practice_signals ps ON ps.order_id = o.id
+                WHERE o.account_id=? AND ps.user_id=?
+                """,
+                (account["id"], user_id),
+            ).fetchone()[0]
+        )
+        equities = [
+            float(row["equity"])
+            for row in con.execute(
+                "SELECT equity FROM equity_snapshots WHERE account_id=? ORDER BY id",
+                (account["id"],),
+            ).fetchall()
+        ]
+    plan_ratio = planned_orders / total_orders if total_orders >= GROWTH_PLAN_RATIO_MIN_ORDERS else None
+    plan_score = round(GROWTH_PLAN_RATIO_MAX_SCORE * plan_ratio) if plan_ratio is not None else 0
+    dd = max_drawdown_pct(equities)
+    discipline_score = plan_score + _drawdown_score(dd)
+    return {
+        "reflection_count": counted_reflections,
+        "reflection_score": reflection_score,
+        "plan_ratio": plan_ratio,
+        "plan_score": plan_score,
+        "max_drawdown_pct": dd,
+        "drawdown_score": _drawdown_score(dd),
+        "discipline_score": discipline_score,
+    }
+
+
+def growth_leaderboard(con: sqlite3.Connection):
+    """学习质量榜:复盘(50) + 纪律(30) + 稳健(20)。收益率只作上下文,不决定默认排名。"""
+    out = []
+    for item in leaderboard(con):
+        stats = growth_stats_for_user(con, int(item["row"]["user_id"]))
+        steadiness = _steadiness_score(item["return_pct"], stats["max_drawdown_pct"])
+        growth = stats["reflection_score"] + stats["discipline_score"] + steadiness
+        out.append({**item, **stats, "steadiness_score": steadiness, "growth_score": growth})
+    out.sort(key=lambda r: (-r["growth_score"], -r["reflection_score"], int(r["row"]["user_id"])))
+    for rank, row in enumerate(out, start=1):
+        row["growth_rank"] = rank
+    return out
+
+
 def account_overview(con: sqlite3.Connection):
     rows = con.execute(
         """
