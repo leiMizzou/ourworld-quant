@@ -327,6 +327,22 @@ def factor_reports(features: dict[str, pd.DataFrame], close: pd.DataFrame, rebal
     return reports
 
 
+def equal_weight_benchmark(close: pd.DataFrame, start) -> dict:
+    """全票池等权(日再平衡、零费用)基准——用于区分策略收益里的市场 beta 与因子 alpha。"""
+    sub = close.loc[close.index >= start]
+    if len(sub) < 2:
+        return {}
+    daily = sub.pct_change(fill_method=None).mean(axis=1).fillna(0.0)
+    equity = (1.0 + daily).cumprod()
+    years = (sub.index[-1] - sub.index[0]).days / 365.25
+    peak = equity.cummax()
+    return {
+        "total_return": float(equity.iloc[-1] - 1.0),
+        "cagr": float(equity.iloc[-1] ** (1.0 / years) - 1.0) if years > 0 else float("nan"),
+        "max_drawdown": float(((equity - peak) / peak).min()),
+    }
+
+
 def backtest_report(panels: dict[str, pd.DataFrame], long_panel: pd.DataFrame, top_n: int, freq: str) -> dict:
     close = panels["close"]
     rebal = rebalance_dates(close.index, freq)
@@ -345,6 +361,7 @@ def backtest_report(panels: dict[str, pd.DataFrame], long_panel: pd.DataFrame, t
         "n_rebalance": len(target),
         "metrics": res["metrics"],
         "survivorship": res.get("survivorship", {}),
+        "benchmark": equal_weight_benchmark(close, rebal[0]),
     }
 
 
@@ -541,6 +558,13 @@ def write_report(
             f"- 退市强制平仓: {surv.get('delisted_positions_closed', 0)} 笔"
             + (f"({surv['note']})" if surv.get("note") else ""),
         ]
+        bench = bt.get("benchmark") or {}
+        if bench:
+            lines += [
+                f"- 全票池等权基准(日再平衡/零费用): 总收益 `{_fmt_pct(bench.get('total_return'))}` · "
+                f"CAGR `{_fmt_pct(bench.get('cagr'))}` · 最大回撤 `{_fmt_pct(bench.get('max_drawdown'))}`"
+                " —— 策略跑不赢它说明收益主要来自市场 beta 而非因子选股",
+            ]
     sv = survivorship or {}
     lines += ["", "## 幸存者偏差实测", ""]
     if sv.get("error"):
